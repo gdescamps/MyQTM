@@ -2,6 +2,9 @@
 
 Welcome to MyQTM, an open-source quantitative trading framework designed to deliver robust, AI-driven investment strategies for high-growth technology stocks. This project demonstrates how to achieve strong annual returns (targeting 50% ROI) by combining structured financial data, unstructured news sentiment, and advanced machine learning techniques.
 
+### Performance Example
+![Backtest Performance](backtest.png)
+
 ### Key Features
 
 - **Single data provider**: All financial data is sourced from    
@@ -15,9 +18,6 @@ Welcome to MyQTM, an open-source quantitative trading framework designed to deli
 - **Hybrid approach**: Combines classic models (XGBoost) for structured data and LLMs for unstructured news analysis.
 - **Stochastic optimization**: Hyperparameters are tuned using Covariance Matrix Adaptation Evolution Strategy (CMA-ES).
 - **Transparent methodology**: All code and data processing steps are available for review and validation.
-
-### Performance Example
-![Backtest Performance](backtest.png)
 
 ### Watch the Presentation
 [![YouTube Video](https://img.youtube.com/vi/mVqMiFafkKk/0.jpg)](https://youtu.be/mVqMiFafkKk)
