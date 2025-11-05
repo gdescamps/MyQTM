@@ -139,3 +139,14 @@ INIT_CMA_STD = 0.03
 ```
 
 This will update the hyperparameters and save results in `./outputs/last_cmaes`.
+
+
+## License
+
+This project is distributed under the **PolyForm Noncommercial License 1.0.0**.
+
+- ✅ Personal, academic, and research use allowed.  
+- 🚫 Commercial use (e.g., in proprietary trading systems, financial products, or consulting services) is prohibited without written permission.  
+- 💰 For commercial licensing or royalty agreements, contact: [your-email@example.com]
+
+Full license text: [LICENSE](./LICENSE)
