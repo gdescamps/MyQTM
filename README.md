@@ -154,6 +154,6 @@ This project is distributed under the **PolyForm Noncommercial License 1.0.0**.
 
 - ✅ Personal, academic, and research use allowed.  
 - 🚫 Commercial use (e.g., in proprietary trading systems, financial products, or consulting services) is prohibited without written permission.  
-- 💰 For commercial licensing or royalty agreements, contact: [your-email@example.com]
+- 💰 For commercial licensing or royalty agreements, contact: [descamps.gregory@gmail.com]
 
 Full license text: [LICENSE](./LICENSE)
