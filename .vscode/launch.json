@@ -1,0 +1,41 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "data_pipeline.py",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/src/data_pipeline.py",
+            "cwd": "${workspaceFolder}/",
+            "env": {},
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "train.py",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/src/train.py",
+            "cwd": "${workspaceFolder}/",
+            "env": {},
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "search_params.py",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/src/search_params.py",
+            "cwd": "${workspaceFolder}/",
+            "env": {},
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "backtest.py",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/src/backtest.py",
+            "cwd": "${workspaceFolder}/",
+            "env": {},
+            "console": "integratedTerminal"
+        },
+    ]
+}

@@ -1,0 +1,6 @@
+outs:
+- md5: 82ba5b6d4b90256b366acd0a7fc2716f.dir
+  size: 550334
+  nfiles: 7
+  hash: md5
+  path: last_cmaes

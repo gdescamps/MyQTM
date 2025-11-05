@@ -1,0 +1,9 @@
+google-genai==1.48.0
+pandas==2.3.3
+fmpsdk==20250102.0
+matplotlib==3.10.7
+xgboost==3.1.1
+cma==4.4.0
+joblib==1.5.2
+scikit-optimize==0.10.2
+dvc-gs==3.0.2

@@ -1,0 +1,5 @@
+[core]
+    remote = gcs_remote
+    autostage = true
+['remote "gcs_remote"']
+    url = gs://gdescamps-dvc
