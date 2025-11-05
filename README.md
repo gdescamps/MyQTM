@@ -138,4 +138,4 @@ INIT_CMA_STD = 0.03
 ./4_search_hyperparams.sh
 ```
 
-This will update the hyperparameters and save results in `./outputs/`.
+This will update the hyperparameters and save results in `./outputs/last_cmaes`.
