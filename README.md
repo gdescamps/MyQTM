@@ -20,7 +20,7 @@ Welcome to MyQTM, an open-source quantitative trading framework designed to deli
 - **Transparent methodology**: All code and data processing steps are available for review and validation.
 
 ### Watch the Presentation
-[![YouTube Video](https://img.youtube.com/vi/mVqMiFafkKk/0.jpg)](https://youtu.be/mVqMiFafkKk)
+[![YouTube Video](https://img.youtube.com/vi/c6kNWaCAw6s/0.jpg)](https://youtu.be/c6kNWaCAw6s)
 
 ---
 
