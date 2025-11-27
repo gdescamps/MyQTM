@@ -15,4 +15,4 @@ scikit-optimize==0.10.2
 cma==4.3.0
 ib-insync==0.9.86
 RapidFuzz==3.14.3
-
+dvc-gs==3.0.2
