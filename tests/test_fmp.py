@@ -11,9 +11,9 @@ from dotenv import load_dotenv
 from src.config import TRADE_STOCKS
 from src.fmp import (
     fmp_historical_price_eod,
+    fmp_historical_rating,
     fmp_key_metrics,
     fmp_profile,
-    fmp_ratings,
     fmp_stock_news,
 )
 
@@ -103,7 +103,7 @@ def test_fmp_key_metrics():
     assert len(ret) == 30
 
 
-def test_fmp_ratings():
+def test_fmp_historical_rating():
     """
     Verify that stock ratings data is retrieved for the specified symbol.
 
@@ -112,7 +112,7 @@ def test_fmp_ratings():
     1. The number of records returned matches the specified limit (2000).
     2. The "symbol" field in the first record matches the requested symbol (AAPL).
     """
-    ret = fmp_ratings(apikey=FMP_APIKEY, symbol="AAPL", limit=2000)
+    ret = fmp_historical_rating(apikey=FMP_APIKEY, symbol="AAPL", limit=2000)
     # Verify that the number of records matches the specified limit
     assert len(ret) == 2000
     # Verify that the "symbol" field matches the requested symbol
