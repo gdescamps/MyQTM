@@ -13,6 +13,7 @@ from src.fmp import (
     fmp_historical_price_eod,
     fmp_key_metrics,
     fmp_profile,
+    fmp_ratings,
     fmp_stock_news,
 )
 
@@ -100,3 +101,19 @@ def test_fmp_key_metrics():
     assert ret[0]["symbol"] == "AAPL"
     # Verify that the number of records matches the specified limit
     assert len(ret) == 30
+
+
+def test_fmp_ratings():
+    """
+    Verify that stock ratings data is retrieved for the specified symbol.
+
+    Queries the ratings endpoint for AAPL with a limit of 2000 records.
+    Confirms:
+    1. The number of records returned matches the specified limit (2000).
+    2. The "symbol" field in the first record matches the requested symbol (AAPL).
+    """
+    ret = fmp_ratings(apikey=FMP_APIKEY, symbol="AAPL", limit=2000)
+    # Verify that the number of records matches the specified limit
+    assert len(ret) == 2000
+    # Verify that the "symbol" field matches the requested symbol
+    assert ret[0]["symbol"] == "AAPL"

@@ -157,3 +157,21 @@ def fmp_key_metrics(apikey: str, symbol: str, limit: int = None, period: str = N
     if period:
         url += f"&period={period}"
     return get_jsonparsed_data(url)
+
+
+def fmp_ratings(apikey: str, symbol: str, limit: int = None):
+    """
+    Fetch historical stock ratings for a given stock symbol from Financial Modeling Prep API.
+
+    Args:
+        apikey (str): API key for FMP.
+        symbol (str): Stock ticker symbol.
+        limit (int, optional): Maximum number of records to retrieve.
+
+    Returns:
+        list: A list of dictionaries containing historical stock ratings.
+    """
+    url = f"https://financialmodelingprep.com/stable/ratings-historical?symbol={symbol}&apikey={apikey}"
+    if limit:
+        url += f"&limit={limit}"
+    return get_jsonparsed_data(url)
