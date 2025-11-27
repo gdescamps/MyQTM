@@ -1,6 +1,4 @@
 venv
-outputs
-outputs_copy
 .pytest_cache
 __pycache__
 *.pyc
@@ -8,3 +6,4 @@ __pycache__
 *.egg-info
 /llm_cache.pkl
 /dev-ml-448206-13edf23d9494.json
+/outputs
