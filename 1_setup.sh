@@ -7,6 +7,7 @@ pip install -r requirements.txt
 
 pip install -e .
 
+echo "Please wait until DVC finishes, it will take a while..."
 dvc pull outputs.dvc
 dvc pull llm_cache.pkl.dvc
 dvc pull data/fmp_data.dvc
