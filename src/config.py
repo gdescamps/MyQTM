@@ -1,6 +1,22 @@
-from skopt.space import Real
+BASE_END_DATE = "2025-09-05"
+# TRADE_END_DATE = "2025-09-05"
+TRADE_END_DATE = "2025-11-27"  # base on 10-22
+
+if TRADE_END_DATE == BASE_END_DATE:
+    BASE_END_DATE = None
+
+TRADE_START_DATE = "2017-01-01"
+TRAIN_START_DATE = "2019-08-01"
+TRAIN_END_DATE = "2024-10-05"
+
+TEST_START_DATE = "2020-01-03"
+INITIAL_CAPITAL = 8800
+
+TEST_END_DATE = TRADE_END_DATE
 
 DATA_DIR = "./data/"
+TRAIN_DIR = "./outputs/last_train"
+CMA_DIR = "./outputs/last_cma"
 
 INDICES = ["^IXIC", "^VIX"]
 
@@ -245,26 +261,7 @@ TRADE_STOCKS = list(
     set(TRADE_GROWTH_STOCKS + TRADE_VALUE_STOCKS + NEW_CANDIDATE_STOCKS)
 )
 
-BASE_END_DATE = "2025-09-05"
-TRADE_END_DATE = "2025-09-05"
-# TRADE_END_DATE = "2025-11-26"  # base on 10-22
-
-if TRADE_END_DATE == BASE_END_DATE:
-    BASE_END_DATE = None
-
-TRADE_START_DATE = "2017-01-01"
-TRAIN_START_DATE = "2019-08-01"
-TRAIN_END_DATE = "2024-10-05"
-
-TEST_START_DATE = "2020-01-03"
-INITIAL_CAPITAL = 8800
-
-TEST_END_DATE = TRADE_END_DATE
-
 TS_SIZE = 6
-
-TRAIN_DIR = "./outputs/last_train"
-CMA_DIR = "./outputs/last_cma"
 
 OPEN_DELAY = 1
 MAX_POSITIONS = 12
@@ -277,6 +274,9 @@ CMA_PROCESSES = 96
 CMA_PARALLEL_PROCESSES = 16
 INIT_X0 = [0.6, 0.3, 0.6, 0.3, 0.6, 0.3, 0.6, 0.3, 0.5, 0.5, 0.5, 0.5]
 INIT_CMA_STD = 0.2
+
+from skopt.space import Real
+
 INIT_SPACE = [
     Real(0.2, 0.99, name="long_open_prob_thresa"),
     Real(0.01, 0.99, name="long_close_prob_thresa"),
