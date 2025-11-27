@@ -9,4 +9,3 @@
     url = gs://gdescamps-dvc
 ['remote "secret"']
     url = ssh://gd-gpus/perso
-
