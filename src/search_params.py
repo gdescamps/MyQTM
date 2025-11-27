@@ -1,0 +1,278 @@
+import json
+import multiprocessing
+import os
+import random
+import shutil
+from pathlib import Path
+
+import numpy as np
+from dotenv import load_dotenv
+
+import config
+from src.benchmark import compute_nasdaq_data, run_benchmark
+from src.finetune import cmaes_grid_search_benchmark
+from src.utils.cuda import auto_select_gpu
+from src.utils.path import get_project_root
+from src.utils.plot import plot_portfolio_metrics
+from src.utils.printlog import PrintLog, PrintLogProcess
+
+
+def run_single_random_state(
+    random_state,
+    output_dir_time,
+    init_space,
+    init_x0,
+    init_cma_std,
+    cma_loops,
+    early_stop_rounds,
+    cma_dropout_round,
+    cma_dropout,
+):
+    # Initialize process-specific logger
+    process_log = PrintLogProcess(
+        output_dir_time=output_dir_time, process_id=random_state
+    )
+
+    # Run CMA-ES grid search optimization
+    xbest, fbest, _, positions = cmaes_grid_search_benchmark(
+        n_calls=cma_loops,
+        early_stop_rounds=early_stop_rounds,
+        cma_dropout_round=cma_dropout_round,
+        cma_dropout=cma_dropout,
+        space=init_space,
+        bench_start_date=config.TEST_START_DATE,
+        bench_end_date=config.TEST_END_DATE,
+        init_capital=config.INITIAL_CAPITAL,
+        model_path=config.TRAIN_DIR,
+        data_path=None,
+        random_state=random_state,
+        x0=init_x0,
+        cma_std=init_cma_std,
+        local_log=None,
+    )
+    # Extract optimized trading parameters
+    (
+        long_open_prob_thresa,
+        long_close_prob_thresa,
+        short_open_prob_thresa,
+        short_close_prob_thresa,
+        long_open_prob_thresb,
+        long_close_prob_thresb,
+        short_open_prob_thresb,
+        short_close_prob_thresb,
+        long_prob_powera,
+        short_prob_powera,
+        long_prob_powerb,
+        short_prob_powerb,
+    ) = list(xbest)
+
+    # Initialize performance tracking lists
+    performances = []
+    metrics_list = []
+    random.seed(42)
+
+    # Run benchmark with varying stock dropout rates
+    for attempt in range(cma_dropout_round):
+        metrics, _, _ = run_benchmark(
+            BENCH_START_DATE=config.TEST_START_DATE,
+            BENCH_END_DATE=config.TEST_END_DATE,
+            INIT_CAPITAL=config.INITIAL_CAPITAL,
+            LONG_OPEN_PROB_THRESA=long_open_prob_thresa,
+            LONG_CLOSE_PROB_THRESA=long_close_prob_thresa,
+            SHORT_OPEN_PROB_THRESA=short_open_prob_thresa,
+            SHORT_CLOSE_PROB_THRESA=short_close_prob_thresa,
+            LONG_OPEN_PROB_THRESB=long_open_prob_thresb,
+            LONG_CLOSE_PROB_THRESB=long_close_prob_thresb,
+            SHORT_OPEN_PROB_THRESB=short_open_prob_thresb,
+            SHORT_CLOSE_PROB_THRESB=short_close_prob_thresb,
+            LONG_PROB_POWERA=long_prob_powera,
+            SHORT_PROB_POWERA=short_prob_powera,
+            LONG_PROB_POWERB=long_prob_powerb,
+            SHORT_PROB_POWERB=short_prob_powerb,
+            MODEL_PATH=config.TRAIN_DIR,
+            data_path=None,
+            remove_stocks=cma_dropout,
+        )
+        perf = metrics["portfolio"]["perf"]
+        performances.append(perf)
+        metrics_list.append(metrics)
+
+    if not metrics_list:
+        return
+    # Save combined metrics plot
+    png_path = os.path.join(local_log.output_dir_time, f"best_{random_state}.png")
+
+    nasdaq_metrics = compute_nasdaq_data(
+        BENCH_START_DATE=config.TEST_START_DATE,
+        BENCH_END_DATE=config.TEST_END_DATE,
+        MODEL_PATH=config.TRAIN_DIR,
+        data_path=None,
+    )
+    plot_all, _ = plot_portfolio_metrics(metrics_list, nasdaq_metrics)
+    plot_all.save(png_path)
+
+    # Calculate average performance across all runs
+    global_perf = np.mean(performances)
+    process_log.print("--------------------------------------------------------------")
+    process_log.print(f"ret.fun: {fbest}")
+    process_log.print(f"params: {str(list(xbest))}")
+    process_log.print(f"global perf = {global_perf}")
+
+    # Save trading positions to JSON file
+    positions_path = os.path.join(
+        local_log.output_dir_time, f"positions_{random_state}.json"
+    )
+    with open(positions_path, "w") as f:
+        json.dump(positions, f, indent=2)
+
+    # Save optimized parameters to JSON file
+    best_param = list(xbest)
+    params_path = os.path.join(local_log.output_dir_time, f"params_{random_state}.json")
+    with open(params_path, "w") as f:
+        json.dump(best_param, f, indent=2)
+
+    # Save global performance metric to JSON file
+    perf_path = os.path.join(local_log.output_dir_time, f"perf_{random_state}.json")
+    with open(perf_path, "w") as f:
+        json.dump(global_perf, f, indent=2)
+
+
+if __name__ == "__main__":
+
+    # Load environment variables from .env file
+    # This ensures sensitive information like API keys is securely loaded into the environment.
+    load_dotenv()
+
+    # Set the path to the data directory
+    # Create a directory to store downloaded data if it doesn't already exist.
+    data_path = Path(get_project_root()) / "data" / "fmp_data"
+
+    # Automatically select GPU with sufficient memory
+    auto_select_gpu(threshold_mb=500)
+
+    # Set random seed for reproducibility
+    seed = 42
+
+    # Generate list of random states for parallel processes
+    random_states = list(range(seed, seed + config.CMA_PROCESSES))
+
+    # Load optimization configuration
+    init_space = config.INIT_SPACE
+
+    for iter in range(config.CMA_RECURSIVE):
+
+        # Initialize process logger
+        local_log = PrintLog(extra_name="_cma", enable=False)
+
+        # Define output directory for search results
+        SEARCH_DIR = local_log.output_dir_time
+
+        processes = []
+
+        if iter == 0:
+
+            # Load optimization configuration
+            init_x0 = config.INIT_X0
+            init_cma_std = config.INIT_CMA_STD
+
+            # Start parallel processes for current batch
+            for random_state in random_states:
+                p = multiprocessing.Process(
+                    target=run_single_random_state,
+                    args=(
+                        random_state,
+                        local_log.output_dir_time,
+                        init_space,
+                        init_x0,
+                        init_cma_std,
+                        config.CMA_LOOPS,
+                        config.CMA_EARLY_STOP_ROUNDS,
+                        1,
+                        0,
+                    ),
+                )
+                processes.append(p)
+
+                if len(processes) >= config.CMA_PARALLEL_PROCESSES:
+                    # Start all processes in the current batch
+                    for p in processes:
+                        p.start()
+
+                    # Wait for all processes in batch to complete
+                    for p in processes:
+                        p.join()
+                    processes = []
+
+        else:
+
+            for top in range(1, int(config.CMA_PROCESSES / (2 * iter)) + 1):
+
+                top_params_path = os.path.join(config.CMA_DIR, f"top{top}_params.json")
+                with open(top_params_path, "r") as f:
+                    best_param = json.load(f)
+                init_x0 = best_param
+                init_cma_std = config.INIT_CMA_STD / (3 * iter)  # Reduce std for finer
+
+                p = multiprocessing.Process(
+                    target=run_single_random_state,
+                    args=(
+                        random_states[top - 1],
+                        local_log.output_dir_time,
+                        init_space,
+                        init_x0,
+                        init_cma_std,
+                        config.CMA_LOOPS,
+                        config.CMA_EARLY_STOP_ROUNDS,
+                        3 if iter == 3 else 1,
+                        3 if iter == 3 else 0,
+                    ),
+                )
+                processes.append(p)
+
+                if len(processes) >= config.CMA_PARALLEL_PROCESSES:
+                    # Start all processes in the current batch
+                    for p in processes:
+                        p.start()
+
+                    # Wait for all processes in batch to complete
+                    for p in processes:
+                        p.join()
+                    processes = []
+
+        for p in processes:
+            p.start()
+
+        # Wait for all processes in batch to complete
+        for p in processes:
+            p.join()
+
+        # Collect and sort results by performance
+        perfs = []
+        for random_state in random_states:
+            perf_path = os.path.join(SEARCH_DIR, f"perf_{random_state}.json")
+            if os.path.exists(perf_path):
+                with open(perf_path, "r") as f:
+                    perf = json.load(f)
+                    perfs.append({"perf": perf, "random_state": random_state})
+
+        # Sort performance list in descending order by performance score
+        perfs.sort(key=lambda x: x["perf"], reverse=True)
+
+        # Copy top results with ranking labels
+        for i, entry in enumerate(perfs):
+            random_state = entry["random_state"]
+            shutil.copy(
+                os.path.join(SEARCH_DIR, f"params_{random_state}.json"),
+                os.path.join(SEARCH_DIR, f"top{i+1}_params.json"),
+            )
+            shutil.copy(
+                os.path.join(SEARCH_DIR, f"positions_{random_state}.json"),
+                os.path.join(SEARCH_DIR, f"top{i+1}_positions.json"),
+            )
+            shutil.copy(
+                os.path.join(SEARCH_DIR, f"best_{random_state}.png"),
+                os.path.join(SEARCH_DIR, f"top{i+1}_best.png"),
+            )
+
+        # Archive final results
+        local_log.copy_last()

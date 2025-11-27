@@ -10,16 +10,16 @@ from tqdm import tqdm
 
 class CustomExploder(BaseEstimator, TransformerMixin):
     """
-    Transformer that applies the 'exploded' logic:
+    Transformer that implements the 'exploded' logic:
     - Numeric lists -> separate columns
-    - Lists of strings -> LabelEncoder
+    - String lists -> LabelEncoder
     - Simple strings -> LabelEncoder
-    - Numeric values -> unchanged
+    - Numerics -> unchanged
     """
 
     def __init__(self):
-        self.encoders_ = {}  # store LabelEncoders per column
-        self.columns_ = []  # keep track of created columns
+        self.encoders_ = {}  # Store LabelEncoder by column
+        self.columns_ = []  # Track created columns
 
     def fit(self, X, y=None):
         X = X.copy()
@@ -29,7 +29,7 @@ class CustomExploder(BaseEstimator, TransformerMixin):
         for col in tqdm(X.columns):
             col_data = X[col]
 
-            # helper for parsing lists
+            # Helper function to parse lists
             def try_parse(val):
                 if isinstance(val, str) and val.startswith("[") and val.endswith("]"):
                     try:
@@ -40,7 +40,7 @@ class CustomExploder(BaseEstimator, TransformerMixin):
 
             parsed = col_data.apply(try_parse)
 
-            # Check that all elements have the same type in the column (after parsing)
+            # Verify all elements have the same type in the column (after parsing)
             types_in_col = parsed.map(type).unique()
             if len(types_in_col) > 1:
                 raise AssertionError(
@@ -62,7 +62,7 @@ class CustomExploder(BaseEstimator, TransformerMixin):
                     max_len = parsed.map(len).max()
                     self.columns_.extend([f"{col}_{i}" for i in range(max_len)])
                 else:
-                    raise ValueError(f"Column {col} contains a mixed list.")
+                    raise ValueError(f"Colonne {col} contient une liste mixte.")
             elif parsed.dtype == object and col != "date":
                 le = LabelEncoder().fit(parsed.astype(str))
                 self.encoders_[col] = le
@@ -74,12 +74,13 @@ class CustomExploder(BaseEstimator, TransformerMixin):
 
     def transform(self, X):
         X = X.copy()
-        # final_df = pd.DataFrame(index=X.index)
-        col_blocks = []  # List of DataFrames or Series to concatenate
+        # List of DataFrames or Series to concatenate
+        col_blocks = []
 
         for col in tqdm(X.columns):
             col_data = X[col]
 
+            # Helper function to parse lists
             def try_parse(val):
                 if isinstance(val, str) and val.startswith("[") and val.endswith("]"):
                     try:
@@ -90,7 +91,7 @@ class CustomExploder(BaseEstimator, TransformerMixin):
 
             parsed = col_data.apply(try_parse)
 
-            # Check that all elements have the same type in the column (after parsing)
+            # Verify all elements have the same type in the column (after parsing)
             types_in_col = parsed.map(type).unique()
             if len(types_in_col) > 1:
                 raise AssertionError(
@@ -122,7 +123,7 @@ class CustomExploder(BaseEstimator, TransformerMixin):
                     }
                     col_blocks.append(pd.DataFrame(cols, index=X.index))
                 else:
-                    raise ValueError(f"Column {col} contains a mixed list.")
+                    raise ValueError(f"Colonne {col} contient une liste mixte.")
             elif parsed.dtype == object and col != "date":
                 le = self.encoders_[col]
                 col_blocks.append(
@@ -134,7 +135,7 @@ class CustomExploder(BaseEstimator, TransformerMixin):
         # Concatenate all columns at once to avoid fragmentation
         final_df = pd.concat(col_blocks, axis=1)
 
-        # reindex to expected columns (guarantee stable schema)
+        # Reindex on expected columns (guarantees stable schema)
         # final_df = final_df.reindex(columns=self.columns_, fill_value=np.nan)
 
         return final_df
@@ -143,7 +144,7 @@ class CustomExploder(BaseEstimator, TransformerMixin):
 def prepare_pipeline_for_xgboost_with_pipe(df: pd.DataFrame):
     """
     Build and fit a sklearn pipeline that transforms df.
-    Returns the pipeline and the transformed DataFrame.
+    Returns the pipeline + the transformed DataFrame.
     """
     pipe = Pipeline([("exploder", CustomExploder())])
     transformed = pipe.fit_transform(df)

@@ -1,14 +1,27 @@
 import json
+import os
 import random
 from datetime import datetime
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
+from dotenv import load_dotenv
 
 import src.config as config
+from config import (
+    CMA_DIR,
+    CMA_PARALLEL_PROCESSES,
+    CMA_STOCKS_DROP_OUT,
+    CMA_STOCKS_DROP_OUT_ROUND,
+    INITIAL_CAPITAL,
+    TEST_END_DATE,
+    TEST_START_DATE,
+    TRAIN_DIR,
+)
 from src.utils.path import get_project_root
 from src.utils.plot import plot_portfolio_metrics
+from src.utils.printlog import PrintLog
 from src.utils.trade import (
     build_trade_data,
     close_positions,
@@ -41,13 +54,14 @@ def compute_bench(
     short_prob_powerb,
     leverage=1.0,
 ):
+    # Simulate the benchmark trading strategy and compute portfolio metrics.
     position_size = capital / max_positions
     capital_and_position = capital
 
     current_date = bench_start_date
-    dates_portfolio = []
     values_portfolio = []
     capital_portfolio = []
+    count_portfolio = []
     positions_long_to_open = []
     positions_long_to_close = []
     positions_short_to_open = []
@@ -58,7 +72,7 @@ def compute_bench(
 
     sorted_keys = list(sorted(bench_data.keys()))
 
-    for current_date in sorted_keys:
+    for index, current_date in enumerate(sorted_keys):
 
         (
             long_open_prob_thres,
@@ -83,7 +97,7 @@ def compute_bench(
             short_prob_powerb,
         )
 
-        # closes positions
+        # Close positions scheduled for closing
         (
             capital,
             positions_history,
@@ -98,14 +112,14 @@ def compute_bench(
             positions_history,
         )
 
-        # compute position sizes
+        # Compute the total value of open positions
         position_sizes = compute_position_sizes(
             positions, bench_data, current_date, leverage
         )
         capital_and_position = position_sizes + capital
         position_size = capital_and_position / max_positions
 
-        # open new positions (long)
+        # Open new long positions
         positions, capital, positions_long_to_open = open_positions(
             positions_long_to_open,
             positions,
@@ -115,11 +129,12 @@ def compute_bench(
             capital_and_position,
             position_size,
             max_positions,
+            long_open_prob_thres,
             "long",
             long_prob_power,
         )
 
-        # open new positions (short)
+        # Open new short positions
         positions, capital, positions_short_to_open = open_positions(
             positions_short_to_open,
             positions,
@@ -129,24 +144,27 @@ def compute_bench(
             capital_and_position,
             position_size,
             max_positions,
+            short_open_prob_thres,
             "short",
             short_prob_power,
         )
 
-        # compute position sizes
+        # Recompute the total value of open positions
         position_sizes = compute_position_sizes(
             positions, bench_data, current_date, leverage
         )
 
-        # record portfolio value
+        # Record the portfolio value for this date
         capital_and_position = position_sizes + capital
         position_size = capital_and_position / max_positions
-        dates_portfolio.append(pd.to_datetime(current_date, format="%Y-%m-%d"))
         values_portfolio.append(capital_and_position)
         capital_portfolio.append(capital)
 
-        # compute sorted candidates items
+        # Compute sorted candidate items for this date
         item = bench_data[current_date]
+
+        count_portfolio.append(len(item))
+
         long_item = item.copy()
         long_item = dict(
             sorted(long_item.items(), key=lambda x: x[1]["index_prob"], reverse=True)
@@ -157,7 +175,7 @@ def compute_bench(
             sorted(short_item.items(), key=lambda x: x[1]["index_prob"], reverse=True)
         )
 
-        # handle prev item
+        # Handle previous date's data
         if prev_date is not None:
             prev_item = bench_data[prev_date]
             prev_item = prev_item.copy()
@@ -170,13 +188,12 @@ def compute_bench(
         if remove_stocks > 0:
             random.shuffle(stock_filter)
             stock_filter = stock_filter[:-remove_stocks]
+            # Ensure stocks with current positions remain in the filter
+            for pos in positions:
+                if pos["ticker"] not in stock_filter:
+                    stock_filter.append(pos["ticker"])
 
-        for pos in positions:
-            stock_filter.append(pos["ticker"])
-
-        stock_filter = list(set(stock_filter))
-
-        # compute long position to open
+        # Compute long positions to open
         new_open_ybull = 0
         positions_long_to_open, new_open_ybull = select_positions_to_open(
             long_item,
@@ -189,7 +206,7 @@ def compute_bench(
             new_open_yprob=new_open_ybull,
         )
 
-        # compute short position to open
+        # Compute short positions to open
         new_open_ybear = 0
         positions_short_to_open, new_open_ybear = select_positions_to_open(
             short_item,
@@ -202,7 +219,7 @@ def compute_bench(
             new_open_yprob=new_open_ybear,
         )
 
-        # compute positions to close
+        # Compute positions to close
         positions_long_to_close, positions_short_to_close, remove_pos_indexes = (
             select_positions_to_close(
                 positions,
@@ -215,17 +232,183 @@ def compute_bench(
             )
         )
 
+        # Remove closed positions from the active list
         positions = [
             pos for i, pos in enumerate(positions) if i not in remove_pos_indexes
         ]
         prev_date = current_date
+
     return (
-        dates_portfolio,
         values_portfolio,
         capital_portfolio,
         positions,
         positions_history,
         capital_and_position,
+        count_portfolio,
+    )
+
+
+def compute_nasdaq_data(
+    BENCH_START_DATE=None, BENCH_END_DATE=None, MODEL_PATH=None, data_path=None
+):
+    # Compute NASDAQ index data for comparison with portfolio performance
+
+    dates_portfolio = config.DATES_PORTFOLIO
+
+    # Set the path to the data directory
+    # Create a directory to store downloaded data if it doesn't already exist.
+    MODEL_PATH = Path(get_project_root()) / MODEL_PATH
+
+    bench_start_date = pd.to_datetime(BENCH_START_DATE, format="%Y-%m-%d")
+    bench_end_date = pd.to_datetime(BENCH_END_DATE, format="%Y-%m-%d")
+
+    if config.TRADE_DATA_LOAD is None:
+        trade_data = build_trade_data(
+            model_path=MODEL_PATH,
+            data_path=data_path,
+            bench_start_date=bench_start_date,
+            bench_end_date=bench_end_date,
+        )
+        config.TRADE_DATA_LOAD = trade_data
+        config.DATES_PORTFOLIO = []
+
+        sorted_keys = list(sorted(trade_data.keys()))
+        for index, current_date in enumerate(sorted_keys):
+            config.DATES_PORTFOLIO.append(
+                pd.to_datetime(current_date, format="%Y-%m-%d")
+            )
+        dates_portfolio = config.DATES_PORTFOLIO
+
+    # Metrics and NASDAQ comparison
+    start_date = dates_portfolio[0]
+    end_date = dates_portfolio[-1]
+
+    if data_path is None:
+        data_path = Path(get_project_root()) / "data" / "fmp_data"
+
+    out_file = (
+        data_path / f"IXIC_{config.TRADE_END_DATE}_historical_index_price_full.json"
+    )
+    with open(out_file, "r") as f:
+        nasdaq_history = json.load(f)
+
+    if config.BASE_END_DATE is not None:
+        base_historical_price_file = (
+            data_path / f"IXIC_{config.BASE_END_DATE}_historical_index_price_full.json"
+        )
+        with open(base_historical_price_file, "r") as f:
+            base_nasdaq_history = json.load(f)
+        base_dates = []
+        for item in base_nasdaq_history:
+            base_dates.append(item["date"])
+        add_part = []
+        for item in nasdaq_history:
+            date = item["date"]
+            if date not in base_dates:
+                add_part.append(item)
+        nasdaq_history = add_part + base_nasdaq_history
+
+    nasdaq_dates = [
+        datetime.strptime(r["date"], "%Y-%m-%d").date() for r in nasdaq_history
+    ]
+    nasdaq_values = [r["close"] for r in nasdaq_history]
+    nasdaq_filtered = [
+        (d, v)
+        for d, v in zip(nasdaq_dates, nasdaq_values)
+        if start_date.date() <= d <= end_date.date()
+    ]
+    if nasdaq_filtered:
+        nasdaq_dates_filt, nasdaq_values_filt = zip(*nasdaq_filtered)
+    else:
+        nasdaq_dates_filt, nasdaq_values_filt = [], []
+
+    nasdaq_dates_filt = list(reversed(nasdaq_dates_filt))
+    nasdaq_values_filt = list(reversed(nasdaq_values_filt))
+
+    # Compute NASDAQ metrics
+    if nasdaq_values_filt:
+        nasdaq_values_arr = np.array(nasdaq_values_filt)
+        nasdaq_cummax = np.maximum.accumulate(nasdaq_values_arr)
+        nasdaq_drawdowns = (nasdaq_values_arr - nasdaq_cummax) / nasdaq_cummax
+        nasdaq_max_drawdown = nasdaq_drawdowns.min()
+        nasdaq_ret = (
+            100 * (nasdaq_values_arr[-1] - nasdaq_values_arr[0]) / nasdaq_values_arr[0]
+        )
+        # Longest period without new high (NASDAQ)
+        longest_nasdaq_drawdown = 0
+        current_dd_nasdaq = 0
+        for v, m in zip(nasdaq_values_arr, nasdaq_cummax):
+            if v < m:
+                current_dd_nasdaq += 1
+                if current_dd_nasdaq > longest_nasdaq_drawdown:
+                    longest_nasdaq_drawdown = current_dd_nasdaq
+            else:
+                current_dd_nasdaq = 0
+    else:
+        nasdaq_max_drawdown = float("nan")
+        nasdaq_ret = float("nan")
+        longest_nasdaq_drawdown = 0
+
+    return {
+        "nasdaq": {
+            "dates_portfolio": nasdaq_dates_filt,
+            "values_portfolio": nasdaq_values_filt,
+            "return": float(nasdaq_ret),
+            "max_drawdown": float(100 * nasdaq_max_drawdown),
+            "longest_drawdown_period": int(longest_nasdaq_drawdown),
+        }
+    }
+
+
+def compute_annual_roi(dates_portfolio, values_portfolio):
+    """
+    Calculates the ROI for each 1-year period from the end, non-sliding.
+    Returns a dict {start_date: ROI_in_%}
+    """
+    df = pd.DataFrame(
+        {
+            "date": dates_portfolio,
+            "value": values_portfolio,
+        }
+    )
+    df = df.sort_values("date").reset_index(drop=True)
+    annual_roi = {}
+    i = len(df) - 1
+    while i > 0:
+        end_row = df.iloc[i]
+        end_date = end_row["date"]
+        end_value = end_row["value"]
+        # Search for the first date <= end_date - 365 days
+        target_date = end_date - pd.Timedelta(days=365)
+        prev_year_idx = df[df["date"] <= target_date].index
+        if len(prev_year_idx) == 0:
+            break  # Not enough history for a full period
+        start_idx = prev_year_idx[-1]
+        start_row = df.loc[start_idx]
+        start_value = start_row["value"]
+        roi = 100 * (end_value - start_value) / start_value
+        annual_roi[str(end_row["date"].date())] = float(roi)  # key = end_date
+        i = start_idx  # Move to the previous 1-year period
+    annual_roi_std = (
+        float(np.std(list(annual_roi.values()))) if annual_roi else float("nan")
+    )
+    annual_roi_mean = (
+        float(np.mean(list(annual_roi.values()))) if annual_roi else float("nan")
+    )
+    annual_roi_min = (
+        float(np.min(list(annual_roi.values()))) if annual_roi else float("nan")
+    )
+    annual_roi_max = (
+        float(np.max(list(annual_roi.values()))) if annual_roi else float("nan")
+    )
+
+    return (
+        annual_roi,
+        annual_roi_mean,
+        annual_roi_std,
+        annual_roi_min,
+        annual_roi_max,
+        list(annual_roi.values())[0],
     )
 
 
@@ -247,41 +430,48 @@ def run_benchmark(
     LONG_PROB_POWERB=1.0,
     SHORT_PROB_POWERB=1.0,
     MODEL_PATH=None,
+    data_path=None,
     remove_stocks=5,
     leverage=1.0,
 ):
+    # Run the benchmark simulation and compute all portfolio metrics
     # Set the path to the data directory
     # Create a directory to store downloaded data if it doesn't already exist.
     MODEL_PATH = Path(get_project_root()) / MODEL_PATH
 
-    out_file = (
-        config.DATA_DIR
-        / f"IXIC_{config.TRADE_END_DATE}_historical_index_price_full.json"
-    )
-    with open(out_file, "r") as f:
-        nasdaq_history = json.load(f)
+    if data_path is None:
+        data_path = Path(get_project_root()) / "data" / "fmp_data"
 
     bench_start_date = pd.to_datetime(BENCH_START_DATE, format="%Y-%m-%d")
     bench_end_date = pd.to_datetime(BENCH_END_DATE, format="%Y-%m-%d")
 
     trade_data = config.TRADE_DATA_LOAD
+    dates_portfolio = config.DATES_PORTFOLIO
     remove_stocks_list = []
 
     if config.TRADE_DATA_LOAD is None:
         trade_data = build_trade_data(
             model_path=MODEL_PATH,
+            data_path=data_path,
             bench_start_date=bench_start_date,
             bench_end_date=bench_end_date,
         )
         config.TRADE_DATA_LOAD = trade_data
+        config.DATES_PORTFOLIO = []
 
+        sorted_keys = list(sorted(trade_data.keys()))
+        for index, current_date in enumerate(sorted_keys):
+            config.DATES_PORTFOLIO.append(
+                pd.to_datetime(current_date, format="%Y-%m-%d")
+            )
+        dates_portfolio = config.DATES_PORTFOLIO
     (
-        dates_portfolio,
         values_portfolio,
         capital_portfolio,
         positions,
         positions_history,
         capital_and_position,
+        count_portfolio,
     ) = compute_bench(
         trade_data,
         remove_stocks,
@@ -303,26 +493,6 @@ def run_benchmark(
         SHORT_PROB_POWERB,
     )
 
-    # Metrics and NASDAQ comparison
-    start_date = dates_portfolio[0]
-    end_date = dates_portfolio[-1]
-    nasdaq_dates = [
-        datetime.strptime(r["date"], "%Y-%m-%d").date() for r in nasdaq_history
-    ]
-    nasdaq_values = [r["close"] for r in nasdaq_history]
-    nasdaq_filtered = [
-        (d, v)
-        for d, v in zip(nasdaq_dates, nasdaq_values)
-        if start_date.date() <= d <= end_date.date()
-    ]
-    if nasdaq_filtered:
-        nasdaq_dates_filt, nasdaq_values_filt = zip(*nasdaq_filtered)
-    else:
-        nasdaq_dates_filt, nasdaq_values_filt = [], []
-
-    nasdaq_dates_filt = list(reversed(nasdaq_dates_filt))
-    nasdaq_values_filt = list(reversed(nasdaq_values_filt))
-
     # Portfolio metrics
     portfolio_values_arr = np.array(values_portfolio)
     portfolio_cummax = np.maximum.accumulate(portfolio_values_arr)
@@ -341,87 +511,12 @@ def run_benchmark(
         else:
             current_dd = 0
 
-    # Calcul Ulcer Index
-    # L'Ulcer Index est la racine carrée de la moyenne des drawdowns au carré (en %)
+    # Ulcer Index calculation
+    # The Ulcer Index is the square root of the mean of squared drawdowns (in %)
     if len(portfolio_drawdowns) > 0:
         ulcer_index = np.sqrt(np.mean((100 * np.minimum(portfolio_drawdowns, 0)) ** 2))
     else:
         ulcer_index = float("nan")
-
-    # Nasdaq metrics
-    if nasdaq_values_filt:
-        nasdaq_values_arr = np.array(nasdaq_values_filt)
-        nasdaq_cummax = np.maximum.accumulate(nasdaq_values_arr)
-        nasdaq_drawdowns = (nasdaq_values_arr - nasdaq_cummax) / nasdaq_cummax
-        nasdaq_max_drawdown = nasdaq_drawdowns.min()
-        nasdaq_ret = (
-            100 * (nasdaq_values_arr[-1] - nasdaq_values_arr[0]) / nasdaq_values_arr[0]
-        )
-        # Longest period without new high (nasdaq)
-        longest_nasdaq_drawdown = 0
-        current_dd_nasdaq = 0
-        for v, m in zip(nasdaq_values_arr, nasdaq_cummax):
-            if v < m:
-                current_dd_nasdaq += 1
-                if current_dd_nasdaq > longest_nasdaq_drawdown:
-                    longest_nasdaq_drawdown = current_dd_nasdaq
-            else:
-                current_dd_nasdaq = 0
-    else:
-        nasdaq_max_drawdown = float("nan")
-        nasdaq_ret = float("nan")
-        longest_nasdaq_drawdown = 0
-
-    def compute_annual_roi(dates_portfolio, values_portfolio):
-        """
-        Calcule le ROI pour chaque tranche de 1 an à partir de la fin, non glissant.
-        Retourne un dict {date_debut: ROI_en_%}
-        """
-        df = pd.DataFrame(
-            {
-                "date": dates_portfolio,
-                "value": values_portfolio,
-            }
-        )
-        df = df.sort_values("date").reset_index(drop=True)
-        annual_roi = {}
-        i = len(df) - 1
-        while i > 0:
-            end_row = df.iloc[i]
-            end_date = end_row["date"]
-            end_value = end_row["value"]
-            # Cherche la première date <= end_date - 365 jours
-            target_date = end_date - pd.Timedelta(days=365)
-            prev_year_idx = df[df["date"] <= target_date].index
-            if len(prev_year_idx) == 0:
-                break  # Pas assez de recul pour une tranche complète
-            start_idx = prev_year_idx[-1]
-            start_row = df.loc[start_idx]
-            start_value = start_row["value"]
-            roi = 100 * (end_value - start_value) / start_value
-            annual_roi[str(end_row["date"].date())] = float(roi)  # clé = end_date
-            i = start_idx  # Passe à la tranche précédente d'un an
-        annual_roi_std = (
-            float(np.std(list(annual_roi.values()))) if annual_roi else float("nan")
-        )
-        annual_roi_mean = (
-            float(np.mean(list(annual_roi.values()))) if annual_roi else float("nan")
-        )
-        annual_roi_min = (
-            float(np.min(list(annual_roi.values()))) if annual_roi else float("nan")
-        )
-        annual_roi_max = (
-            float(np.max(list(annual_roi.values()))) if annual_roi else float("nan")
-        )
-
-        return (
-            annual_roi,
-            annual_roi_mean,
-            annual_roi_std,
-            annual_roi_min,
-            annual_roi_max,
-            list(annual_roi.values())[0],
-        )
 
     (
         annual_roi,
@@ -431,6 +526,7 @@ def run_benchmark(
         annual_roi_max,
         annual_roi_last,
     ) = compute_annual_roi(dates_portfolio, values_portfolio)
+
     perf = 0
     positions_count = len(positions_history) + len(positions)
     longest_portfolio_drawdown_ratio = float(longest_portfolio_drawdown) / float(
@@ -479,7 +575,8 @@ def run_benchmark(
     AB_rate = (long_A_positions + short_A_positions) / (positions_count + 1)
     long_short_rate = (long_A_positions + long_B_positions) / (positions_count + 1)
 
-    def maximize(x, center=0.5, coef=4):
+    def maximize_half(x, center=0.5, coef=4):
+        # Helper function to maximize performance near a center value
         weight = 1 - coef * (x - center) ** 2
         return max(0.0, weight)
 
@@ -489,16 +586,18 @@ def run_benchmark(
         and longest_portfolio_drawdown > 5
     ):
         perf = (
-            maximize(long_rate, center=0.5)
-            * maximize(short_rate, center=0.5)
-            * maximize(AB_rate, center=0.5)
-            * maximize(long_short_rate, center=0.7)
+            maximize_half(long_rate)
+            * maximize_half(short_rate)
+            * maximize_half(AB_rate)
+            * maximize_half(long_short_rate, center=0.7)
+            * float(0 if annual_roi_last < 0 else annual_roi_last)
             * float(portfolio_ret)
+            * float(positions_count_rate)
             / (
                 (float(ulcer_index) / 10)
                 * float(longest_portfolio_drawdown)
-                * (0.25 + (float(annual_roi_std) / 10))
-                * (abs(float(100 * portfolio_max_drawdown)) / 30)
+                * (0.15 + (float(annual_roi_std) / 10))
+                * ((abs(float(100 * portfolio_max_drawdown)) / 30) ** 1.5)
             )
         )
 
@@ -507,12 +606,14 @@ def run_benchmark(
             "perf": perf,
             "dates_portfolio": dates_portfolio,
             "values_portfolio": values_portfolio,
+            "count_portfolio": count_portfolio,
+            "capital_portfolio": capital_portfolio,
             "return": float(portfolio_ret),
             "max_drawdown": float(100 * portfolio_max_drawdown),
             "ulcer_index": float(100 * ulcer_index),
             "random_stocks_removed": int(remove_stocks),
             "longest_drawdown_period": int(longest_portfolio_drawdown),
-            # ...autres métriques éventuelles...
+            # ...other possible metrics...
             "annual_roi": annual_roi,
             "annual_roi_std": annual_roi_std,
             "annual_roi_mean": annual_roi_mean,
@@ -523,18 +624,94 @@ def run_benchmark(
             "AB_rate": AB_rate,
             "long_short_rate": long_short_rate,
         },
-        "nasdaq": {
-            "dates_portfolio": nasdaq_dates_filt,
-            "values_portfolio": nasdaq_values_filt,
-            "return": float(nasdaq_ret),
-            "max_drawdown": float(100 * nasdaq_max_drawdown),
-            "longest_drawdown_period": int(longest_nasdaq_drawdown),
-        },
         "positions_count": positions_count,
     }
 
-    # Plotting to in-memory image
-    image, _ = plot_portfolio_metrics(metrics)
-
     # Return metrics, image, and positions
-    return metrics, image, positions_history + positions, remove_stocks_list
+    return metrics, positions_history + positions, remove_stocks_list
+
+
+if __name__ == "__main__":
+
+    # Load environment variables from .env file
+    # This ensures sensitive information like API keys is securely loaded into the environment.
+    load_dotenv()
+
+    # Set the path to the data directory
+    # Create a directory to store downloaded data if it doesn't already exist.
+    data_path = Path(get_project_root()) / "data" / "fmp_data"
+
+    local_log = PrintLog(extra_name="_benchmark", enable=False)
+
+    for top in range(1, CMA_PARALLEL_PROCESSES):
+
+        if os.path.exists(os.path.join(CMA_DIR, f"top{top}_params.json")):
+
+            with open(os.path.join(CMA_DIR, f"top{top}_params.json"), "r") as f:
+                XBEST = json.load(f)
+
+            (
+                # max_positions,
+                long_open_prob_thresa,
+                long_close_prob_thresa,
+                short_open_prob_thresa,
+                short_close_prob_thresa,
+                long_open_prob_thresb,
+                long_close_prob_thresb,
+                short_open_prob_thresb,
+                short_close_prob_thresb,
+                long_prob_powera,
+                short_prob_powera,
+                long_prob_powerb,
+                short_prob_powerb,
+            ) = list(XBEST)
+
+            returns = []
+            max_drawdowns = []
+            ulcer_indexes = []
+            performances = []
+            metrics_list = []
+
+            random.seed(42)
+            for index in range(CMA_STOCKS_DROP_OUT_ROUND):
+                remove_stocks = 0 if index == 0 else CMA_STOCKS_DROP_OUT
+                metrics, positions, remove_stocks_list = run_benchmark(
+                    BENCH_START_DATE=TEST_START_DATE,
+                    BENCH_END_DATE=TEST_END_DATE,
+                    INIT_CAPITAL=INITIAL_CAPITAL,
+                    LONG_OPEN_PROB_THRESA=long_open_prob_thresa,
+                    LONG_CLOSE_PROB_THRESA=long_close_prob_thresa,
+                    SHORT_OPEN_PROB_THRESA=short_open_prob_thresa,
+                    SHORT_CLOSE_PROB_THRESA=short_close_prob_thresa,
+                    LONG_OPEN_PROB_THRESB=long_open_prob_thresb,
+                    LONG_CLOSE_PROB_THRESB=long_close_prob_thresb,
+                    SHORT_OPEN_PROB_THRESB=short_open_prob_thresb,
+                    SHORT_CLOSE_PROB_THRESB=short_close_prob_thresb,
+                    LONG_PROB_POWERA=long_prob_powera,
+                    SHORT_PROB_POWERA=short_prob_powera,
+                    LONG_PROB_POWERB=long_prob_powerb,
+                    SHORT_PROB_POWERB=short_prob_powerb,
+                    MODEL_PATH=TRAIN_DIR,
+                    data_path=None,
+                    remove_stocks=remove_stocks,
+                )
+                metrics_list.append(metrics)
+
+            nasdaq_metrics = compute_nasdaq_data(
+                BENCH_START_DATE=TEST_START_DATE,
+                BENCH_END_DATE=TEST_END_DATE,
+                MODEL_PATH=TRAIN_DIR,
+                data_path=None,
+            )
+            plot, metrics_text = plot_portfolio_metrics(metrics_list, nasdaq_metrics)
+            png_path = os.path.join(
+                local_log.output_dir_time,
+                f"top{top}_test.png",
+            )
+            plot.save(png_path)
+
+            with local_log:
+                print(f"Benchmark results for top{top}:")
+                print(metrics_text)
+
+    local_log.copy_last()

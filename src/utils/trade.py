@@ -1,6 +1,5 @@
 # %%
 import json
-from datetime import datetime
 
 import joblib
 import numpy as np
@@ -13,23 +12,26 @@ from src.utils.printlog import PrintLogNone
 
 
 def build_trade_data(
-    model_path, bench_start_date, bench_end_date, end_limit: bool = True
+    model_path, data_path, bench_start_date, bench_end_date, end_limit: bool = True
 ):
     current_date = bench_start_date
     trade_data = {}
 
-    selected_features_path = model_path / "selected_features.json"
-    with open(selected_features_path, "r") as f:
-        selected_features = json.load(f)
+    selected_featuresA_path = model_path / "selected_featuresA.json"
+    with open(selected_featuresA_path, "r") as f:
+        selected_featuresA = json.load(f)
+    selected_featuresB_path = model_path / "selected_featuresB.json"
+    with open(selected_featuresB_path, "r") as f:
+        selected_featuresB = json.load(f)
 
     bench_end_date_str = bench_end_date.strftime("%Y-%m-%d")
-    df_bench = pd.read_csv(config.DATA_DIR / f"{bench_end_date_str}_benchmark_XY.csv")
+    df_bench = pd.read_csv(data_path / f"{bench_end_date_str}_benchmark_XY.csv")
     df_bench["date"] = pd.to_datetime(df_bench["date"])
 
     df_bench_copy = df_bench.copy()
-    df_benchA_X = df_bench_copy[selected_features]
+    df_benchA_X = df_bench_copy[selected_featuresA]
     df_bench_copy = df_bench.copy()
-    df_benchB_X = df_bench_copy[selected_features]
+    df_benchB_X = df_bench_copy[selected_featuresB]
     df_bench_Y = df_bench_copy["trend"]
     dbenchA = xgb.DMatrix(df_benchA_X, label=df_bench_Y.values.ravel())
     dbenchB = xgb.DMatrix(df_benchB_X, label=df_bench_Y.values.ravel())
@@ -57,9 +59,8 @@ def build_trade_data(
     stocks = []
     while current_date <= bench_end_date:
         current_date_str = current_date.strftime("%Y-%m-%d")
-        df_today = df_bench[
-            df_bench["date"] == current_date
-        ]  # current_date is already a Timestamp
+        # current_date is already a Timestamp
+        df_today = df_bench[df_bench["date"] == current_date]
         if len(df_today) == 0:
             current_date += pd.Timedelta(days=1)
             continue
@@ -68,13 +69,14 @@ def build_trade_data(
         today_open = df_bench["open"][df_today.index]
         today_y = df_bench["trend"][df_today.index]
 
-        if "A" in get_interval_type(current_date_str, end_limit=end_limit):
+        interval_type = get_interval_type(current_date_str, end_limit=end_limit)
+        if "A" in interval_type:
             today_y_prob = y_probB[df_today.index]
-        elif "B" in get_interval_type(current_date_str, end_limit=end_limit):
+        elif "B" in interval_type:
             today_y_prob = y_probA[df_today.index]
-        elif "C" in get_interval_type(current_date_str, end_limit=end_limit):
+        elif "C" in interval_type:
             today_y_prob = y_probB[df_today.index]
-        elif "D" in get_interval_type(current_date_str, end_limit=end_limit):
+        elif "D" in interval_type:
             today_y_prob = y_probA[df_today.index]
 
         for stock, open_price, yprob, y in zip(
@@ -111,7 +113,6 @@ def build_trade_data(
             c = today_stock["class"]
             class_long = 2
             class_short = 0
-            # Detect entry into long or short class and set index/prob
             if pc is not None and c == class_long and pc != class_long:
                 index_long = 0
                 index_prob = today_stock["ybull"]
@@ -138,13 +139,14 @@ def close_positions(
     current_date,
     capital,
     positions_history,
+    callback=None,
     leverage=1.0,
     log=PrintLogNone(),
 ):
-    interval = get_interval_type(current_date)
 
-    # close positions
+    # Close long positions
     if len(positions_long_to_close):
+        interval = get_interval_type(current_date)
         for item in positions_long_to_close:
             ticker = item["ticker"]
             open_price = item["open_price"]
@@ -153,6 +155,8 @@ def close_positions(
             close_price = bench_data[current_date][ticker]["open"]
             item["close_price"] = close_price
             item["close_interval"] = interval
+            if callback is not None:
+                callback(item, log=log)
             close_price = item["close_price"]
             gain = (close_price - open_price) / open_price
             item["gain"] = 100 * gain
@@ -160,7 +164,9 @@ def close_positions(
             positions_history.append(item)
         positions_long_to_close = []
 
+    # Close short positions
     if len(positions_short_to_close):
+        interval = get_interval_type(current_date)
         for item in positions_short_to_close:
             ticker = item["ticker"]
             open_price = item["open_price"]
@@ -169,6 +175,8 @@ def close_positions(
             close_price = bench_data[current_date][ticker]["open"]
             item["close_price"] = close_price
             item["close_interval"] = interval
+            if callback is not None:
+                callback(item, log=log)
             close_price = item["close_price"]
             gain = (open_price - close_price) / open_price
             item["gain"] = 100 * gain
@@ -196,9 +204,6 @@ def compute_position_sizes(positions, bench_data, current_date, leverage=1.0):
             gain = (open_price - close_price) / open_price
         item["gain"] = 100 * gain
         item["end"] = current_date
-        start_date = datetime.strptime(item["start"], "%Y-%m-%d")
-        end_date = datetime.strptime(current_date, "%Y-%m-%d")
-        item["days"] = (end_date - start_date).days
         position_sizes += (gain * leverage_size) + size
     return position_sizes
 
@@ -212,8 +217,10 @@ def open_positions(
     capital_and_position,
     position_size,
     max_positions,
+    open_prob_thres,
     pos_type,
     prob_power,
+    callback=None,
     leverage=1.0,
     log=PrintLogNone(),
 ):
@@ -225,7 +232,11 @@ def open_positions(
     if len(positions_to_open):
         for item in positions_to_open:
             if capital > 100.0:
+                # signal_prob = (item["yprob"] - open_prob_thres) / (
+                #     1.0 - open_prob_thres
+                # )
                 signal_prob = item["yprob"]
+                # signal_prob = float(abs(signal_prob))
                 prob_power = float(abs(prob_power))
                 signal_prob = signal_prob ** (10.0 * prob_power)
                 size_factor_val = 1 + (signal_prob * ((max_positions) - 1))
@@ -245,6 +256,8 @@ def open_positions(
                     "yprob": item["yprob"],
                     "open_interval": interval,
                 }
+                if callback is not None:
+                    callback(open_position, log=log)
                 positions.append(open_position)
                 capital -= size
         positions_to_open = []
@@ -265,26 +278,33 @@ def select_positions_to_open(
     Select tickers to open new positions (long or short).
     Returns updated positions_to_open and new_open_yprob.
     """
+    already_open = []
+    for pos in positions:
+        already_open.append(pos["ticker"])
+
     for ticker in item_dict.keys():
         if ticker not in stock_filter:
             continue
-        already_open = any(pos["ticker"] == ticker for pos in positions)
-        if not already_open:
-            if ticker in prev_item and ticker in item_dict:
-                if class_val == 2:
-                    index = item_dict[ticker]["index_long"]
-                elif class_val == 0:
-                    index = item_dict[ticker]["index_short"]
-                if index >= 0 and index <= config.OPEN_DELAY:
-                    if item_dict[ticker]["index_prob"] >= open_prob_thres:
-                        positions_to_open.append(
-                            {
-                                "ticker": ticker,
-                                "yprob": item_dict[ticker]["index_prob"],
-                            }
-                        )
-                        if new_open_yprob < item_dict[ticker]["index_prob"]:
-                            new_open_yprob = item_dict[ticker]["index_prob"]
+        if ticker in already_open:
+            continue
+        if ticker in prev_item and ticker in item_dict:
+            if class_val == 2:
+                index = item_dict[ticker]["index_long"]
+            elif class_val == 0:
+                index = item_dict[ticker]["index_short"]
+            if index >= 0 and index <= config.OPEN_DELAY:
+                if item_dict[ticker]["index_prob"] >= open_prob_thres:
+                    positions_to_open.append(
+                        {
+                            "ticker": ticker,
+                            "yprob": item_dict[ticker]["index_prob"],
+                        }
+                    )
+                    if new_open_yprob < item_dict[ticker]["index_prob"]:
+                        new_open_yprob = item_dict[ticker]["index_prob"]
+                else:
+                    break
+
     return positions_to_open, new_open_yprob
 
 
@@ -378,28 +398,29 @@ def get_param(
     short_prob_powerb,
     end_limit: bool = True,
 ):
-    if "A" in get_interval_type(current_date, end_limit=end_limit):
+    interval_type = get_interval_type(current_date, end_limit=end_limit)
+    if "A" in interval_type:
         long_open_prob_thres = long_open_prob_thresb
         short_open_prob_thres = short_open_prob_thresb
         long_close_prob_thres = long_close_prob_thresb
         short_close_prob_thres = short_close_prob_thresb
         long_prob_power = long_prob_powerb
         short_prob_power = short_prob_powerb
-    elif "B" in get_interval_type(current_date, end_limit=end_limit):
+    elif "B" in interval_type:
         long_open_prob_thres = long_open_prob_thresa
         short_open_prob_thres = short_open_prob_thresa
         long_close_prob_thres = long_close_prob_thresa
         short_close_prob_thres = short_close_prob_thresa
         long_prob_power = long_prob_powera
         short_prob_power = short_prob_powera
-    elif "C" in get_interval_type(current_date, end_limit=end_limit):
+    elif "C" in interval_type:
         long_open_prob_thres = long_open_prob_thresb
         short_open_prob_thres = short_open_prob_thresb
         long_close_prob_thres = long_close_prob_thresb
         short_close_prob_thres = short_close_prob_thresb
         long_prob_power = long_prob_powerb
         short_prob_power = short_prob_powerb
-    elif "D" in get_interval_type(current_date, end_limit=end_limit):
+    elif "D" in interval_type:
         long_open_prob_thres = long_open_prob_thresa
         short_open_prob_thres = short_open_prob_thresa
         long_close_prob_thres = long_close_prob_thresa

@@ -2,11 +2,13 @@ import json
 import re
 from concurrent.futures import ThreadPoolExecutor
 from functools import partial
+from pathlib import Path
 
 from tqdm import tqdm
 
 from src.config import TRADE_STOCKS
-from src.utils.llm_api import call_llm, save_llm_cache
+from src.utils.llm import save_llm_cache, txt2txt_llm
+from src.utils.path import get_project_root
 
 
 def parse_llm_sentiment_response(response):
@@ -29,7 +31,12 @@ def parse_llm_sentiment_response(response):
 
 
 def process_stock(stock, config):
-    profile_file = config.DATA_DIR / f"{stock}_{config.TRADE_END_DATE}_profile.json"
+
+    # Set the path to the data directory and create it if it doesn't already exist
+    data_path = Path(get_project_root()) / "data" / "fmp_data"
+
+    # Load company profile data
+    profile_file = data_path / f"{stock}_{config.TRADE_END_DATE}_profile.json"
     profile_file = str(profile_file)
 
     try:
@@ -39,7 +46,8 @@ def process_stock(stock, config):
         return
 
     sentiments = {}
-    news_file = config.DATA_DIR / f"{stock}_{config.TRADE_END_DATE}_news.json"
+    # Load news data for the stock
+    news_file = data_path / f"{stock}_{config.TRADE_END_DATE}_news.json"
     news_file = str(news_file)
 
     try:
@@ -49,7 +57,7 @@ def process_stock(stock, config):
         return
 
     keys = list(news.keys())
-    # Ajout d'une barre de progression temporaire pour la boucle sur keys
+    # Add progress bar for processing news items
     for key in tqdm(keys, desc=f"{stock} news", leave=False):
         news_item = news[key]
         news_text = ""
@@ -63,7 +71,8 @@ def process_stock(stock, config):
             if n["text"] is None:
                 continue
 
-        news_text += n["title"] + ": " + n["text"] + "\n"
+            news_text += n["title"] + ": " + n["text"] + "\n"
+        # Build prompt for LLM to extract sentiment scores
         news_text += f"From this news related to the company {profile['companyName']} provide 3 sentiments score from 0 to 10, 0 is extremly negative, 5 neutral and 10 extremy posisitive, the sentiment is related to the value of the compagny, the  \n"
         news_text += f"Based on this news about {profile['companyName']}, provide 3 sentiment scores from 0 to 10 (0 = extremely negative, 5 = neutral, 10 = extremely positive). The scores should reflect the potential impact on the company's value. Please rate:\n"
         news_text += "company: The company's products and revenues\n"
@@ -77,22 +86,28 @@ def process_stock(stock, config):
         sentiment = {"company": 5, "competitors": 5, "global": 5}
         if len(news_text) > 0:
             try:
-                prompt, _ = call_llm(
+                # Call LLM to analyze sentiment from news text
+                prompt, _ = txt2txt_llm(
                     news_text, model_name="gemini-2.0-flash", cache=True
                 )
                 sentiment = parse_llm_sentiment_response(prompt)
                 sentiments[key] = sentiment
             except Exception as e:
-                return
+                print(f"Error processing sentiment for {stock} news item {key}: {e}")
+                sentiments[key] = {"company": 5, "competitors": 5, "global": 5}
+    # Save sentiment scores to file
     sentiments_file = news_file.replace(".json", "_sentiments.json")
+    save_llm_cache()
     try:
         with open(sentiments_file, "w") as f:
             json.dump(sentiments, f)
     except Exception as e:
+        print(f"Error saving sentiments for {stock}: {e}")
         return
 
 
 def process_all_stocks(config):
+    # Process all stocks in parallel using thread pool
     with ThreadPoolExecutor(max_workers=16) as executor:
         list(
             tqdm(
@@ -100,10 +115,10 @@ def process_all_stocks(config):
                 total=len(TRADE_STOCKS),
             )
         )
-    save_llm_cache()
 
 
 def main(config=None):
+    # Load default config if not provided
     if config is None:
         import src.config as config
     process_all_stocks(config)

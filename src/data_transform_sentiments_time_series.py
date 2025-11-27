@@ -1,39 +1,43 @@
 import json
 import os
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
-
-# Import project-specific configurations and utility functions
 from tqdm import tqdm
 
 from src.utils.df import merge_by_interval
+from src.utils.path import get_project_root
 
 
 def process_all_stocks(config):
+    # Define the path to the data directory
+    # Create a directory to store downloaded data if it doesn't already exist.
+    data_path = Path(get_project_root()) / "data" / "fmp_data"
+
     # Iterate through each stock and its corresponding sentiments files
     for stock in tqdm(config.TRADE_STOCKS):
 
         news = []
 
-        output_file = config.DATA_DIR / f"{stock}_{config.TRADE_END_DATE}_all.csv"
+        output_file = data_path / f"{stock}_{config.TRADE_END_DATE}_all.csv"
         df_all = pd.read_csv(output_file)
         df_all.set_index("date", inplace=True)
 
         file = "news_sentiments.json"
 
-        # Construct the file path for the embeddings file
-        sentiments_file = config.DATA_DIR / f"{stock}_{config.TRADE_END_DATE}_{file}"
+        # Construct the file path for the sentiments file
+        sentiments_file = data_path / f"{stock}_{config.TRADE_END_DATE}_{file}"
         sentiments_file = str(sentiments_file)
 
         if os.path.exists(sentiments_file) is False:
             continue
 
-        # Load the embeddings from the JSON file
+        # Load the sentiments from the JSON file
         with open(sentiments_file, "r") as f:
             sentiments = json.load(f)
 
-        # Append each embedding to the list of all embeddings
+        # Append each sentiment to the list of all sentiments
         for key in sentiments.keys():
             s = sentiments[key]
             news.append(
@@ -87,7 +91,7 @@ def process_all_stocks(config):
         merged = merged.iloc[20:]
         merged[["news_days"]] = merged[["news_days"]].astype(int)
 
-        output_file = config.DATA_DIR / f"{stock}_{config.TRADE_END_DATE}_all.csv"
+        output_file = data_path / f"{stock}_{config.TRADE_END_DATE}_all.csv"
         merged.to_csv(output_file, index=False)
 
 

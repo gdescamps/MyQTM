@@ -3,12 +3,14 @@ import io
 
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
 from PIL import Image
 
+import src.config as config
 from src.utils.interval import get_interval_type
 
 
-def plot_portfolio_metrics(metrics):
+def plot_portfolio_metrics(metrics, nasdaq_metrics=None):
     """
     Plot portfolio(s) and NASDAQ metrics using only the metrics dict or a list of dicts.
     Returns an in-memory PIL image.
@@ -19,12 +21,18 @@ def plot_portfolio_metrics(metrics):
     else:
         metrics_list = [metrics]
 
+    for m in metrics_list:
+        m["nasdaq"] = nasdaq_metrics["nasdaq"]
+
     # Use NASDAQ from the first metrics dict
     nasdaq_dates_filt = np.array(metrics_list[0]["nasdaq"]["dates_portfolio"])
     nasdaq_values_filt = np.array(metrics_list[0]["nasdaq"]["values_portfolio"])
 
     fig, ax1 = plt.subplots(figsize=(12, 6))
     ax1.set_yscale("log")
+
+    # Create second y-axis for count
+    ax2 = ax1.twinx()
 
     ymin = None
     ymax = None
@@ -34,6 +42,7 @@ def plot_portfolio_metrics(metrics):
     for idx, m in enumerate(reversed(metrics_list)):
         dates_portfolio = np.array(m["portfolio"]["dates_portfolio"])
         values_portfolio = np.array(m["portfolio"]["values_portfolio"])
+        count_portfolio = np.array(m["portfolio"]["count_portfolio"])
 
         if len(values_portfolio) == 0:
             continue
@@ -110,6 +119,16 @@ def plot_portfolio_metrics(metrics):
                 linestyle="None",
                 markersize=4,
             )
+
+            # Plot count for first portfolio
+            ax2.plot(
+                dates_portfolio,
+                count_portfolio,
+                color="purple",
+                alpha=0.5,
+                linewidth=1,
+                label="Available stocks",
+            )
         else:
             # Use a different color for each additional portfolio
             portfolio_colors = [
@@ -127,8 +146,12 @@ def plot_portfolio_metrics(metrics):
                 markersize=2,
             )
     ax1.set_ylim(bottom=ymin, top=ymax)
-    ax1.set_ylabel("MyQTM portfolio / NASDAQ (Value $ in log scale)", color="tab:blue")
+    ax1.set_ylabel("Portfolio Value ($) / NASDAQ (log scale)", color="tab:blue")
     ax1.tick_params(axis="y", labelcolor="tab:blue")
+
+    ax2.set_ylabel("Available Stocks Count", color="purple")
+    ax2.tick_params(axis="y", labelcolor="purple")
+    ax2.legend(loc="lower right")
 
     # Plot NASDAQ only once
     ax1.plot(
@@ -137,6 +160,18 @@ def plot_portfolio_metrics(metrics):
         color="tab:orange",
         alpha=0.7,
     )
+
+    # Add vertical line at BASE_END_DATE if defined
+    if config.BASE_END_DATE is not None:
+        base_end_date = pd.to_datetime(config.BASE_END_DATE, format="%Y-%m-%d")
+        ax1.axvline(
+            x=base_end_date,
+            color="gray",
+            linestyle="--",
+            linewidth=2,
+            alpha=0.7,
+            label="Base End Date",
+        )
 
     # Display metrics for the first portfolio only
     m = metrics_list[0]
@@ -204,7 +239,7 @@ def plot_portfolio_metrics(metrics):
     long_short_rate = np.mean(long_short_rate_list)
     num_days = np.mean(num_days_list)
 
-    # Calculate the number of days between the first and last trade
+    # Calcul du nombre de jours entre le premier et le dernier trade
 
     mean_annual_roi = 100.0 * (
         (1 + (portfolio_ret / 100)) ** (1 / (num_days / 365)) - 1
@@ -220,7 +255,7 @@ def plot_portfolio_metrics(metrics):
         annual_roi_text = f"Annual ROI:\n{annual_roi_lines}\n"
 
     metrics_text = (
-        f"MyQTM portfolio:\n"
+        f"Portfolio:\n"
         f"  Return: {portfolio_ret:.2f}%\n"
         f"  Max DD: {100*portfolio_max_drawdown:.2f}%\n"
         f"  Ulcer Index: {100*ulcer_index:.2f}%\n"
@@ -247,7 +282,7 @@ def plot_portfolio_metrics(metrics):
         verticalalignment="top",
         bbox=dict(boxstyle="round", facecolor="white", alpha=0.7),
     )
-    plt.title("MyQTM portfolio / NASDAQ (Value $ in log scale)")
+    plt.title("Portfolio Value, NASDAQ")
     plt.tight_layout()
     buf = io.BytesIO()
     plt.savefig(buf, format="png")

@@ -1,6 +1,6 @@
-# %%
 import json
 import time
+from pathlib import Path
 
 import fmpsdk
 from tqdm import tqdm
@@ -10,20 +10,19 @@ from src.fmp import (
     fmp_analyst_stock_recommendations,
     fmp_economic_indicators,
     fmp_profile,
-    fmp_treasury_rates,
 )
+from src.utils.path import get_project_root
 
 
-# %%
 def download_analyst_stock_recommendations(
-    trade_stocks=None, trade_end_date=None, apikey=None
+    trade_stocks=None, trade_end_date=None, apikey=None, data_path=None
 ):
     trade_stocks = trade_stocks or config.TRADE_STOCKS
     trade_end_date = trade_end_date or config.TRADE_END_DATE
+    data_path = data_path or Path(get_project_root()) / "data" / "fmp_data"
     for stock in tqdm(trade_stocks):
         out_file = (
-            config.DATA_DIR
-            / f"{stock}_{trade_end_date}_analyst_stock_recommendations.json"
+            data_path / f"{stock}_{trade_end_date}_analyst_stock_recommendations.json"
         )
         if not out_file.exists():
             ret = fmp_analyst_stock_recommendations(apikey=apikey, symbol=stock)
@@ -32,12 +31,15 @@ def download_analyst_stock_recommendations(
 
 
 def download_historical_price(
-    trade_stocks=None, trade_start_date=None, trade_end_date=None, apikey=None
+    trade_stocks=None,
+    trade_start_date=None,
+    trade_end_date=None,
+    apikey=None,
+    data_path=None,
 ):
+    data_path = data_path or Path(get_project_root()) / "data" / "fmp_data"
     for stock in tqdm(trade_stocks):
-        out_file = (
-            config.DATA_DIR / f"{stock}_{trade_end_date}_historical_price_full.json"
-        )
+        out_file = data_path / f"{stock}_{trade_end_date}_historical_price_full.json"
         if not out_file.exists():
             ret = fmpsdk.historical_price_full(
                 apikey=apikey,
@@ -50,10 +52,15 @@ def download_historical_price(
 
 
 def download_stock_news(
-    trade_stocks=None, trade_start_date=None, trade_end_date=None, apikey=None
+    trade_stocks=None,
+    trade_start_date=None,
+    trade_end_date=None,
+    apikey=None,
+    data_path=None,
 ):
+    data_path = data_path or Path(get_project_root()) / "data" / "fmp_data"
     for stock in tqdm(trade_stocks):
-        out_file = config.DATA_DIR / f"{stock}_{trade_end_date}_stock_news.json"
+        out_file = data_path / f"{stock}_{trade_end_date}_stock_news.json"
         if not out_file.exists():
             news = []
             page_index = 0
@@ -80,9 +87,12 @@ def download_stock_news(
                 json.dump(news, f, indent=2)
 
 
-def download_key_metrics(trade_stocks=None, trade_end_date=None, apikey=None):
+def download_key_metrics(
+    trade_stocks=None, trade_end_date=None, apikey=None, data_path=None
+):
+    data_path = data_path or Path(get_project_root()) / "data" / "fmp_data"
     for stock in tqdm(trade_stocks):
-        out_file = config.DATA_DIR / f"{stock}_{trade_end_date}_key_metrics.json"
+        out_file = data_path / f"{stock}_{trade_end_date}_key_metrics.json"
         if not out_file.exists():
             key_metrics = []
             try:
@@ -99,9 +109,12 @@ def download_key_metrics(trade_stocks=None, trade_end_date=None, apikey=None):
                 json.dump(key_metrics, f, indent=2)
 
 
-def download_ratings(trade_stocks=None, trade_end_date=None, apikey=None):
+def download_ratings(
+    trade_stocks=None, trade_end_date=None, apikey=None, data_path=None
+):
+    data_path = data_path or Path(get_project_root()) / "data" / "fmp_data"
     for stock in tqdm(trade_stocks):
-        out_file = config.DATA_DIR / f"{stock}_{trade_end_date}_ratings.json"
+        out_file = data_path / f"{stock}_{trade_end_date}_ratings.json"
         if not out_file.exists():
             key_metrics = []
             try:
@@ -116,26 +129,10 @@ def download_ratings(trade_stocks=None, trade_end_date=None, apikey=None):
                 json.dump(key_metrics, f, indent=2)
 
 
-def download_earnings(trade_stocks=None, trade_end_date=None, apikey=None):
-    for stock in tqdm(trade_stocks):
-        out_file = config.DATA_DIR / f"{stock}_{trade_end_date}_earnings.json"
-        if not out_file.exists():
-            key_metrics = []
-            try:
-                ret = fmpsdk.earnings_surprises(apikey=apikey, symbol=stock)
-            except Exception as e:
-                print(f"Error: {e}")
-                print("Retrying...")
-                time.sleep(2)
-                continue
-            key_metrics.extend(ret)
-            with open(out_file, "w") as f:
-                json.dump(key_metrics, f, indent=2)
-
-
 def download_economic_indicators(
-    trade_start_date=None, trade_end_date=None, apikey=None
+    trade_start_date=None, trade_end_date=None, apikey=None, data_path=None
 ):
+    data_path = data_path or Path(get_project_root()) / "data" / "fmp_data"
     indicator_list = [
         "GDP",
         "realGDP",
@@ -162,7 +159,7 @@ def download_economic_indicators(
         "15YearFixedRateMortgageAverage",
     ]
     economic_indicators = {}
-    out_file = config.DATA_DIR / f"{trade_end_date}_economic_indicators.json"
+    out_file = data_path / f"{trade_end_date}_economic_indicators.json"
     if not out_file.exists():
         for indicator in tqdm(indicator_list):
             ret = fmp_economic_indicators(
@@ -194,11 +191,16 @@ def download_economic_indicators(
 
 
 def download_indices(
-    indices=None, trade_start_date=None, trade_end_date=None, apikey=None
+    indices=None,
+    trade_start_date=None,
+    trade_end_date=None,
+    apikey=None,
+    data_path=None,
 ):
+    data_path = data_path or Path(get_project_root()) / "data" / "fmp_data"
     for symbol in tqdm(indices):
         out_file = (
-            config.DATA_DIR
+            data_path
             / f"{symbol.replace('^', '')}_{trade_end_date}_historical_index_price_full.json"
         )
         if not out_file.exists():
@@ -211,7 +213,8 @@ def download_indices(
                     to_date=trade_end_date,
                 )
             except Exception as e:
-                print(f"Erreur pour {symbol} : {e}, nouvelle tentative dans 2s...")
+                # Error for {symbol}: {e}, retrying in 2s...
+                print(f"Error for {symbol}: {e}, retrying in 2s...")
                 time.sleep(2)
                 ret = fmpsdk.historical_price_full(
                     apikey=apikey,
@@ -223,39 +226,14 @@ def download_indices(
                 json.dump(ret, f, indent=2)
 
 
-def download_commodities(
-    commodities=None, trade_start_date=None, trade_end_date=None, apikey=None
+def download_profiles(
+    trade_stocks=None, trade_end_date=None, apikey=None, data_path=None
 ):
-    for symbol in tqdm(commodities):
-        out_file = (
-            config.DATA_DIR / f"{symbol}_{trade_end_date}_historical_price_full.json"
-        )
-        if not out_file.exists():
-            ret = fmpsdk.historical_price_full(
-                apikey=apikey,
-                symbol=symbol,
-                from_date=trade_start_date,
-                to_date=trade_end_date,
-            )
-            with open(out_file, "w") as f:
-                json.dump(ret, f, indent=2)
-
-
-def download_treasury_rates(trade_start_date=None, trade_end_date=None, apikey=None):
-    out_file = config.DATA_DIR / f"{trade_end_date}_treasury_rates.json"
-    if not out_file.exists():
-        treasury_rates = fmp_treasury_rates(
-            apikey=apikey, from_date=trade_start_date, to_date=trade_end_date
-        )
-        with open(out_file, "w") as f:
-            json.dump(treasury_rates, f, indent=2)
-
-
-def download_profiles(trade_stocks=None, trade_end_date=None, apikey=None):
+    data_path = data_path or Path(get_project_root()) / "data" / "fmp_data"
     for stock in tqdm(trade_stocks):
-        out_file = config.DATA_DIR / f"{stock}_{trade_end_date}_profile.json"
+        out_file = data_path / f"{stock}_{trade_end_date}_profile.json"
         if not out_file.exists():
-            ret = fmp_profile(apikey=apikey, ticker=stock)[0]
+            ret = fmp_profile(apikey=apikey, symbol=stock)[0]
             keys = list(ret.keys())
             for key in keys:
                 if key not in [
@@ -276,54 +254,60 @@ def main(
     trade_start_date=None,
     trade_end_date=None,
     indices=None,
-    commodities=None,
     apikey=None,
+    data_path=None,
 ):
-    config.DATA_DIR.mkdir(parents=True, exist_ok=True)
+    data_path = data_path or Path(get_project_root()) / "data" / "fmp_data"
+    data_path.mkdir(parents=True, exist_ok=True)
     download_analyst_stock_recommendations(
-        trade_stocks=trade_stocks, trade_end_date=trade_end_date, apikey=apikey
+        trade_stocks=trade_stocks,
+        trade_end_date=trade_end_date,
+        apikey=apikey,
+        data_path=data_path,
     )
     download_historical_price(
         trade_stocks=trade_stocks,
         trade_start_date=trade_start_date,
         trade_end_date=trade_end_date,
         apikey=apikey,
+        data_path=data_path,
     )
     download_stock_news(
         trade_stocks=trade_stocks,
         trade_start_date=trade_start_date,
         trade_end_date=trade_end_date,
         apikey=apikey,
+        data_path=data_path,
     )
     download_key_metrics(
-        trade_stocks=trade_stocks, trade_end_date=trade_end_date, apikey=apikey
+        trade_stocks=trade_stocks,
+        trade_end_date=trade_end_date,
+        apikey=apikey,
+        data_path=data_path,
     )
     download_ratings(
-        trade_stocks=trade_stocks, trade_end_date=trade_end_date, apikey=apikey
-    )
-    download_earnings(
-        trade_stocks=trade_stocks, trade_end_date=trade_end_date, apikey=apikey
+        trade_stocks=trade_stocks,
+        trade_end_date=trade_end_date,
+        apikey=apikey,
+        data_path=data_path,
     )
     download_economic_indicators(
         trade_start_date=config.TRADE_START_DATE,
         trade_end_date=trade_end_date,
         apikey=apikey,
+        data_path=data_path,
     )
     download_indices(
         indices=indices,
         trade_start_date=trade_start_date,
         trade_end_date=trade_end_date,
         apikey=apikey,
+        data_path=data_path,
     )
-    download_commodities(
-        commodities=commodities,
-        trade_start_date=trade_start_date,
+
+    download_profiles(
+        trade_stocks=trade_stocks,
         trade_end_date=trade_end_date,
         apikey=apikey,
-    )
-    download_treasury_rates(
-        trade_start_date=trade_start_date, trade_end_date=trade_end_date, apikey=apikey
-    )
-    download_profiles(
-        trade_stocks=trade_stocks, trade_end_date=trade_end_date, apikey=apikey
+        data_path=data_path,
     )

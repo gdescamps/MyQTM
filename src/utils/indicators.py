@@ -1,10 +1,10 @@
 def compute_rsi(prices, period=14):
     """
-    Calculates RSI (Relative Strength Index) using EMA smoothing.
+    Calcule le RSI (Relative Strength Index) en utilisant lissage EMA.
 
-    :param prices: List of prices (most recent first)
-    :param period: RSI period, default 14
-    :return: RSI value
+    :param prices: Liste de prix (la plus récente en premier)
+    :param period: Période du RSI, par défaut 14
+    :return: Valeur du RSI
     """
     if len(prices) != period + 1:
         return 50.0

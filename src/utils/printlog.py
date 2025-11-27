@@ -6,9 +6,8 @@ from pathlib import Path
 from types import TracebackType
 from typing import Optional, Type
 
-log = None
 
-
+# Remplacer `local_log = False` par un context manager "no-op" qui neutralise les appels .print()
 class PrintLogNone:
     def __enter__(self):
         return self
@@ -29,19 +28,18 @@ class PrintLog:
         output_dir: str = "./outputs/",
         log_time: bool = False,
         extra_name: str = "",
-        enable: bool = False,  # Disable logging by default, use with to enable
+        enable: bool = True,
     ):
         """Initialize the PrintLog class."""
-        global log
         self.time = time.localtime()
         self.time_str = time.strftime("%Y%m%d-%H%M%S")
         self.output_dir = output_dir
         self.output_dir_time = Path(output_dir) / self.time_str
         self.output_dir_time = str(self.output_dir_time) + extra_name
-        if not Path(self.output_dir_time).exists():
-            Path(self.output_dir_time).mkdir(parents=True, exist_ok=True)
         self.output_dir_last = Path(output_dir) / "last"
         self.output_dir_last = str(self.output_dir_last) + extra_name
+        if not Path(self.output_dir_time).exists():
+            Path(self.output_dir_time).mkdir(parents=True, exist_ok=True)
         self.filename = Path(self.output_dir_time) / "print.log"
         self.file = open(self.filename, "w")
         self.old_stdout = sys.stdout
@@ -53,7 +51,6 @@ class PrintLog:
         self.log_time = log_time
         self.override(enable)
         self.with_state = False
-        log = self
 
     def copy_last(self):  # at explicit destruction, copy to last_* folder
         if Path(self.output_dir_last).exists():
@@ -129,6 +126,65 @@ class PrintLog:
 
             if self.enable_flush_flag:
                 self.file.flush()
+
+    def flush(self) -> None:
+        """Flush the file."""
+        self.file.flush()
+
+    def restore(self) -> None:
+        """Restore stdout and stderr."""
+        self.flush()
+
+
+class PrintLogProcess:
+    def __init__(
+        self,
+        output_dir_time: str,
+        process_id: int,
+        log_time: bool = False,
+        enable: bool = True,
+    ):
+        """Initialize the PrintLog class."""
+        self.output_dir_time = output_dir_time
+        if not Path(self.output_dir_time).exists():
+            Path(self.output_dir_time).mkdir(parents=True, exist_ok=True)
+        self.filename = Path(self.output_dir_time) / f"print_{process_id}.log"
+        self.file = open(self.filename, "w")
+        self.enable_stdout_flag = True
+        self.enable_fileout_flag = True
+        self.enable_flush_flag = True
+        self.log_time = log_time
+        self.override(enable)
+        self.with_state = False
+
+    def __del__(self):
+        """Destructor to restore stdout and close the file."""
+        self.file.close()
+
+    def override(self, enable: bool = True) -> None:
+        """Override stdout and stderr."""
+        self.enable_fileout(enable)
+
+    def enable_fileout(self, enable: bool) -> None:
+        """Enable or disable file output."""
+        self.enable_fileout_flag = enable
+
+    def print(self, message: str) -> None:
+        """Print a message."""
+        self.write(message + "\n")
+
+    def write(self, text: str) -> None:
+        """Write text to stdout and file."""
+        text = text.rstrip()
+        if len(text) == 0:
+            return
+
+        if self.log_time:
+            self.file.write(time.strftime("%Y%m%d-%H%M%S : ") + text + "\n")
+        else:
+            self.file.write(text + "\n")
+
+        self.file.flush()
 
     def flush(self) -> None:
         """Flush the file."""

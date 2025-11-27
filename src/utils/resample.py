@@ -1,5 +1,5 @@
 def round_floats(obj, precision=2):
-    """Recursively rounds all floats in a dictionary or list."""
+    """Arrondit récursivement tous les floatants dans un dictionnaire ou une liste."""
     if isinstance(obj, dict):
         return {k: round_floats(v, precision) for k, v in obj.items()}
     elif isinstance(obj, list):
