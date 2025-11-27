@@ -7,7 +7,7 @@ if dvc status outputs 2>&1 | grep -q "modified"; then
   dvc add outputs
   git commit -m 'update outputs'
   git push
-  dvc push
+  dvc push -r gcs outputs.dvc
 else
   echo "DVC outputs is already up to date"
 fi
@@ -17,7 +17,7 @@ if dvc status llm_cache.pkl 2>&1 | grep -q "modified"; then
   dvc add llm_cache.pkl
   git commit -m 'update llm_cache.pkl'
   git push
-  dvc push
+  dvc push -r gcs llm_cache.pkl.dvc
 else
   echo "DVC llm_cache.pkl is already up to date"
 fi
@@ -28,7 +28,7 @@ if dvc status fmp_data 2>&1 | grep -q "modified"; then
   dvc add fmp_data
   git commit -m 'update fmp_data'
   git push
-  dvc push
+  dvc push -r gcs fmp_data.dvc
 else
   echo "DVC fmp_data is already up to date"
 fi

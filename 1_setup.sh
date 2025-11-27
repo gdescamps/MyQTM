@@ -6,5 +6,7 @@ pip install -U packaging==23.2 setuptools==75.8.0 wheel ninja
 pip install -r requirements.txt
 
 pip install -e .
-#dvc pull
 
+dvc pull outputs.dvc
+dvc pull llm_cache.pkl.dvc
+dvc pull data/fmp_data.dvc

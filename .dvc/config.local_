@@ -1,5 +1,4 @@
 [core]
-    remote = gcs
     autostage = true
 [cache]
     dir = ../../../dvc-cache
