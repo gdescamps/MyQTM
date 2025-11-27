@@ -9,7 +9,12 @@ import fmpsdk
 from dotenv import load_dotenv
 
 from src.config import TRADE_STOCKS
-from src.fmp import fmp_historical_price_eod, fmp_profile, fmp_stock_news
+from src.fmp import (
+    fmp_historical_price_eod,
+    fmp_key_metrics,
+    fmp_profile,
+    fmp_stock_news,
+)
 
 load_dotenv()
 
@@ -75,3 +80,23 @@ def test_fmp_stock_news():
     # Verify that the dates in the response match the specified range
     assert "2023-01" in ret[-1]["publishedDate"]
     assert "2023-01" in ret[0]["publishedDate"]
+
+
+def test_fmp_key_metrics():
+    """
+    Verify that key financial metrics are retrieved for the specified symbol.
+
+    Queries the key metrics endpoint for AAPL with quarterly data and a limit of 30 records.
+    Confirms:
+    1. The "symbol" field is present in the response.
+    2. The "symbol" field matches the requested symbol (AAPL).
+    3. The number of records returned matches the specified limit (30).
+    """
+    ret = fmp_key_metrics(apikey=FMP_APIKEY, symbol="AAPL", period="quarter", limit=30)
+    print(ret)
+    # Verify that the "symbol" field exists in the first record
+    assert "symbol" in ret[0]
+    # Verify that the "symbol" field matches the requested symbol
+    assert ret[0]["symbol"] == "AAPL"
+    # Verify that the number of records matches the specified limit
+    assert len(ret) == 30

@@ -136,3 +136,24 @@ def fmp_stock_news(
     if limit:
         url += f"&limit={limit}"
     return get_jsonparsed_data(url)
+
+
+def fmp_key_metrics(apikey: str, symbol: str, limit: int = None, period: str = None):
+    """
+    Fetch key financial metrics for a given stock symbol from Financial Modeling Prep API.
+
+    Args:
+        apikey (str): API key for FMP.
+        symbol (str): Stock ticker symbol.
+        limit (int, optional): Maximum number of records to retrieve.
+        period (str, optional): Time period for the metrics (e.g., "quarter", "annual").
+
+    Returns:
+        list: A list of dictionaries containing key financial metrics.
+    """
+    url = f"https://financialmodelingprep.com/stable/key-metrics?symbol={symbol}&apikey={apikey}"
+    if limit:
+        url += f"&limit={limit}"
+    if period:
+        url += f"&period={period}"
+    return get_jsonparsed_data(url)
