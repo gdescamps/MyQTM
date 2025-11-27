@@ -1,0 +1,6 @@
+outs:
+- md5: a53b049a22823baef4fbe7c87fada41e.dir
+  size: 4007169159
+  nfiles: 4182
+  hash: md5
+  path: fmp_data
