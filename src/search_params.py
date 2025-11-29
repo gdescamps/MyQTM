@@ -72,7 +72,8 @@ def run_single_random_state(
     random.seed(42)
 
     # Run benchmark with varying stock dropout rates
-    for attempt in range(cma_dropout_round):
+    for attempt in range(config.CMA_STOCKS_DROP_OUT_ROUND):
+        remove_stocks = 0 if attempt == 0 else config.CMA_STOCKS_DROP_OUT
         metrics, _, _ = run_benchmark(
             BENCH_START_DATE=config.TEST_START_DATE,
             BENCH_END_DATE=config.TEST_END_DATE,
@@ -91,7 +92,7 @@ def run_single_random_state(
             SHORT_PROB_POWERB=short_prob_powerb,
             MODEL_PATH=config.TRAIN_DIR,
             data_path=None,
-            remove_stocks=cma_dropout,
+            remove_stocks=remove_stocks,
         )
         perf = metrics["portfolio"]["perf"]
         performances.append(perf)
@@ -99,6 +100,7 @@ def run_single_random_state(
 
     if not metrics_list:
         return
+
     # Save combined metrics plot
     png_path = os.path.join(local_log.output_dir_time, f"best_{random_state}.png")
 
@@ -108,6 +110,7 @@ def run_single_random_state(
         MODEL_PATH=config.TRAIN_DIR,
         data_path=None,
     )
+
     plot_all, _ = plot_portfolio_metrics(metrics_list, nasdaq_metrics)
     plot_all.save(png_path)
 
