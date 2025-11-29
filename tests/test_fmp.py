@@ -117,3 +117,22 @@ def test_fmp_historical_rating():
     assert len(ret) == 2000
     # Verify that the "symbol" field matches the requested symbol
     assert ret[0]["symbol"] == "AAPL"
+
+
+def test_fmp_price_historical_eod_index():
+    """Verify that historical end-of-day price data is retrieved and correctly ordered.
+
+    Queries historical AAPL prices from 2018-01-01 to 2019-01-31 and confirms:
+    1. Results are sorted in descending date order (most recent first)
+    2. First record (index 0) contains January 2019 data
+    3. Last record (index -1) contains January 2018 data
+    """
+    # Retrieve historical end-of-day price data for AAPL
+    ret = fmp_historical_price_eod(
+        apikey=FMP_APIKEY, symbol="^IXIC", from_date="2018-01-01", to_date="2019-01-31"
+    )
+    assert ret[0]["symbol"] == "^IXIC"
+    # Verify data is sorted with oldest dates at the end
+    assert "2018-01" in ret[-1]["date"]
+    # Verify data is sorted with newest dates at the beginning
+    assert "2019-01" in ret[0]["date"]
