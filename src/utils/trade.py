@@ -232,11 +232,7 @@ def open_positions(
     if len(positions_to_open):
         for item in positions_to_open:
             if capital > 100.0:
-                # signal_prob = (item["yprob"] - open_prob_thres) / (
-                #     1.0 - open_prob_thres
-                # )
                 signal_prob = item["yprob"]
-                # signal_prob = float(abs(signal_prob))
                 prob_power = float(abs(prob_power))
                 signal_prob = signal_prob ** (10.0 * prob_power)
                 size_factor_val = 1 + (signal_prob * ((max_positions) - 1))
