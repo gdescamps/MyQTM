@@ -258,7 +258,7 @@ def plot_portfolio_metrics(metrics, nasdaq_metrics=None):
         f"Portfolio:\n"
         f"  Return: {portfolio_ret:.2f}%\n"
         f"  Max DD: {100*portfolio_max_drawdown:.2f}%\n"
-        f"  Ulcer Index: {100*ulcer_index:.2f}%\n"
+        f"  Ulcer Index: {ulcer_index:.2f}\n"
         f"  Pos count: {int(positions_history_count)}\n"
         f"  Longest Drawdown: {int(longest_portfolio_drawdown)}\n"
         f"  Num days: {int(num_days)}\n"
