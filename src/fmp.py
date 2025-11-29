@@ -151,7 +151,7 @@ def fmp_key_metrics(apikey: str, symbol: str, limit: int = None, period: str = N
     Returns:
         list: A list of dictionaries containing key financial metrics.
     """
-    url = f"https://financialmodelingprep.com/stable/key-metrics?symbol={symbol}&apikey={apikey}"
+    url = f"https://financialmodelingprep.com/stable/ratios?symbol={symbol}&apikey={apikey}"
     if limit:
         url += f"&limit={limit}"
     if period:
