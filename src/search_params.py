@@ -140,6 +140,36 @@ def run_single_random_state(
         json.dump(global_perf, f, indent=2)
 
 
+def sort_perfs(random_states, SEARCH_DIR):
+    # Collect and sort results by performance
+    perfs = []
+    for random_state in random_states:
+        perf_path = os.path.join(SEARCH_DIR, f"perf_{random_state}.json")
+        if os.path.exists(perf_path):
+            with open(perf_path, "r") as f:
+                perf = json.load(f)
+                perfs.append({"perf": perf, "random_state": random_state})
+
+    # Sort performance list in descending order by performance score
+    perfs.sort(key=lambda x: x["perf"], reverse=True)
+
+    # Copy top results with ranking labels
+    for i, entry in enumerate(perfs):
+        random_state = entry["random_state"]
+        shutil.copy(
+            os.path.join(SEARCH_DIR, f"params_{random_state}.json"),
+            os.path.join(SEARCH_DIR, f"top{i+1}_params.json"),
+        )
+        shutil.copy(
+            os.path.join(SEARCH_DIR, f"positions_{random_state}.json"),
+            os.path.join(SEARCH_DIR, f"top{i+1}_positions.json"),
+        )
+        shutil.copy(
+            os.path.join(SEARCH_DIR, f"best_{random_state}.png"),
+            os.path.join(SEARCH_DIR, f"top{i+1}_best.png"),
+        )
+
+
 if __name__ == "__main__":
 
     # Load environment variables from .env file
@@ -206,9 +236,17 @@ if __name__ == "__main__":
                         p.join()
                     processes = []
 
+                    sort_perfs(random_states, SEARCH_DIR)
+
         else:
 
-            for top in range(1, int(config.CMA_PROCESSES / (2 * iter)) + 1):
+            for top in range(
+                1,
+                max(
+                    config.CMA_PARALLEL_PROCESSES + 1,
+                    int(config.CMA_PROCESSES / (2 * iter)) + 1,
+                ),
+            ):
 
                 top_params_path = os.path.join(config.CMA_DIR, f"top{top}_params.json")
                 with open(top_params_path, "r") as f:
@@ -224,10 +262,10 @@ if __name__ == "__main__":
                         init_space,
                         init_x0,
                         init_cma_std,
-                        config.CMA_LOOPS,
-                        config.CMA_EARLY_STOP_ROUNDS,
-                        3 if iter == 3 else 1,
-                        3 if iter == 3 else 0,
+                        int(config.CMA_LOOPS),
+                        int(config.CMA_EARLY_STOP_ROUNDS),
+                        1,
+                        0,
                     ),
                 )
                 processes.append(p)
@@ -242,6 +280,8 @@ if __name__ == "__main__":
                         p.join()
                     processes = []
 
+                    sort_perfs(random_states, SEARCH_DIR)
+
         for p in processes:
             p.start()
 
@@ -249,33 +289,7 @@ if __name__ == "__main__":
         for p in processes:
             p.join()
 
-        # Collect and sort results by performance
-        perfs = []
-        for random_state in random_states:
-            perf_path = os.path.join(SEARCH_DIR, f"perf_{random_state}.json")
-            if os.path.exists(perf_path):
-                with open(perf_path, "r") as f:
-                    perf = json.load(f)
-                    perfs.append({"perf": perf, "random_state": random_state})
-
-        # Sort performance list in descending order by performance score
-        perfs.sort(key=lambda x: x["perf"], reverse=True)
-
-        # Copy top results with ranking labels
-        for i, entry in enumerate(perfs):
-            random_state = entry["random_state"]
-            shutil.copy(
-                os.path.join(SEARCH_DIR, f"params_{random_state}.json"),
-                os.path.join(SEARCH_DIR, f"top{i+1}_params.json"),
-            )
-            shutil.copy(
-                os.path.join(SEARCH_DIR, f"positions_{random_state}.json"),
-                os.path.join(SEARCH_DIR, f"top{i+1}_positions.json"),
-            )
-            shutil.copy(
-                os.path.join(SEARCH_DIR, f"best_{random_state}.png"),
-                os.path.join(SEARCH_DIR, f"top{i+1}_best.png"),
-            )
+        sort_perfs(random_states, SEARCH_DIR)
 
         # Archive final results
         local_log.copy_last()
