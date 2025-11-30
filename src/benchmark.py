@@ -269,8 +269,9 @@ def compute_nasdaq_data(
         trade_data = build_trade_data(
             model_path=MODEL_PATH,
             data_path=data_path,
-            bench_start_date=bench_start_date,
-            bench_end_date=bench_end_date,
+            benchmark_XY_date_str=BENCH_END_DATE,
+            start_date=bench_start_date,
+            end_date=bench_end_date,
         )
         config.TRADE_DATA_LOAD = trade_data
         config.DATES_PORTFOLIO = []
@@ -457,8 +458,9 @@ def run_benchmark(
         trade_data = build_trade_data(
             model_path=MODEL_PATH,
             data_path=data_path,
-            bench_start_date=bench_start_date,
-            bench_end_date=bench_end_date,
+            benchmark_XY_date_str=BENCH_END_DATE,
+            start_date=bench_start_date,
+            end_date=bench_end_date,
         )
         config.TRADE_DATA_LOAD = trade_data
         config.DATES_PORTFOLIO = []

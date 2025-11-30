@@ -12,9 +12,14 @@ from src.utils.printlog import PrintLogNone
 
 
 def build_trade_data(
-    model_path, data_path, bench_start_date, bench_end_date, end_limit: bool = True
+    model_path,
+    data_path,
+    benchmark_XY_date_str,
+    start_date,
+    end_date,
+    end_limit: bool = True,
 ):
-    current_date = bench_start_date
+    current_date = start_date
     trade_data = {}
 
     selected_featuresA_path = model_path / "selected_featuresA.json"
@@ -24,8 +29,7 @@ def build_trade_data(
     with open(selected_featuresB_path, "r") as f:
         selected_featuresB = json.load(f)
 
-    bench_end_date_str = bench_end_date.strftime("%Y-%m-%d")
-    df_bench = pd.read_csv(data_path / f"{bench_end_date_str}_benchmark_XY.csv")
+    df_bench = pd.read_csv(data_path / f"{benchmark_XY_date_str}_benchmark_XY.csv")
     df_bench["date"] = pd.to_datetime(df_bench["date"])
 
     df_bench_copy = df_bench.copy()
@@ -57,7 +61,7 @@ def build_trade_data(
     )
 
     stocks = []
-    while current_date <= bench_end_date:
+    while current_date <= end_date:
         current_date_str = current_date.strftime("%Y-%m-%d")
         # current_date is already a Timestamp
         df_today = df_bench[df_bench["date"] == current_date]
@@ -95,12 +99,12 @@ def build_trade_data(
 
     stocks = list(set(stocks))
     for stock in stocks:
-        current_date = bench_start_date
+        current_date = start_date
         pc = None
         index_long = -1
         index_short = -1
         index_prob = 0.0
-        while current_date <= bench_end_date:
+        while current_date <= end_date:
             current_date_str = current_date.strftime("%Y-%m-%d")
             if current_date_str not in trade_data:
                 current_date += pd.Timedelta(days=1)
