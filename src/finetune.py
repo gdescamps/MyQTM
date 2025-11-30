@@ -90,6 +90,7 @@ def cmaes_grid_search_benchmark(
             short_prob_powera,
             long_prob_powerb,
             short_prob_powerb,
+            prob_size_rate,
         ) = params
         global last_params
         global best_perf
@@ -131,6 +132,7 @@ def cmaes_grid_search_benchmark(
                 SHORT_PROB_POWERA=short_prob_powera,
                 LONG_PROB_POWERB=long_prob_powerb,
                 SHORT_PROB_POWERB=short_prob_powerb,
+                PROB_SIZE_RATE=prob_size_rate,
                 MODEL_PATH=model_path,
                 data_path=data_path,
                 remove_stocks=remove_stocks,
