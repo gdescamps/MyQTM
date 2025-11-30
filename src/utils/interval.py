@@ -2,23 +2,36 @@ from datetime import datetime
 
 import src.config as config
 
-train_start = datetime.strptime(config.TRAIN_START_DATE, "%Y-%m-%d")
-train_end = datetime.strptime(config.TRAIN_END_DATE, "%Y-%m-%d")
-test_end = datetime.strptime(config.TEST_END_DATE, "%Y-%m-%d")
+train_start = None
+train_start_str = None
+train_end = None
+train_end_str = None
+test_end = None
+test_end_str = None
 
 
-# Define a function to assign query dates to intervals (full, partial, test) based on training date ranges.
 def get_interval_type(
     query_date: str | datetime, interval_days: int = 90, end_limit: bool = True
 ) -> str | None:
-    """
-    Assigns the query date to one of the intervals: 'full', 'partial', 'test'.
-    Each interval lasts 3 months, chained starting from train_start_date.
-    Returns None if the date is out of range.
-    """
+
     global train_start
     global train_end
     global test_end
+    global train_start_str
+    global train_end_str
+    global test_end_str
+
+    if train_start is None or train_start_str != config.TRAIN_START_DATE:
+        train_start = datetime.strptime(config.TRAIN_START_DATE, "%Y-%m-%d")
+        train_start_str = config.TRAIN_START_DATE
+
+    if train_end is None or train_end_str != config.TRAIN_END_DATE:
+        train_end = datetime.strptime(config.TRAIN_END_DATE, "%Y-%m-%d")
+        train_end_str = config.TRAIN_END_DATE
+
+    if test_end is None or test_end_str != config.TEST_END_DATE:
+        test_end = datetime.strptime(config.TEST_END_DATE, "%Y-%m-%d")
+        test_end_str = config.TEST_END_DATE
 
     interval_types = ["part1A", "part1B", "part2A", "part2B", "part3A", "part3B"]
 
@@ -31,7 +44,6 @@ def get_interval_type(
     if end_limit and query_date > test_end:
         return None
 
-    # Nombre de mois entre train_start et query_date
     days_diff = (query_date - train_start).days
     interval_index = days_diff // interval_days
     interval = interval_types[interval_index % len(interval_types)]

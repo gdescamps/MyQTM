@@ -282,13 +282,12 @@ def plot_top_f1(do_plot=False):
     Evaluate F1 score on 500 best transitions across all interval types.
     """
     # Evaluate F1 on 500 best transitions
-    bench_start_date = pd.to_datetime(config.TEST_START_DATE, format="%Y-%m-%d")
-    bench_end_date = pd.to_datetime(config.TEST_END_DATE, format="%Y-%m-%d")
     trade_data = build_trade_data(
         model_path=Path(get_project_root()) / local_log.output_dir_time,
         data_path=data_path,
-        bench_start_date=bench_start_date,
-        bench_end_date=bench_end_date,
+        benchmark_XY_date_str=config.TEST_END_DATE,
+        start_date=pd.to_datetime(config.TEST_START_DATE, format="%Y-%m-%d"),
+        end_date=pd.to_datetime(config.TRAIN_END_DATE, format="%Y-%m-%d"),
     )
     trade_dataA_long, trade_dataA_short, trade_dataB_long, trade_dataB_short = (
         split_trade_data(trade_data)
@@ -335,7 +334,7 @@ def plot_top_f1(do_plot=False):
     )
     f1 = [f1_A_long, f1_B_long, f1_A_short, f1_B_short]
 
-    return np.mean(f1) / (1.0 + np.std(f1))
+    return np.mean(f1) - np.std(f1)
 
 
 if __name__ == "__main__":
@@ -448,7 +447,7 @@ if __name__ == "__main__":
     best_modelb = None
     best_selected_features = None
     best_f1_callbacka_best_iter = None
-    f1_callbackb_best_iter = None
+    best_f1_callbackb_best_iter = None
 
     # Train initial models for each interval part
     dtestA = xgb.DMatrix(df_partA_X, label=df_partA_Y.values.ravel())
@@ -739,4 +738,212 @@ if __name__ == "__main__":
         )
         with open(ntree_limit_path, "w") as f:
             json.dump({"ntree_limit": int(best_f1_callbackb_best_iter + 1)}, f)
+
+    # Second pass
+
+    importanceA = best_modela.get_score(importance_type="weight")
+    importanceB = best_modelb.get_score(importance_type="weight")
+
+    importance = {}
+
+    for key in set(importanceA.keys()).union(set(importanceB.keys())):
+        importance[key] = {
+            "mean": (importanceA.get(key, 0) + importanceB.get(key, 0)) / 2,
+            "std": float(
+                np.std(
+                    [importanceA.get(key, 0), importanceB.get(key, 0)],
+                    ddof=1,
+                )
+            ),
+            "feature": key,
+        }
+
+    sorted_importance = sorted(
+        importance.items(),
+        key=lambda x: x[1]["mean"] / (x[1]["std"]),
+        reverse=True,
+    )
+
+    sorted_selected_features = [item[0] for item in sorted_importance]
+
+    # Define hyperparameter search grid
+    param_grid = config.PARAM_GRID.copy()
+
+    grid = list(
+        product(
+            param_grid["patience"],
+            param_grid["max_depth"],
+            param_grid["learning_rate"],
+            param_grid["subsample"],
+            param_grid["colsample_bytree"],
+            param_grid["gamma"],
+            param_grid["min_child_weight"],
+            param_grid["reg_alpha"],
+            param_grid["reg_lambda"],
+            param_grid["mean_std_power"],
+            list(
+                range(
+                    int(0.6 * len(sorted_selected_features)),
+                    len(sorted_selected_features),
+                    1,
+                )
+            ),
+        )
+    )
+
+    # Grid search over hyperparameters
+    for (
+        patience,
+        max_depth,
+        learning_rate,
+        subsample,
+        colsample_bytree,
+        gamma,
+        min_child_weight,
+        reg_alpha,
+        reg_lambda,
+        mean_std_power,
+        top_features,
+    ) in tqdm(grid):
+
+        params_grid = params.copy()
+        params_grid["max_depth"] = max_depth
+        params_grid["learning_rate"] = learning_rate
+        params_grid["subsample"] = subsample
+        params_grid["colsample_bytree"] = colsample_bytree
+        params_grid["gamma"] = gamma
+        params_grid["min_child_weight"] = min_child_weight
+        params_grid["reg_alpha"] = reg_alpha
+        params_grid["reg_lambda"] = reg_lambda
+
+        selected_features = sorted_selected_features[:top_features]
+
+        df_partB_X_selected = df_partB_X[selected_features]
+        df_partA_X_selected = df_partA_X[selected_features]
+        df_partB_test_X_selected = df_partB_X[selected_features]
+        df_partA_test_X_selected = df_partA_X[selected_features]
+
+        dtrain = xgb.DMatrix(df_partA_X_selected, label=df_partA_Y.values.ravel())
+        dtest = xgb.DMatrix(df_partB_test_X_selected, label=df_partB_Y.values.ravel())
+
+        f1_callbacka = EvalF1Callback(dtest, df_partB_Y, patience=patience)
+        modela = xgb.train(
+            params_grid,
+            dtrain,
+            num_boost_round=n_estimators,
+            evals=[(dtrain, "train"), (dtest, "eval")],
+            callbacks=[f1_callbacka],
+            verbose_eval=False,
+        )
+
+        df_test_y_pred = np.argmax(
+            modela.predict(dtest, iteration_range=(0, f1_callbacka.best_iter + 1)),
+            axis=1,
+        )
+        f1A = f1_score(df_partB_Y, df_test_y_pred, average="macro")
+
+        df_partB_X_selected = df_partB_X[selected_features]
+        df_partA_X_selected = df_partA_X[selected_features]
+
+        df_partB_test_X_selected = df_partB_X[selected_features]
+        df_partA_test_X_selected = df_partA_X[selected_features]
+
+        dtrain = xgb.DMatrix(df_partB_X_selected, label=df_partB_Y.values.ravel())
+        dtest = xgb.DMatrix(df_partA_test_X_selected, label=df_partA_Y.values.ravel())
+
+        f1_callbackb = EvalF1Callback(dtest, df_partA_Y, patience=patience)
+        modelb = xgb.train(
+            params_grid,
+            dtrain,
+            num_boost_round=n_estimators,
+            evals=[(dtrain, "train"), (dtest, "eval")],
+            callbacks=[f1_callbackb],
+            verbose_eval=False,
+        )
+
+        df_test_y_pred = np.argmax(
+            modelb.predict(dtest, iteration_range=(0, f1_callbackb.best_iter + 1)),
+            axis=1,
+        )
+
+        f1B = f1_score(df_partA_Y, df_test_y_pred, average="macro")
+
+        # Save current models and selected features
+        selected_features_path = os.path.join(
+            local_log.output_dir_time, "selected_featuresA.json"
+        )
+        with open(selected_features_path, "w") as f:
+            json.dump(selected_features, f, indent=2)
+        selected_features_path = os.path.join(
+            local_log.output_dir_time, "selected_featuresB.json"
+        )
+        with open(selected_features_path, "w") as f:
+            json.dump(selected_features, f, indent=2)
+        model_path = os.path.join(local_log.output_dir_time, "best_modelA.pkl")
+        joblib.dump(modela, model_path)
+        ntree_limit_path = os.path.join(
+            local_log.output_dir_time, "best_modelA_ntree_limit.json"
+        )
+        with open(ntree_limit_path, "w") as f:
+            json.dump({"ntree_limit": int(f1_callbacka.best_iter + 1)}, f)
+        model_path = os.path.join(local_log.output_dir_time, "best_modelB.pkl")
+        joblib.dump(modelb, model_path)
+        ntree_limit_path = os.path.join(
+            local_log.output_dir_time, "best_modelB_ntree_limit.json"
+        )
+        with open(ntree_limit_path, "w") as f:
+            json.dump({"ntree_limit": int(f1_callbackb.best_iter + 1)}, f)
+
+        # Evaluate on full test set with top transitions
+        f1 = plot_top_f1(local_log, data_path, do_plot=False)
+
+        # Update best model if F1 score improved
+        if f1 > best_f1:
+            plot_top_f1(local_log, data_path, do_plot=True)
+
+            best_f1 = f1
+            best_modela = modela.copy()
+            best_modelb = modelb.copy()
+
+            best_selected_features = selected_features.copy()
+            best_f1_callbacka_best_iter = f1_callbacka.best_iter
+            best_f1_callbackb_best_iter = f1_callbackb.best_iter
+
+            with local_log:
+                print("\n")
+                print(f"Best model params: {params_grid}")
+                print(f"Selected features: {len(selected_features)}")
+                print(f"max_depth: {max_depth}")
+                print(f"best F1 score on best 500 transitions: {f1:.4f}")
+
+    # Save best final model
+    if best_modela is not None:
+        selected_features_path = os.path.join(
+            local_log.output_dir_time, "selected_featuresA.json"
+        )
+        with open(selected_features_path, "w") as f:
+            json.dump(best_selected_features, f, indent=2)
+
+        selected_features_path = os.path.join(
+            local_log.output_dir_time, "selected_featuresB.json"
+        )
+        with open(selected_features_path, "w") as f:
+            json.dump(best_selected_features, f, indent=2)
+
+        model_path = os.path.join(local_log.output_dir_time, "best_modelA.pkl")
+        joblib.dump(best_modela, model_path)
+        ntree_limit_path = os.path.join(
+            local_log.output_dir_time, "best_modelA_ntree_limit.json"
+        )
+        with open(ntree_limit_path, "w") as f:
+            json.dump({"ntree_limit": int(best_f1_callbacka_best_iter + 1)}, f)
+        model_path = os.path.join(local_log.output_dir_time, "best_modelB.pkl")
+        joblib.dump(best_modelb, model_path)
+
+        ntree_limit_path = os.path.join(
+            local_log.output_dir_time, "best_modelB_ntree_limit.json"
+        )
+        with open(ntree_limit_path, "w") as f:
+            json.dump({"ntree_limit": int(best_f1_callbackb_best_iter + 1)}, f)
+
     local_log.copy_last()
