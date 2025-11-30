@@ -309,7 +309,7 @@ def plot_top_f1(do_plot=False):
         final_threshold_Along,
         final_sample_count_Along,
         label="_A_Long",
-        do_plot=do_plot,
+        do_plot=do_plot,    
     )
     f1_B_long = compute_f1(
         trade_dataB_long,
@@ -895,11 +895,11 @@ if __name__ == "__main__":
             json.dump({"ntree_limit": int(f1_callbackb.best_iter + 1)}, f)
 
         # Evaluate on full test set with top transitions
-        f1 = plot_top_f1(local_log, data_path, do_plot=False)
+        f1 = plot_top_f1(do_plot=False)
 
         # Update best model if F1 score improved
         if f1 > best_f1:
-            plot_top_f1(local_log, data_path, do_plot=True)
+            plot_top_f1(do_plot=True)
 
             best_f1 = f1
             best_modela = modela.copy()
