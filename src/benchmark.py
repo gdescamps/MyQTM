@@ -594,9 +594,9 @@ def run_benchmark(
             * optimal_value_score(short_rate, optimal_value=0.5)
             * optimal_value_score(AB_rate, optimal_value=0.5)
             * optimal_value_score(long_short_rate, optimal_value=0.7)
+            * optimal_value_score(positions_count_rate, optimal_value=0.35, coef=6)
             * float(0 if annual_roi_last < 0 else annual_roi_last)
             * float(portfolio_ret)
-            * float(positions_count_rate)
             / (
                 (float(ulcer_index) / 5)
                 * (1 + (float(longest_portfolio_drawdown) / 100))
