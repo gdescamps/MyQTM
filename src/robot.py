@@ -167,8 +167,9 @@ def daily_trade_positions():
     trade_data = build_trade_data(
         model_path=model_path,
         data_path=data_path,
-        bench_start_date=bench_start_date,
-        bench_end_date=bench_end_date,
+        benchmark_XY_date_str=TODO,
+        start_date=bench_start_date,
+        end_date=bench_end_date,
         end_limit=False,
     )
 
