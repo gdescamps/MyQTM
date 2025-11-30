@@ -170,10 +170,10 @@ def sort_perfs(random_states, SEARCH_DIR):
             os.path.join(SEARCH_DIR, f"best_{random_state}.png"),
             os.path.join(SEARCH_DIR, f"top{i+1}_best.png"),
         )
-        if i == 0:  # Copy best overall result to main output directory
+        if 2 >= i >= 0:  # Copy best top 3 overall in same place
             shutil.copy(
                 os.path.join(SEARCH_DIR, f"best_{random_state}.png"),
-                os.path.join("./outputs", "best.png"),
+                os.path.join("./outputs", f"{i+1}_best.png"),
             )
 
 
