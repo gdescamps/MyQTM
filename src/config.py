@@ -267,18 +267,16 @@ TS_SIZE = 6
 
 OPEN_DELAY = 1
 MAX_POS_PER_DAY = 6
-MAX_POSITIONS = 12
+MAX_POSITIONS = 24
 CMA_RECURSIVE = 2
-CMA_LOOPS = 120
+CMA_LOOPS = 200
 CMA_EARLY_STOP_ROUNDS = 30
 CMA_STOCKS_DROP_OUT_ROUND = 10
 CMA_STOCKS_DROP_OUT = 5
 CMA_PROCESSES = 128
 CMA_PARALLEL_PROCESSES = 32
-INIT_X0 = [0.6, 0.3, 0.6, 0.3, 0.6, 0.3, 0.6, 0.3, 0.5, 0.5, 0.5, 0.5]
+INIT_X0 = [0.6, 0.3, 0.6, 0.3, 0.6, 0.3, 0.6, 0.3, 0.5, 0.5, 0.5, 0.5, 0.4]
 INIT_CMA_STD = 0.2
-
-from skopt.space import Real
 
 INIT_SPACE = [
     Real(0.2, 0.99, name="long_open_prob_thresa"),
@@ -293,10 +291,11 @@ INIT_SPACE = [
     Real(0.05, 1.0, name="short_prob_powera"),
     Real(0.05, 1.0, name="long_prob_powerb"),
     Real(0.05, 1.0, name="short_prob_powerb"),
+    Real(0.05, 1.0, name="prob_size_rate"),
 ]
 PARAM_GRID = {
     "patience": [100],
-    "max_depth": [7],
+    "max_depth": [5],
     "learning_rate": [0.01],
     "subsample": [0.6],
     "colsample_bytree": [0.7],
@@ -305,7 +304,7 @@ PARAM_GRID = {
     "reg_alpha": [0.4],
     "reg_lambda": [4],
     "mean_std_power": [1.71],
-    "top_features": list(range(60, 80, 1)),
+    "top_features": list(range(55, 80, 1)),
 }
 
 TRADE_DATA_LOAD = None
