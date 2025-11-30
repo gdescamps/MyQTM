@@ -220,6 +220,7 @@ def open_positions(
     open_prob_thres,
     pos_type,
     prob_power,
+    prob_size_rate,
     callback=None,
     leverage=1.0,
     log=PrintLogNone(),
@@ -234,8 +235,8 @@ def open_positions(
             if capital > 100.0:
                 signal_prob = item["yprob"]
                 prob_power = float(abs(prob_power))
-                signal_prob = signal_prob ** (10.0 * prob_power)
-                size_factor_val = 1 + (signal_prob * ((max_positions) - 1))
+                signal_prob = signal_prob ** (50.0 * prob_power)
+                size_factor_val = 1 + (prob_size_rate * signal_prob * max_positions)
                 size_factor_val = min(size_factor_val, max_positions)
                 size_factor_val = max(size_factor_val, 1)
                 size = min(capital, size_factor_val * position_size)

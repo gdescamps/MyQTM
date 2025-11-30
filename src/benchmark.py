@@ -52,6 +52,7 @@ def compute_bench(
     short_prob_powera,
     long_prob_powerb,
     short_prob_powerb,
+    prob_size_rate,
     leverage=1.0,
 ):
     # Simulate the benchmark trading strategy and compute portfolio metrics.
@@ -132,6 +133,7 @@ def compute_bench(
             long_open_prob_thres,
             "long",
             long_prob_power,
+            prob_size_rate,
         )
 
         # Open new short positions
@@ -147,6 +149,7 @@ def compute_bench(
             short_open_prob_thres,
             "short",
             short_prob_power,
+            prob_size_rate,
         )
 
         # Recompute the total value of open positions
@@ -429,6 +432,7 @@ def run_benchmark(
     SHORT_PROB_POWERA=1.0,
     LONG_PROB_POWERB=1.0,
     SHORT_PROB_POWERB=1.0,
+    PROB_SIZE_RATE=0.4,
     MODEL_PATH=None,
     data_path=None,
     remove_stocks=5,
@@ -491,6 +495,7 @@ def run_benchmark(
         SHORT_PROB_POWERA,
         LONG_PROB_POWERB,
         SHORT_PROB_POWERB,
+        PROB_SIZE_RATE,
     )
 
     # Portfolio metrics
@@ -529,9 +534,6 @@ def run_benchmark(
 
     perf = 0
     positions_count = len(positions_history) + len(positions)
-    longest_portfolio_drawdown_ratio = float(longest_portfolio_drawdown) / float(
-        len(dates_portfolio)
-    )
     positions_count_rate = float(positions_count) / float(len(dates_portfolio))
 
     long_A_positions = len(
@@ -575,9 +577,9 @@ def run_benchmark(
     AB_rate = (long_A_positions + short_A_positions) / (positions_count + 1)
     long_short_rate = (long_A_positions + long_B_positions) / (positions_count + 1)
 
-    def maximize_half(x, center=0.5, coef=4):
+    def optimal_value_score(x, optimal_value=0.5, coef=4):
         # Helper function to maximize performance near a center value
-        weight = 1 - coef * (x - center) ** 2
+        weight = 1 - coef * (x - optimal_value) ** 2
         return max(0.0, weight)
 
     if (
@@ -586,18 +588,18 @@ def run_benchmark(
         and longest_portfolio_drawdown > 5
     ):
         perf = (
-            maximize_half(long_rate)
-            * maximize_half(short_rate)
-            * maximize_half(AB_rate)
-            * maximize_half(long_short_rate, center=0.7)
+            optimal_value_score(long_rate, optimal_value=0.5)
+            * optimal_value_score(short_rate, optimal_value=0.5)
+            * optimal_value_score(AB_rate, optimal_value=0.5)
+            * optimal_value_score(long_short_rate, optimal_value=0.7)
             * float(0 if annual_roi_last < 0 else annual_roi_last)
             * float(portfolio_ret)
             * float(positions_count_rate)
             / (
-                (float(ulcer_index) / 10)
-                * float(longest_portfolio_drawdown)
-                * (0.15 + (float(annual_roi_std) / 10))
-                * ((abs(float(100 * portfolio_max_drawdown)) / 30) ** 1.5)
+                (float(ulcer_index) / 5)
+                * (1 + (float(longest_portfolio_drawdown) / 100))
+                * (1 + (float(annual_roi_std) / 10))
+                * (1 + (abs(float(portfolio_max_drawdown)) / 10))
             )
         )
 
@@ -610,7 +612,7 @@ def run_benchmark(
             "capital_portfolio": capital_portfolio,
             "return": float(portfolio_ret),
             "max_drawdown": float(100 * portfolio_max_drawdown),
-            "ulcer_index": float(100 * ulcer_index),
+            "ulcer_index": float(ulcer_index),
             "random_stocks_removed": int(remove_stocks),
             "longest_drawdown_period": int(longest_portfolio_drawdown),
             # ...other possible metrics...
@@ -664,6 +666,7 @@ if __name__ == "__main__":
                 short_prob_powera,
                 long_prob_powerb,
                 short_prob_powerb,
+                prob_size_rate,
             ) = list(XBEST)
 
             returns = []
@@ -691,6 +694,7 @@ if __name__ == "__main__":
                     SHORT_PROB_POWERA=short_prob_powera,
                     LONG_PROB_POWERB=long_prob_powerb,
                     SHORT_PROB_POWERB=short_prob_powerb,
+                    PROB_SIZE_RATE=prob_size_rate,
                     MODEL_PATH=TRAIN_DIR,
                     data_path=None,
                     remove_stocks=remove_stocks,

@@ -64,6 +64,7 @@ def run_single_random_state(
         short_prob_powera,
         long_prob_powerb,
         short_prob_powerb,
+        prob_size_rate,
     ) = list(xbest)
 
     # Initialize performance tracking lists
@@ -90,6 +91,7 @@ def run_single_random_state(
             SHORT_PROB_POWERA=short_prob_powera,
             LONG_PROB_POWERB=long_prob_powerb,
             SHORT_PROB_POWERB=short_prob_powerb,
+            PROB_SIZE_RATE=prob_size_rate,
             MODEL_PATH=config.TRAIN_DIR,
             data_path=None,
             remove_stocks=remove_stocks,
@@ -168,6 +170,11 @@ def sort_perfs(random_states, SEARCH_DIR):
             os.path.join(SEARCH_DIR, f"best_{random_state}.png"),
             os.path.join(SEARCH_DIR, f"top{i+1}_best.png"),
         )
+        if i == 0:  # Copy best overall result to main output directory
+            shutil.copy(
+                os.path.join(SEARCH_DIR, f"best_{random_state}.png"),
+                os.path.join("./outputs", "best.png"),
+            )
 
 
 if __name__ == "__main__":
@@ -252,7 +259,7 @@ if __name__ == "__main__":
                 with open(top_params_path, "r") as f:
                     best_param = json.load(f)
                 init_x0 = best_param
-                init_cma_std = config.INIT_CMA_STD / (3 * iter)  # Reduce std for finer
+                init_cma_std = config.INIT_CMA_STD / (iter + 1)  # Reduce std for finer
 
                 p = multiprocessing.Process(
                     target=run_single_random_state,

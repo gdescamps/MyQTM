@@ -1,3 +1,5 @@
+from skopt.space import Real
+
 BASE_END_DATE = "2025-09-05"
 TRADE_END_DATE = "2025-09-05"
 # TRADE_END_DATE = "2025-11-27"  # base on 10-22
