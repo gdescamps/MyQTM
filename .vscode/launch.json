@@ -11,15 +11,6 @@
             "console": "integratedTerminal"
         },
         {
-            "name": "train_2nd.py",
-            "type": "debugpy",
-            "request": "launch",
-            "program": "${workspaceFolder}/src/train_2nd.py",
-            "cwd": "${workspaceFolder}/",
-            "env": {},
-            "console": "integratedTerminal"
-        },
-        {
             "name": "search_params.py",
             "type": "debugpy",
             "request": "launch",

@@ -269,7 +269,7 @@ def compute_nasdaq_data(
         trade_data = build_trade_data(
             model_path=MODEL_PATH,
             data_path=data_path,
-            benchmark_XY_date_str=BENCH_END_DATE,
+            file_date_str=BENCH_END_DATE,
             start_date=bench_start_date,
             end_date=bench_end_date,
         )
@@ -417,6 +417,7 @@ def compute_annual_roi(dates_portfolio, values_portfolio):
 
 
 def run_benchmark(
+    FILE_BENCH_END_DATE=None,
     BENCH_START_DATE=None,
     BENCH_END_DATE=None,
     MAX_POSITIONS=config.MAX_POSITIONS,
@@ -447,6 +448,9 @@ def run_benchmark(
     if data_path is None:
         data_path = Path(get_project_root()) / "data" / "fmp_data"
 
+    if FILE_BENCH_END_DATE is None:
+        FILE_BENCH_END_DATE = BENCH_END_DATE
+
     bench_start_date = pd.to_datetime(BENCH_START_DATE, format="%Y-%m-%d")
     bench_end_date = pd.to_datetime(BENCH_END_DATE, format="%Y-%m-%d")
 
@@ -458,7 +462,7 @@ def run_benchmark(
         trade_data = build_trade_data(
             model_path=MODEL_PATH,
             data_path=data_path,
-            benchmark_XY_date_str=BENCH_END_DATE,
+            file_date_str=FILE_BENCH_END_DATE,
             start_date=bench_start_date,
             end_date=bench_end_date,
         )
@@ -579,9 +583,10 @@ def run_benchmark(
     AB_rate = (long_A_positions + short_A_positions) / (positions_count + 1)
     long_short_rate = (long_A_positions + long_B_positions) / (positions_count + 1)
 
-    def optimal_value_score(x, optimal_value=0.5, coef=4):
-        # Helper function to maximize performance near a center value
-        weight = 1 - coef * (x - optimal_value) ** 2
+    def optimal_value_score(x, optimal_value=0.5, sigma=0.2):
+        # Helper function to maximize performance near a center value using Gaussian
+        # sigma controls the width of the Gaussian (smaller = narrower)
+        weight = np.exp(-((x - optimal_value) ** 2) / (2 * sigma**2))
         return max(0.0, weight)
 
     if (
@@ -590,11 +595,11 @@ def run_benchmark(
         and longest_portfolio_drawdown > 5
     ):
         perf = (
-            optimal_value_score(long_rate, optimal_value=0.5)
-            * optimal_value_score(short_rate, optimal_value=0.5)
-            * optimal_value_score(AB_rate, optimal_value=0.5)
-            * optimal_value_score(long_short_rate, optimal_value=0.7)
-            * optimal_value_score(positions_count_rate, optimal_value=0.35, coef=6)
+            optimal_value_score(long_rate, optimal_value=0.5, sigma=0.2)
+            * optimal_value_score(short_rate, optimal_value=0.5, sigma=0.3)
+            * optimal_value_score(AB_rate, optimal_value=0.5, sigma=0.3)
+            * optimal_value_score(long_short_rate, optimal_value=0.75, sigma=0.1)
+            * optimal_value_score(positions_count_rate, optimal_value=0.35, sigma=0.1)
             * float(0 if annual_roi_last < 0 else annual_roi_last)
             * float(portfolio_ret)
             / (
@@ -678,9 +683,11 @@ if __name__ == "__main__":
             metrics_list = []
 
             random.seed(42)
+            positions = None
             for index in range(CMA_STOCKS_DROP_OUT_ROUND):
                 remove_stocks = 0 if index == 0 else CMA_STOCKS_DROP_OUT
-                metrics, positions, remove_stocks_list = run_benchmark(
+                metrics, pos, remove_stocks_list = run_benchmark(
+                    FILE_BENCH_END_DATE=TEST_END_DATE,
                     BENCH_START_DATE=TEST_START_DATE,
                     BENCH_END_DATE=TEST_END_DATE,
                     INIT_CAPITAL=INITIAL_CAPITAL,
@@ -702,6 +709,8 @@ if __name__ == "__main__":
                     remove_stocks=remove_stocks,
                 )
                 metrics_list.append(metrics)
+                if remove_stocks == 0:
+                    positions = pos
 
             nasdaq_metrics = compute_nasdaq_data(
                 BENCH_START_DATE=TEST_START_DATE,
@@ -709,6 +718,14 @@ if __name__ == "__main__":
                 MODEL_PATH=TRAIN_DIR,
                 data_path=None,
             )
+
+            json_path = os.path.join(
+                local_log.output_dir_time,
+                f"top{top}_positions.json",
+            )
+            with open(json_path, "w") as f:
+                json.dump(positions, f, indent=2)
+
             plot, metrics_text = plot_portfolio_metrics(metrics_list, nasdaq_metrics)
             png_path = os.path.join(
                 local_log.output_dir_time,

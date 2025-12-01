@@ -161,12 +161,34 @@ def plot_portfolio_metrics(metrics, nasdaq_metrics=None):
         alpha=0.7,
     )
 
+    if config.TRAIN_END_DATE is not None:
+        finetune_end_date = pd.to_datetime(config.TRAIN_END_DATE, format="%Y-%m-%d")
+        ax1.axvline(
+            x=finetune_end_date,
+            color="red",
+            linestyle="--",
+            linewidth=2,
+            alpha=0.7,
+            label="Finetune End Date",
+        )
+
+    if config.FINETUNE_END_DATE is not None:
+        finetune_end_date = pd.to_datetime(config.FINETUNE_END_DATE, format="%Y-%m-%d")
+        ax1.axvline(
+            x=finetune_end_date,
+            color="orange",
+            linestyle="--",
+            linewidth=2,
+            alpha=0.7,
+            label="Finetune End Date",
+        )
+
     # Add vertical line at BASE_END_DATE if defined
     if config.BASE_END_DATE is not None:
         base_end_date = pd.to_datetime(config.BASE_END_DATE, format="%Y-%m-%d")
         ax1.axvline(
             x=base_end_date,
-            color="gray",
+            color="yellow",
             linestyle="--",
             linewidth=2,
             alpha=0.7,

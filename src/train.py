@@ -285,7 +285,7 @@ def plot_top_f1(do_plot=False):
     trade_data = build_trade_data(
         model_path=Path(get_project_root()) / local_log.output_dir_time,
         data_path=data_path,
-        benchmark_XY_date_str=config.TEST_END_DATE,
+        file_date_str=config.TEST_END_DATE,
         start_date=pd.to_datetime(config.TEST_START_DATE, format="%Y-%m-%d"),
         end_date=pd.to_datetime(config.TRAIN_END_DATE, format="%Y-%m-%d"),
     )
@@ -309,7 +309,7 @@ def plot_top_f1(do_plot=False):
         final_threshold_Along,
         final_sample_count_Along,
         label="_A_Long",
-        do_plot=do_plot,    
+        do_plot=do_plot,
     )
     f1_B_long = compute_f1(
         trade_dataB_long,

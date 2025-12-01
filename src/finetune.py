@@ -16,6 +16,7 @@ def cmaes_grid_search_benchmark(
     cma_dropout_round=1,
     cma_dropout=0,
     space=None,
+    file_bench_end_date=None,
     bench_start_date=None,
     bench_end_date=None,
     init_capital=10000,
@@ -117,6 +118,7 @@ def cmaes_grid_search_benchmark(
             remove_stocks = 0 if i == 0 else cma_dropout
             # Run benchmark with current parameters
             metrics, positions, _ = run_benchmark(
+                FILE_BENCH_END_DATE=file_bench_end_date,
                 BENCH_START_DATE=bench_start_date,
                 BENCH_END_DATE=bench_end_date,
                 INIT_CAPITAL=init_capital,

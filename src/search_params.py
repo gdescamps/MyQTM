@@ -40,8 +40,9 @@ def run_single_random_state(
         cma_dropout_round=cma_dropout_round,
         cma_dropout=cma_dropout,
         space=init_space,
+        file_bench_end_date=config.TEST_END_DATE,
         bench_start_date=config.TEST_START_DATE,
-        bench_end_date=config.TEST_END_DATE,
+        bench_end_date=config.FINETUNE_END_DATE,
         init_capital=config.INITIAL_CAPITAL,
         model_path=config.TRAIN_DIR,
         data_path=None,
@@ -76,8 +77,9 @@ def run_single_random_state(
     for attempt in range(config.CMA_STOCKS_DROP_OUT_ROUND):
         remove_stocks = 0 if attempt == 0 else config.CMA_STOCKS_DROP_OUT
         metrics, _, _ = run_benchmark(
+            FILE_BENCH_END_DATE=config.TEST_END_DATE,
             BENCH_START_DATE=config.TEST_START_DATE,
-            BENCH_END_DATE=config.TEST_END_DATE,
+            BENCH_END_DATE=config.FINETUNE_END_DATE,
             INIT_CAPITAL=config.INITIAL_CAPITAL,
             LONG_OPEN_PROB_THRESA=long_open_prob_thresa,
             LONG_CLOSE_PROB_THRESA=long_close_prob_thresa,
@@ -123,13 +125,6 @@ def run_single_random_state(
     process_log.print(f"params: {str(list(xbest))}")
     process_log.print(f"global perf = {global_perf}")
 
-    # Save trading positions to JSON file
-    positions_path = os.path.join(
-        local_log.output_dir_time, f"positions_{random_state}.json"
-    )
-    with open(positions_path, "w") as f:
-        json.dump(positions, f, indent=2)
-
     # Save optimized parameters to JSON file
     best_param = list(xbest)
     params_path = os.path.join(local_log.output_dir_time, f"params_{random_state}.json")
@@ -161,10 +156,6 @@ def sort_perfs(random_states, SEARCH_DIR):
         shutil.copy(
             os.path.join(SEARCH_DIR, f"params_{random_state}.json"),
             os.path.join(SEARCH_DIR, f"top{i+1}_params.json"),
-        )
-        shutil.copy(
-            os.path.join(SEARCH_DIR, f"positions_{random_state}.json"),
-            os.path.join(SEARCH_DIR, f"top{i+1}_positions.json"),
         )
         shutil.copy(
             os.path.join(SEARCH_DIR, f"best_{random_state}.png"),

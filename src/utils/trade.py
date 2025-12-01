@@ -1,4 +1,3 @@
-# %%
 import json
 
 import joblib
@@ -14,7 +13,7 @@ from src.utils.printlog import PrintLogNone
 def build_trade_data(
     model_path,
     data_path,
-    benchmark_XY_date_str,
+    file_date_str,
     start_date,
     end_date,
     end_limit: bool = True,
@@ -29,7 +28,7 @@ def build_trade_data(
     with open(selected_featuresB_path, "r") as f:
         selected_featuresB = json.load(f)
 
-    df_bench = pd.read_csv(data_path / f"{benchmark_XY_date_str}_benchmark_XY.csv")
+    df_bench = pd.read_csv(data_path / f"{file_date_str}_benchmark_XY.csv")
     df_bench["date"] = pd.to_datetime(df_bench["date"])
 
     df_bench_copy = df_bench.copy()
