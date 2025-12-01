@@ -101,7 +101,9 @@ def build_trade_data(
         current_date = start_date
         pc = None
         index_long = -1
+        index_long_close = -1
         index_short = -1
+        index_short_close = -1
         index_prob = 0.0
         while current_date <= end_date:
             current_date_str = current_date.strftime("%Y-%m-%d")
@@ -116,20 +118,35 @@ def build_trade_data(
             c = today_stock["class"]
             class_long = 2
             class_short = 0
+            index_prob = 0.0
             if pc is not None and c == class_long and pc != class_long:
                 index_long = 0
                 index_prob = today_stock["ybull"]
-            if pc is not None and c == class_short and pc != class_short:
+            elif pc is not None and c == class_short and pc != class_short:
                 index_short = 0
                 index_prob = today_stock["ybear"]
+            elif pc is not None and c != class_long and pc == class_long:
+                index_long_close = 0
+                index_prob = 1.0 - today_stock["ybull"]
+            elif pc is not None and c != class_short and pc == class_short:
+                index_short_close = 0
+                index_prob = 1.0 - today_stock["ybear"]
+
             today_stock["index_long"] = index_long
             today_stock["index_short"] = index_short
+            today_stock["index_long_close"] = index_long_close
+            today_stock["index_short_close"] = index_short_close
             today_stock["index_prob"] = index_prob
+
             pc = c
             if index_long >= 0:
                 index_long += 1
             if index_short >= 0:
                 index_short += 1
+            if index_long_close >= 0:
+                index_long_close += 1
+            if index_short_close >= 0:
+                index_short_close += 1
             current_date += pd.Timedelta(days=1)
 
     return trade_data

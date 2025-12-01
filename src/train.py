@@ -1,4 +1,3 @@
-# %%
 import io
 import json
 import os
@@ -65,7 +64,9 @@ class EvalF1Callback(TrainingCallback):
         return False  # continue training
 
 
-def compute_f1(trade_data, threshold, count, label="_A_Long", do_plot=False):
+def compute_f1(
+    trade_data, threshold, count, label="_A_Long", close_class=None, do_plot=False
+):
     """
     Compute F1 score on trade data filtered by probability threshold.
     """
@@ -96,8 +97,14 @@ def compute_f1(trade_data, threshold, count, label="_A_Long", do_plot=False):
 
         # Filter predictions by probability threshold
         mask = y_prob >= threshold
+
         y_pred_filtered = y_pred[mask]
         y_truth_filtered = y_truth[mask]
+
+        if close_class is not None:
+            y_pred_filtered = (y_pred_filtered != close_class).astype(int)
+            y_truth_filtered = (y_truth_filtered != close_class).astype(int)
+
         if len(y_truth_filtered) > 0:
             f1 = f1_score(y_truth_filtered, y_pred_filtered, average="macro")
             values_f1.append(f1)
@@ -248,33 +255,61 @@ def split_trade_data(trade_data):
     trade_dataB_long = {}
     trade_dataB_short = {}
 
+    trade_dataA_long_close = {}
+    trade_dataA_short_close = {}
+    trade_dataB_long_close = {}
+    trade_dataB_short_close = {}
+
     for index, current_date in enumerate(sorted_keys):
         type = get_interval_type(current_date)
         item = trade_data[current_date]
         item_long = {}
         item_short = {}
+        item_long_close = {}
+        item_short_close = {}
+
         item = trade_data[current_date]
         for stock in item:
             if item[stock]["index_short"] == 0:
                 item_short[stock] = item[stock]
-
             if item[stock]["index_long"] == 0:
                 item_long[stock] = item[stock]
+            if item[stock]["index_short_close"] == 0:
+                item_short_close[stock] = item[stock]
+            if item[stock]["index_long_close"] == 0:
+                item_long_close[stock] = item[stock]
 
         # Assign to appropriate interval and direction
         if "A" in type:
             trade_dataA_long[current_date] = item_long
             trade_dataA_short[current_date] = item_short
+            trade_dataA_long_close[current_date] = item_long_close
+            trade_dataA_short_close[current_date] = item_short_close
         elif "B" in type:
             trade_dataB_long[current_date] = item_long
             trade_dataB_short[current_date] = item_short
+            trade_dataB_long_close[current_date] = item_long_close
+            trade_dataB_short_close[current_date] = item_short_close
         if "C" in type:
             trade_dataA_long[current_date] = item_long
             trade_dataA_short[current_date] = item_short
+            trade_dataA_long_close[current_date] = item_long_close
+            trade_dataA_short_close[current_date] = item_short_close
         elif "D" in type:
             trade_dataB_long[current_date] = item_long
             trade_dataB_short[current_date] = item_short
-    return trade_dataA_long, trade_dataA_short, trade_dataB_long, trade_dataB_short
+            trade_dataB_long_close[current_date] = item_long_close
+            trade_dataB_short_close[current_date] = item_short_close
+    return (
+        trade_dataA_long,
+        trade_dataA_short,
+        trade_dataB_long,
+        trade_dataB_short,
+        trade_dataA_long_close,
+        trade_dataA_short_close,
+        trade_dataB_long_close,
+        trade_dataB_short_close,
+    )
 
 
 def plot_top_f1(do_plot=False):
@@ -289,9 +324,17 @@ def plot_top_f1(do_plot=False):
         start_date=pd.to_datetime(config.TEST_START_DATE, format="%Y-%m-%d"),
         end_date=pd.to_datetime(config.TRAIN_END_DATE, format="%Y-%m-%d"),
     )
-    trade_dataA_long, trade_dataA_short, trade_dataB_long, trade_dataB_short = (
-        split_trade_data(trade_data)
-    )
+    (
+        trade_dataA_long,
+        trade_dataA_short,
+        trade_dataB_long,
+        trade_dataB_short,
+        trade_dataA_long_close,
+        trade_dataA_short_close,
+        trade_dataB_long_close,
+        trade_dataB_short_close,
+    ) = split_trade_data(trade_data)
+
     final_threshold_Along, final_sample_count_Along = search_threshold_for_topN(
         trade_dataA_long
     )
@@ -304,6 +347,19 @@ def plot_top_f1(do_plot=False):
     final_threshold_Bshort, final_sample_count_Bshort = search_threshold_for_topN(
         trade_dataB_short
     )
+    final_threshold_Along_close, final_sample_count_Along_close = (
+        search_threshold_for_topN(trade_dataA_long_close)
+    )
+    final_threshold_Blong_close, final_sample_count_Blong_close = (
+        search_threshold_for_topN(trade_dataB_long_close)
+    )
+    final_threshold_Ashort_close, final_sample_count_Ashort_close = (
+        search_threshold_for_topN(trade_dataA_short_close)
+    )
+    final_threshold_Bshort_close, final_sample_count_Bshort_close = (
+        search_threshold_for_topN(trade_dataB_short_close)
+    )
+
     f1_A_long = compute_f1(
         trade_dataA_long,
         final_threshold_Along,
@@ -332,9 +388,53 @@ def plot_top_f1(do_plot=False):
         label="_B_Short",
         do_plot=do_plot,
     )
-    f1 = [f1_A_long, f1_B_long, f1_A_short, f1_B_short]
+    f1_A_long_close = compute_f1(
+        trade_dataA_long_close,
+        final_threshold_Along_close,
+        final_sample_count_Along_close,
+        label="_A_Long_Close",
+        close_class=2,
+        do_plot=do_plot,
+    )
+    f1_B_long_close = compute_f1(
+        trade_dataB_long_close,
+        final_threshold_Blong_close,
+        final_sample_count_Blong_close,
+        label="_B_Long_Close",
+        close_class=2,
+        do_plot=do_plot,
+    )
+    f1_A_short_close = compute_f1(
+        trade_dataA_short_close,
+        final_threshold_Ashort_close,
+        final_sample_count_Ashort_close,
+        label="_A_Short_Close",
+        close_class=0,
+        do_plot=do_plot,
+    )
+    f1_B_short_close = compute_f1(
+        trade_dataB_short_close,
+        final_threshold_Bshort_close,
+        final_sample_count_Bshort_close,
+        label="_B_Short_Close",
+        close_class=0,
+        do_plot=do_plot,
+    )
 
-    return np.mean(f1) - np.std(f1)
+    f1s = [
+        float(f1_A_long),
+        float(f1_B_long),
+        float(f1_A_short),
+        float(f1_B_short),
+    ]
+    f1_closes = [
+        float(f1_A_long_close),
+        float(f1_B_long_close),
+        float(f1_A_short_close),
+        float(f1_B_short_close),
+    ]
+
+    return f1s, f1_closes
 
 
 if __name__ == "__main__":
@@ -677,7 +777,11 @@ if __name__ == "__main__":
             json.dump({"ntree_limit": int(f1_callbackb.best_iter + 1)}, f)
 
         # Evaluate on full test set with top transitions
-        f1 = plot_top_f1(do_plot=False)
+        f1s, f1_closes = plot_top_f1(do_plot=False)
+        f1 = min(f1s + f1_closes)
+        f1_str = [f"{f1:.2f}" for f1 in f1s]
+        f1_close_str = [f"{f1c:.2f}" for f1c in f1_closes]
+
         # Update best model if F1 score improved
         if f1 > best_f1:
             plot_top_f1(do_plot=True)
@@ -701,7 +805,13 @@ if __name__ == "__main__":
                 )
                 print(f"max_depth: {max_depth}")
                 print(f"mean_std_power: {mean_std_power}")
-                print(f"best F1 score on best 500 transitions: {f1:.4f}")
+                print(f"F1 scores on best 500 transitions: {f1_str}")
+                print(f"F1 close scores on best 500 transitions: {f1_close_str}")
+                print(f"best F1 score on best 1000 transitions: {f1:.4f}")
+        else:
+            print(f"F1 scores on best 500 transitions: {f1_str}")
+            print(f"F1 close scores on best 500 transitions: {f1_close_str}")
+            print(f"F1 score on best 1000 transitions: {f1:.4f}")
 
     # Save best final model
     if best_importance_df_sorted_by_std_mean is not None:
@@ -895,7 +1005,10 @@ if __name__ == "__main__":
             json.dump({"ntree_limit": int(f1_callbackb.best_iter + 1)}, f)
 
         # Evaluate on full test set with top transitions
-        f1 = plot_top_f1(do_plot=False)
+        f1s, f1_closes = plot_top_f1(do_plot=False)
+        f1 = min(f1s + f1_closes)
+        f1_str = [f"{f1:.2f}" for f1 in f1s]
+        f1_close_str = [f"{f1c:.2f}" for f1c in f1_closes]
 
         # Update best model if F1 score improved
         if f1 > best_f1:
@@ -914,7 +1027,13 @@ if __name__ == "__main__":
                 print(f"Best model params: {params_grid}")
                 print(f"Selected features: {len(selected_features)}")
                 print(f"max_depth: {max_depth}")
-                print(f"best F1 score on best 500 transitions: {f1:.4f}")
+                print(f"F1 scores on best 500 transitions: {f1_str}")
+                print(f"F1 close scores on best 500 transitions: {f1_close_str}")
+                print(f"best F1 score on best 1000 transitions: {f1:.4f}")
+        else:
+            print(f"F1 scores on best 500 transitions: {f1_str}")
+            print(f"F1 close scores on best 500 transitions: {f1_close_str}")
+            print(f"F1 score on best 1000 transitions: {f1:.4f}")
 
     # Save best final model
     if best_modela is not None:

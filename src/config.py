@@ -295,7 +295,7 @@ INIT_SPACE = [
 ]
 PARAM_GRID = {
     "patience": [100],
-    "max_depth": [5],
+    "max_depth": [7],
     "learning_rate": [0.01],
     "subsample": [0.6],
     "colsample_bytree": [0.7],
@@ -304,7 +304,7 @@ PARAM_GRID = {
     "reg_alpha": [0.4],
     "reg_lambda": [4],
     "mean_std_power": [1.71],
-    "top_features": list(range(55, 80, 1)),
+    "top_features": list(range(65, 85, 5)),
 }
 
 TRADE_DATA_LOAD = None

@@ -100,6 +100,32 @@ def run_single_random_state(
         )
         perf = metrics["portfolio"]["perf"]
         performances.append(perf)
+
+    for attempt in range(config.CMA_STOCKS_DROP_OUT_ROUND):
+        remove_stocks = 0 if attempt == 0 else config.CMA_STOCKS_DROP_OUT
+        metrics, _, _ = run_benchmark(
+            FILE_BENCH_END_DATE=config.TEST_END_DATE,
+            BENCH_START_DATE=config.TEST_START_DATE,
+            BENCH_END_DATE=config.TEST_END_DATE,
+            INIT_CAPITAL=config.INITIAL_CAPITAL,
+            LONG_OPEN_PROB_THRESA=long_open_prob_thresa,
+            LONG_CLOSE_PROB_THRESA=long_close_prob_thresa,
+            SHORT_OPEN_PROB_THRESA=short_open_prob_thresa,
+            SHORT_CLOSE_PROB_THRESA=short_close_prob_thresa,
+            LONG_OPEN_PROB_THRESB=long_open_prob_thresb,
+            LONG_CLOSE_PROB_THRESB=long_close_prob_thresb,
+            SHORT_OPEN_PROB_THRESB=short_open_prob_thresb,
+            SHORT_CLOSE_PROB_THRESB=short_close_prob_thresb,
+            LONG_PROB_POWERA=long_prob_powera,
+            SHORT_PROB_POWERA=short_prob_powera,
+            LONG_PROB_POWERB=long_prob_powerb,
+            SHORT_PROB_POWERB=short_prob_powerb,
+            PROB_SIZE_RATE=prob_size_rate,
+            MODEL_PATH=config.TRAIN_DIR,
+            data_path=None,
+            remove_stocks=remove_stocks,
+            force_reload=True,
+        )
         metrics_list.append(metrics)
 
     if not metrics_list:
@@ -161,10 +187,14 @@ def sort_perfs(random_states, SEARCH_DIR):
             os.path.join(SEARCH_DIR, f"best_{random_state}.png"),
             os.path.join(SEARCH_DIR, f"top{i+1}_best.png"),
         )
-        if 2 >= i >= 0:  # Copy best top 3 overall in same place
+        if 4 >= i >= 0:  # Copy best top 5 overall in same place
             shutil.copy(
                 os.path.join(SEARCH_DIR, f"best_{random_state}.png"),
-                os.path.join("./outputs", f"{i+1}_best.png"),
+                os.path.join("./outputs", f"top{i+1}_best.png"),
+            )
+            shutil.copy(
+                os.path.join(SEARCH_DIR, f"params_{random_state}.json"),
+                os.path.join("./outputs", f"top{i+1}_params.json"),
             )
 
 

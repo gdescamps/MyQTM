@@ -1,6 +1,7 @@
 import json
 import os
 import random
+import shutil
 from datetime import datetime
 from pathlib import Path
 
@@ -439,6 +440,7 @@ def run_benchmark(
     data_path=None,
     remove_stocks=5,
     leverage=1.0,
+    force_reload=False,
 ):
     # Run the benchmark simulation and compute all portfolio metrics
     # Set the path to the data directory
@@ -458,7 +460,7 @@ def run_benchmark(
     dates_portfolio = config.DATES_PORTFOLIO
     remove_stocks_list = []
 
-    if config.TRADE_DATA_LOAD is None:
+    if config.TRADE_DATA_LOAD is None or force_reload:
         trade_data = build_trade_data(
             model_path=MODEL_PATH,
             data_path=data_path,
@@ -598,10 +600,10 @@ def run_benchmark(
             optimal_value_score(long_rate, optimal_value=0.5, sigma=0.2)
             * optimal_value_score(short_rate, optimal_value=0.5, sigma=0.3)
             * optimal_value_score(AB_rate, optimal_value=0.5, sigma=0.3)
-            * optimal_value_score(long_short_rate, optimal_value=0.75, sigma=0.1)
-            * optimal_value_score(positions_count_rate, optimal_value=0.35, sigma=0.1)
-            * float(0 if annual_roi_last < 0 else annual_roi_last)
+            * optimal_value_score(long_short_rate, optimal_value=0.74, sigma=0.07)
+            * optimal_value_score(positions_count_rate, optimal_value=0.4, sigma=0.1)
             * float(portfolio_ret)
+            * float(0 if annual_roi_last < 0 else annual_roi_last)
             / (
                 (float(ulcer_index) / 5)
                 * (1 + (float(longest_portfolio_drawdown) / 100))
@@ -729,12 +731,26 @@ if __name__ == "__main__":
             plot, metrics_text = plot_portfolio_metrics(metrics_list, nasdaq_metrics)
             png_path = os.path.join(
                 local_log.output_dir_time,
-                f"top{top}_test.png",
+                f"top{top}_bench.png",
             )
             plot.save(png_path)
 
+            if 5 >= top >= 1:  # Copy best top 5 overall in same place
+                shutil.copy(
+                    png_path,
+                    os.path.join("./outputs", f"top{top}_best.png"),
+                )
+                shutil.copy(
+                    json_path,
+                    os.path.join("./outputs", f"top{top}_positions.json"),
+                )
+                shutil.copy(
+                    os.path.join(CMA_DIR, f"top{top}_params.json"),
+                    os.path.join("./outputs", f"top{top}_params.json"),
+                )
+
             with local_log:
-                print(f"Benchmark results for top{top}:")
+                print(f"Benchmark results for top{top}_best:")
                 print(metrics_text)
 
     local_log.copy_last()
