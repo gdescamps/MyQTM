@@ -171,9 +171,6 @@ class CustomExploder(BaseEstimator, TransformerMixin):
         # Concatenate all columns at once to avoid fragmentation
         final_df = pd.concat(col_blocks, axis=1)
 
-        # Reindex on expected columns (guarantees stable schema)
-        # final_df = final_df.reindex(columns=self.columns_, fill_value=np.nan)
-
         return final_df
 
 
