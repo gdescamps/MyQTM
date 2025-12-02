@@ -184,8 +184,8 @@ def plot_portfolio_metrics(metrics, nasdaq_metrics=None):
         )
 
     # Add vertical line at BASE_END_DATE if defined
-    if config.BASE_END_DATE is not None:
-        base_end_date = pd.to_datetime(config.BASE_END_DATE2, format="%Y-%m-%d")
+    if config.BASE_END_DATE_FILE is not None:
+        base_end_date = pd.to_datetime(config.BASE_END_DATE, format="%Y-%m-%d")
         ax1.axvline(
             x=base_end_date,
             color="magenta",

@@ -25,16 +25,16 @@ def preprocess_economic_indicators(config=None):
         economic_indicators = json.load(f)
 
     # Merge with base historical data if available
-    if config.BASE_END_DATE is not None:
+    if config.BASE_END_DATE_FILE is not None:
 
         base_economic_indicators_file = (
-            data_path / f"{config.BASE_END_DATE}_economic_indicators.json"
+            data_path / f"{config.BASE_END_DATE_FILE}_economic_indicators.json"
         )
 
         with open(base_economic_indicators_file, "r") as f:
             base_economic_indicators = json.load(f)
 
-        base_end_date = pd.to_datetime(config.BASE_END_DATE2)
+        base_end_date = pd.to_datetime(config.BASE_END_DATE)
         after_base_data = {}
         for key in economic_indicators.keys():
             key_date = pd.to_datetime(key)

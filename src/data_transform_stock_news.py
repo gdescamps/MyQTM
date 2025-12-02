@@ -21,16 +21,16 @@ def process_stock(stock, TRADE_END_DATE, TRAIN_START_DATE):
             all_news = json.load(f)
 
         # Merge with base historical data if available
-        if config.BASE_END_DATE is not None:
+        if config.BASE_END_DATE_FILE is not None:
 
             base_stock_news_file = (
-                data_path / f"{stock}_{config.BASE_END_DATE}_stock_news.json"
+                data_path / f"{stock}_{config.BASE_END_DATE_FILE}_stock_news.json"
             )
 
             with open(base_stock_news_file, "r") as f:
                 base_stock_news = json.load(f)
 
-            base_end_date = pd.to_datetime(config.BASE_END_DATE2)
+            base_end_date = pd.to_datetime(config.BASE_END_DATE)
 
             # Filter news after base end date
             after_base_data = []

@@ -297,9 +297,10 @@ def compute_nasdaq_data(
     with open(out_file, "r") as f:
         nasdaq_history = json.load(f)
 
-    if config.BASE_END_DATE is not None:
+    if config.BASE_END_DATE_FILE is not None:
         base_historical_price_file = (
-            data_path / f"IXIC_{config.BASE_END_DATE}_historical_index_price_full.json"
+            data_path
+            / f"IXIC_{config.BASE_END_DATE_FILE}_historical_index_price_full.json"
         )
         with open(base_historical_price_file, "r") as f:
             base_nasdaq_history = json.load(f)

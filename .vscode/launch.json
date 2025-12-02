@@ -50,7 +50,7 @@
             "name": "diff_fmp_data.py",
             "type": "debugpy",
             "request": "launch",
-            "program": "${workspaceFolder}/tests/test_adjusted_data.py",
+            "program": "${workspaceFolder}/toclean/diff_fmp_data.py",
             "cwd": "${workspaceFolder}/",
             "env": {},
             "console": "integratedTerminal"
