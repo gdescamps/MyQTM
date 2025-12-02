@@ -24,16 +24,16 @@ def process_all_stocks(config):
             key_metrics = json.load(f)
 
         # Merge with base historical data if available
-        if config.BASE_END_DATE is not None:
+        if config.BASE_END_DATE_FILE is not None:
 
             base_key_metrics_file = (
-                data_path / f"{stock}_{config.BASE_END_DATE}_key_metrics.json"
+                data_path / f"{stock}_{config.BASE_END_DATE_FILE}_key_metrics.json"
             )
 
             with open(base_key_metrics_file, "r") as f:
                 base_key_metrics = json.load(f)
 
-            base_end_date = pd.to_datetime(config.BASE_END_DATE2)
+            base_end_date = pd.to_datetime(config.BASE_END_DATE)
             after_base_data = []
             for item in key_metrics:
                 date = pd.to_datetime(item["date"])

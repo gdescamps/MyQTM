@@ -22,10 +22,10 @@ def process_all_stocks(config):
             ratings = json.load(f)
 
         # Merge with base historical data if available
-        if config.BASE_END_DATE is not None:
+        if config.BASE_END_DATE_FILE is not None:
 
             base_ratings_file = (
-                data_path / f"{stock}_{config.BASE_END_DATE}_ratings.json"
+                data_path / f"{stock}_{config.BASE_END_DATE_FILE}_ratings.json"
             )
 
             with open(base_ratings_file, "r") as f:
@@ -34,7 +34,7 @@ def process_all_stocks(config):
             for item in base_ratings:
                 base_dates.append(item["date"])
 
-            base_end_date = pd.to_datetime(config.BASE_END_DATE2)
+            base_end_date = pd.to_datetime(config.BASE_END_DATE)
             after_base_data = []
             for item in ratings:
                 date = pd.to_datetime(item["date"])

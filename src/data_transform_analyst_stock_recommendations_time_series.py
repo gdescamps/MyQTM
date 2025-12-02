@@ -25,11 +25,11 @@ def process_all_stocks(config):
             analyst_stock_recommendations = json.load(f)
 
         # Merge with base historical data if available
-        if config.BASE_END_DATE is not None:
+        if config.BASE_END_DATE_FILE is not None:
 
             base_analyst_stock_recommendations_file = (
                 data_path
-                / f"{stock}_{config.BASE_END_DATE}_analyst_stock_recommendations.json"
+                / f"{stock}_{config.BASE_END_DATE_FILE}_analyst_stock_recommendations.json"
             )
 
             with open(base_analyst_stock_recommendations_file, "r") as f:
@@ -38,7 +38,7 @@ def process_all_stocks(config):
             for item in base_analyst_stock_recommendations:
                 base_dates.append(item["date"])
 
-            base_end_date = pd.to_datetime(config.BASE_END_DATE2)
+            base_end_date = pd.to_datetime(config.BASE_END_DATE)
             after_base_data = []
             for item in analyst_stock_recommendations:
                 date = pd.to_datetime(item["date"])

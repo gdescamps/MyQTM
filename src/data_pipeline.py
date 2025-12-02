@@ -48,7 +48,7 @@ def run_pipeline(config=None, log_local=PrintLogNone()):
             f"Based data end date is defined and will be used from {config.BASE_END_DATE_FILE}"
         )
         # Parse the base end date
-        base_end_dt = datetime.strptime(config.BASE_END_DATE_FILE, "%Y-%m-%d")
+        base_end_dt = datetime.strptime(config.BASE_END_DATE, "%Y-%m-%d")
         # Subtract 20 calendar days
         dt = base_end_dt - timedelta(days=20)
         trade_start_date = dt.strftime("%Y-%m-%d")

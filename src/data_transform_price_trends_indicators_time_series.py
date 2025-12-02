@@ -41,15 +41,15 @@ def process_all_stocks(config):
             historical_price = json.load(f)
 
         # If BASE_END_DATE is set, merge base and trade period data
-        if config.BASE_END_DATE is not None:
+        if config.BASE_END_DATE_FILE is not None:
             base_historical_price_file = (
                 data_path
-                / f"{indice}_{config.BASE_END_DATE}_historical_index_price_full.json"
+                / f"{indice}_{config.BASE_END_DATE_FILE}_historical_index_price_full.json"
             )
             if not os.path.exists(base_historical_price_file):
                 base_historical_price_file = (
                     data_path
-                    / f"{indice}_{config.BASE_END_DATE}_historical_price_full.json"
+                    / f"{indice}_{config.BASE_END_DATE_FILE}_historical_price_full.json"
                 )
 
             with open(base_historical_price_file, "r") as f:
@@ -144,7 +144,7 @@ def process_all_stocks(config):
             historical_price = json.load(f)
 
         # If BASE_END_DATE is set, merge base and trade period data
-        if config.BASE_END_DATE is not None:
+        if config.BASE_END_DATE_FILE is not None:
 
             base_historical_price_file = (
                 data_path / f"{stock}_{config.BASE_END_DATE}_historical_price_full.json"
