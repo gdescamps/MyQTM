@@ -1,3 +1,16 @@
+"""
+xgb.py
+
+This module provides utilities for preparing data for XGBoost models, including a custom transformer for handling complex data structures.
+
+Classes:
+- CustomExploder: A transformer that processes columns with lists, strings, and numerics into a format suitable for machine learning models.
+
+Functions:
+- prepare_pipeline_for_xgboost_with_pipe(): Builds and fits a scikit-learn pipeline to transform a DataFrame for XGBoost.
+
+"""
+
 import ast
 
 import numpy as np
@@ -15,6 +28,10 @@ class CustomExploder(BaseEstimator, TransformerMixin):
     - String lists -> LabelEncoder
     - Simple strings -> LabelEncoder
     - Numerics -> unchanged
+
+    Attributes:
+        encoders_ (dict): Stores LabelEncoders for string columns.
+        columns_ (list): Tracks created columns during transformation.
     """
 
     def __init__(self):
@@ -22,6 +39,16 @@ class CustomExploder(BaseEstimator, TransformerMixin):
         self.columns_ = []  # Track created columns
 
     def fit(self, X, y=None):
+        """
+        Fits the transformer to the data by analyzing column types and preparing encoders.
+
+        Args:
+            X (pd.DataFrame): Input DataFrame to fit the transformer.
+            y (ignored): Not used, present for compatibility.
+
+        Returns:
+            CustomExploder: The fitted transformer.
+        """
         X = X.copy()
         self.columns_ = []
         self.encoders_ = {}
@@ -73,6 +100,15 @@ class CustomExploder(BaseEstimator, TransformerMixin):
         return self
 
     def transform(self, X):
+        """
+        Transforms the input DataFrame based on the fitted encoders and column logic.
+
+        Args:
+            X (pd.DataFrame): Input DataFrame to transform.
+
+        Returns:
+            pd.DataFrame: Transformed DataFrame with exploded columns.
+        """
         X = X.copy()
         # List of DataFrames or Series to concatenate
         col_blocks = []
@@ -143,8 +179,13 @@ class CustomExploder(BaseEstimator, TransformerMixin):
 
 def prepare_pipeline_for_xgboost_with_pipe(df: pd.DataFrame):
     """
-    Build and fit a sklearn pipeline that transforms df.
-    Returns the pipeline + the transformed DataFrame.
+    Builds and fits a scikit-learn pipeline that transforms a DataFrame for XGBoost.
+
+    Args:
+        df (pd.DataFrame): Input DataFrame to transform.
+
+    Returns:
+        tuple: A tuple containing the fitted pipeline and the transformed DataFrame.
     """
     pipe = Pipeline([("exploder", CustomExploder())])
     transformed = pipe.fit_transform(df)
