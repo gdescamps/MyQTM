@@ -22,14 +22,17 @@ def get_interval_type(
     global test_end_str
 
     if train_start is None or train_start_str != config.TRAIN_START_DATE:
+        # store results as global to avoid converting at each call
         train_start = datetime.strptime(config.TRAIN_START_DATE, "%Y-%m-%d")
         train_start_str = config.TRAIN_START_DATE
 
     if train_end is None or train_end_str != config.TRAIN_END_DATE:
+        # store results as global to avoid converting at each call
         train_end = datetime.strptime(config.TRAIN_END_DATE, "%Y-%m-%d")
         train_end_str = config.TRAIN_END_DATE
 
     if test_end is None or test_end_str != config.TEST_END_DATE:
+        # store results as global to avoid converting at each call
         test_end = datetime.strptime(config.TEST_END_DATE, "%Y-%m-%d")
         test_end_str = config.TEST_END_DATE
 
@@ -42,7 +45,9 @@ def get_interval_type(
         return None
 
     if end_limit and query_date > test_end:
-        return None
+        return None  # stop after TEST_END_DATE if end_limit is set
+
+    # if end_limit is False, allow dates beyond TEST_END_DATE for robot.
 
     days_diff = (query_date - train_start).days
     interval_index = days_diff // interval_days

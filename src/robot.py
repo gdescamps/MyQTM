@@ -170,7 +170,7 @@ def daily_trade_positions():
         file_date_str=TODO,
         start_date=bench_start_date,
         end_date=bench_end_date,
-        end_limit=False,
+        end_limit=False,  # do not limit to TEST_END_DATE
     )
 
     yesterday_date = list(sorted(trade_data.keys()))[-1]
