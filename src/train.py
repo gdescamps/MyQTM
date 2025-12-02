@@ -1,3 +1,17 @@
+"""
+train.py
+
+This module contains the training pipeline for the project. It includes functions for loading data, preprocessing, training models, and saving results.
+
+Functions:
+- main(): Entry point for the training pipeline.
+- load_data(): Loads and preprocesses the training data.
+- train_model(): Trains the machine learning model.
+- save_results(): Saves the training results to the outputs directory.
+
+"""
+
+# Import necessary libraries
 import io
 import json
 import os
@@ -69,6 +83,17 @@ def compute_f1(
 ):
     """
     Compute F1 score on trade data filtered by probability threshold.
+
+    Args:
+        trade_data (dict): Trade data containing predictions and ground truth labels.
+        threshold (float): Probability threshold for filtering predictions.
+        count (int): Target sample count for F1 computation.
+        label (str): Label suffix for output files.
+        close_class (int): Class label to be considered as close (for binary classification).
+        do_plot (bool): Whether to plot the F1 scores.
+
+    Returns:
+        float: Mean F1 score across the evaluated time periods.
     """
     dates_f1 = []
     values_f1 = []
@@ -216,6 +241,13 @@ def compute_f1(
 def search_threshold_for_topN(trade_data, target_sample_count=125):
     """
     Search for probability threshold that produces approximately target_sample_count predictions.
+
+    Args:
+        trade_data (dict): Trade data containing predictions.
+        target_sample_count (int): Target number of samples for the threshold search.
+
+    Returns:
+        tuple: Optimal threshold and the corresponding sample count.
     """
     sorted_keys = list(sorted(trade_data.keys()))
     final_sample_count = 0
@@ -248,6 +280,12 @@ def search_threshold_for_topN(trade_data, target_sample_count=125):
 def split_trade_data(trade_data):
     """
     Split trade data into long and short positions by interval type (A/B).
+
+    Args:
+        trade_data (dict): Trade data containing predictions and ground truth labels.
+
+    Returns:
+        tuple: Dictionaries containing split trade data (long/short, A/B).
     """
     sorted_keys = list(sorted(trade_data.keys()))
     trade_dataA_long = {}
@@ -315,6 +353,12 @@ def split_trade_data(trade_data):
 def plot_top_f1(do_plot=False):
     """
     Evaluate F1 score on 500 best transitions across all interval types.
+
+    Args:
+        do_plot (bool): Whether to plot the F1 scores.
+
+    Returns:
+        tuple: F1 scores for intervals A and B (long and short positions).
     """
     # Evaluate F1 on 500 best transitions
     trade_data = build_trade_data(
