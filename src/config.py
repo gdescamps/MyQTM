@@ -1,3 +1,48 @@
+"""
+config.py
+
+This module contains configuration variables and constants used throughout the project. These include dates, directories, stock lists, optimization parameters, and other settings.
+
+Variables:
+- BASE_END_DATE: The base end date for data processing.
+- TRADE_END_DATE: The end date for trading operations.
+- FINETUNE_END_DATE: The end date for fine-tuning operations.
+- TRADE_START_DATE: The start date for trading operations.
+- TRAIN_START_DATE: The start date for training operations.
+- TRAIN_END_DATE: The end date for training operations.
+- TEST_START_DATE: The start date for testing operations.
+- TEST_END_DATE: The end date for testing operations.
+- INITIAL_CAPITAL: The initial capital for trading simulations.
+- DATA_DIR: Directory for storing data files.
+- TRAIN_DIR: Directory for storing training outputs.
+- CMA_DIR: Directory for storing CMA-ES outputs.
+- INDICES: List of indices used in the project.
+- RELIABLE_NEWS_SITES: List of reliable news sources for data collection.
+- TRADE_MAIN_STOCKS: List of main stocks for trading.
+- TRADE_GROWTH_STOCKS: List of growth stocks for trading.
+- TRADE_VALUE_STOCKS: List of value stocks for trading.
+- NEW_CANDIDATE_STOCKS: List of new candidate stocks for trading.
+- TRADE_STOCKS: Combined list of all stocks for trading.
+- TS_SIZE: Time series size for data processing.
+- OPEN_DELAY: Delay for opening positions.
+- MAX_POS_PER_DAY: Maximum positions allowed per day.
+- MAX_POSITIONS: Maximum positions allowed overall.
+- CMA_RECURSIVE: Number of recursive iterations for CMA-ES.
+- CMA_LOOPS: Number of loops for CMA-ES optimization.
+- CMA_EARLY_STOP_ROUNDS: Early stopping rounds for CMA-ES.
+- CMA_STOCKS_DROP_OUT_ROUND: Number of stock dropout rounds for CMA-ES.
+- CMA_STOCKS_DROP_OUT: Number of stocks to drop out per round.
+- CMA_PROCESSES: Number of processes for CMA-ES.
+- CMA_PARALLEL_PROCESSES: Number of parallel processes for CMA-ES.
+- INIT_X0: Initial parameter values for CMA-ES.
+- INIT_CMA_STD: Initial standard deviation for CMA-ES.
+- INIT_SPACE: Parameter space for CMA-ES optimization.
+- PARAM_GRID: Grid of parameters for model training.
+- TRADE_DATA_LOAD: Placeholder for trade data loading configuration.
+- DATES_PORTFOLIO: Placeholder for portfolio dates.
+- ENABLE_PROFILER: Flag to enable or disable profiling.
+"""
+
 from skopt.space import Real
 
 BASE_END_DATE_FILE = "2025-09-05"

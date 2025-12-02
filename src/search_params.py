@@ -1,3 +1,18 @@
+"""
+search_params.py
+
+This module is responsible for performing parameter search and optimization using the CMA-ES algorithm. It includes functions for running optimization processes, benchmarking, and saving results.
+
+Functions:
+- run_single_random_state(): Executes a single optimization process for a given random state.
+- sort_perfs(): Sorts and saves the top-performing parameter sets based on performance metrics.
+
+Main Execution:
+- Loads environment variables and initializes configurations.
+- Runs the optimization process in parallel using multiprocessing.
+- Archives and saves the results of the optimization.
+"""
+
 import json
 import multiprocessing
 import os
@@ -28,6 +43,23 @@ def run_single_random_state(
     cma_dropout_round,
     cma_dropout,
 ):
+    """
+    Executes a single CMA-ES optimization process for a given random state.
+
+    Args:
+        random_state (int): Random seed for reproducibility.
+        output_dir_time (str): Directory to save output files.
+        init_space (list): Initial parameter space for optimization.
+        init_x0 (list): Initial parameter values.
+        init_cma_std (float): Initial standard deviation for CMA-ES.
+        cma_loops (int): Number of optimization iterations.
+        early_stop_rounds (int): Early stopping rounds for optimization.
+        cma_dropout_round (int): Dropout rounds for CMA-ES.
+        cma_dropout (float): Dropout rate for CMA-ES.
+
+    Returns:
+        None
+    """
     # Initialize process-specific logger
     process_log = PrintLogProcess(
         output_dir_time=output_dir_time, process_id=random_state
@@ -164,6 +196,16 @@ def run_single_random_state(
 
 
 def sort_perfs(random_states, SEARCH_DIR):
+    """
+    Sorts and saves the top-performing parameter sets based on performance metrics.
+
+    Args:
+        random_states (list): List of random states used in the optimization process.
+        SEARCH_DIR (str): Directory containing the performance results.
+
+    Returns:
+        None
+    """
     # Collect and sort results by performance
     perfs = []
     for random_state in random_states:
@@ -199,6 +241,13 @@ def sort_perfs(random_states, SEARCH_DIR):
 
 
 if __name__ == "__main__":
+    """
+    Main execution block for the parameter search pipeline. It performs the following steps:
+    1. Loads environment variables and configurations.
+    2. Initializes the optimization process with multiprocessing.
+    3. Runs the optimization iteratively, refining the parameter search.
+    4. Archives and saves the results of the optimization.
+    """
 
     # Load environment variables from .env file
     # This ensures sensitive information like API keys is securely loaded into the environment.

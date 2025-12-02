@@ -1,3 +1,20 @@
+"""
+benchmark.py
+
+This module is responsible for running benchmark simulations and computing portfolio metrics. It includes functions for simulating trading strategies, comparing portfolio performance with NASDAQ, and generating performance metrics.
+
+Functions:
+- compute_bench(): Simulates the benchmark trading strategy and computes portfolio metrics.
+- compute_nasdaq_data(): Computes NASDAQ index data for comparison with portfolio performance.
+- compute_annual_roi(): Calculates the ROI for each 1-year period from the end, non-sliding.
+- run_benchmark(): Runs the benchmark simulation and computes all portfolio metrics.
+
+Main Execution:
+- Loads environment variables and initializes configurations.
+- Runs benchmarks for top-performing parameter sets.
+- Saves benchmark results and generates performance plots.
+"""
+
 import json
 import os
 import random
@@ -56,6 +73,34 @@ def compute_bench(
     prob_size_rate,
     leverage=1.0,
 ):
+    """
+    Simulates the benchmark trading strategy and computes portfolio metrics.
+
+    Args:
+        bench_data (dict): Trading data for the benchmark.
+        remove_stocks (int): Number of stocks to remove from the benchmark.
+        bench_start_date (datetime): Start date for the benchmark.
+        bench_end_date (datetime): End date for the benchmark.
+        capital (float): Initial capital for the benchmark.
+        max_positions (int): Maximum number of positions allowed.
+        long_open_prob_thresa (float): Threshold A for opening long positions.
+        long_close_prob_thresa (float): Threshold A for closing long positions.
+        short_open_prob_thresa (float): Threshold A for opening short positions.
+        short_close_prob_thresa (float): Threshold A for closing short positions.
+        long_open_prob_thresb (float): Threshold B for opening long positions.
+        long_close_prob_thresb (float): Threshold B for closing long positions.
+        short_open_prob_thresb (float): Threshold B for opening short positions.
+        short_close_prob_thresb (float): Threshold B for closing short positions.
+        long_prob_powera (float): Power factor A for long positions.
+        short_prob_powera (float): Power factor A for short positions.
+        long_prob_powerb (float): Power factor B for long positions.
+        short_prob_powerb (float): Power factor B for short positions.
+        prob_size_rate (float): Rate for adjusting position sizes.
+        leverage (float, optional): Leverage factor for positions. Defaults to 1.0.
+
+    Returns:
+        tuple: Portfolio values, capital, positions, position history, total capital, and portfolio counts.
+    """
     # Simulate the benchmark trading strategy and compute portfolio metrics.
     position_size = capital / max_positions
     capital_and_position = capital
@@ -255,6 +300,18 @@ def compute_bench(
 def compute_nasdaq_data(
     BENCH_START_DATE=None, BENCH_END_DATE=None, MODEL_PATH=None, data_path=None
 ):
+    """
+    Computes NASDAQ index data for comparison with portfolio performance.
+
+    Args:
+        BENCH_START_DATE (str, optional): Start date for the benchmark. Defaults to None.
+        BENCH_END_DATE (str, optional): End date for the benchmark. Defaults to None.
+        MODEL_PATH (str, optional): Path to the model directory. Defaults to None.
+        data_path (str, optional): Path to the data directory. Defaults to None.
+
+    Returns:
+        dict: NASDAQ performance metrics including return, max drawdown, and longest drawdown period.
+    """
     # Compute NASDAQ index data for comparison with portfolio performance
 
     dates_portfolio = config.DATES_PORTFOLIO
@@ -369,6 +426,16 @@ def compute_nasdaq_data(
 def compute_annual_roi(dates_portfolio, values_portfolio):
     """
     Calculates the ROI for each 1-year period from the end, non-sliding.
+
+    Args:
+        dates_portfolio (list): List of portfolio dates.
+        values_portfolio (list): List of portfolio values.
+
+    Returns:
+        tuple: Annual ROI metrics including mean, standard deviation, min, max, and last ROI.
+    """
+    """
+    Calculates the ROI for each 1-year period from the end, non-sliding.
     Returns a dict {start_date: ROI_in_%}
     """
     df = pd.DataFrame(
@@ -443,6 +510,37 @@ def run_benchmark(
     leverage=1.0,
     force_reload=False,
 ):
+    """
+    Runs the benchmark simulation and computes all portfolio metrics.
+
+    Args:
+        FILE_BENCH_END_DATE (str, optional): End date for the benchmark file. Defaults to None.
+        BENCH_START_DATE (str, optional): Start date for the benchmark. Defaults to None.
+        BENCH_END_DATE (str, optional): End date for the benchmark. Defaults to None.
+        MAX_POSITIONS (int, optional): Maximum number of positions allowed. Defaults to config.MAX_POSITIONS.
+        INIT_CAPITAL (float, optional): Initial capital for the benchmark. Defaults to None.
+        LONG_OPEN_PROB_THRESA (float, optional): Threshold A for opening long positions. Defaults to 0.60.
+        LONG_CLOSE_PROB_THRESA (float, optional): Threshold A for closing long positions. Defaults to 0.37.
+        SHORT_OPEN_PROB_THRESA (float, optional): Threshold A for opening short positions. Defaults to 0.60.
+        SHORT_CLOSE_PROB_THRESA (float, optional): Threshold A for closing short positions. Defaults to 0.37.
+        LONG_OPEN_PROB_THRESB (float, optional): Threshold B for opening long positions. Defaults to 0.60.
+        LONG_CLOSE_PROB_THRESB (float, optional): Threshold B for closing long positions. Defaults to 0.37.
+        SHORT_OPEN_PROB_THRESB (float, optional): Threshold B for opening short positions. Defaults to 0.60.
+        SHORT_CLOSE_PROB_THRESB (float, optional): Threshold B for closing short positions. Defaults to 0.37.
+        LONG_PROB_POWERA (float, optional): Power factor A for long positions. Defaults to 1.0.
+        SHORT_PROB_POWERA (float, optional): Power factor A for short positions. Defaults to 1.0.
+        LONG_PROB_POWERB (float, optional): Power factor B for long positions. Defaults to 1.0.
+        SHORT_PROB_POWERB (float, optional): Power factor B for short positions. Defaults to 1.0.
+        PROB_SIZE_RATE (float, optional): Rate for adjusting position sizes. Defaults to 0.4.
+        MODEL_PATH (str, optional): Path to the model directory. Defaults to None.
+        data_path (str, optional): Path to the data directory. Defaults to None.
+        remove_stocks (int, optional): Number of stocks to remove from the benchmark. Defaults to 5.
+        leverage (float, optional): Leverage factor for positions. Defaults to 1.0.
+        force_reload (bool, optional): Whether to force reload of trade data. Defaults to False.
+
+    Returns:
+        tuple: Metrics, positions, and list of removed stocks.
+    """
     # Run the benchmark simulation and compute all portfolio metrics
     # Set the path to the data directory
     # Create a directory to store downloaded data if it doesn't already exist.
@@ -644,6 +742,12 @@ def run_benchmark(
 
 
 if __name__ == "__main__":
+    """
+    Main execution block for the benchmark pipeline. It performs the following steps:
+    1. Loads environment variables and configurations.
+    2. Runs benchmarks for top-performing parameter sets.
+    3. Saves benchmark results and generates performance plots.
+    """
 
     # Load environment variables from .env file
     # This ensures sensitive information like API keys is securely loaded into the environment.
