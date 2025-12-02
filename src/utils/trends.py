@@ -1,3 +1,14 @@
+"""
+trends.py
+
+This module provides utilities for detecting trends in financial data and scoring trends based on percentage changes.
+
+Functions:
+- detect_trends(): Detects bullish, bearish, and range trends in a daily OHLCV DataFrame.
+- score_from_df(): Calculates a gain/loss class based on percentage changes between specific dates.
+
+"""
+
 import numpy as np
 import pandas as pd
 
@@ -17,23 +28,16 @@ def detect_trends(
     between mid-vs-long EMAs lasting at least `min_days` that does not qualify as
     bullish or bearish is labeled as "range".
 
-    Parameters
-    ----------
-    df : pd.DataFrame
-        Must contain a DatetimeIndex and a 'close' column.
-    ma_short, ma_mid, ma_long : int
-        Windows (in trading days) for the exponential moving averages.
-    min_days : int
-        Minimum segment duration (in days) defined by the mid-vs-long EMA plateau.
-    avg_daily_percent_thr : float
-        Minimum average daily return required to keep a trend:
-        +thr for bullish trends, −thr for bearish. Expressed as a percentage
-        (0.15 == 0.15% per day).
+    Args:
+        df (pd.DataFrame): DataFrame containing a DatetimeIndex and a 'close' column.
+        ma_short (int, optional): Window for the short-term EMA. Defaults to 4.
+        ma_mid (int, optional): Window for the mid-term EMA. Defaults to 8.
+        ma_long (int, optional): Window for the long-term EMA. Defaults to 30.
+        min_days (int, optional): Minimum segment duration in days. Defaults to 8.
+        avg_daily_percent_thr (float, optional): Minimum average daily return required to keep a trend. Defaults to 0.15.
 
-    Returns
-    -------
-    list[dict]
-        Each dict contains { 'trend', 'start', 'end', 'avg_daily_return', 'total_return', 'days' }.
+    Returns:
+        list[dict]: List of detected trends with details such as type, start, end, and returns.
     """
     df = df.sort_index().copy()
 
@@ -117,59 +121,3 @@ def detect_trends(
             last_end = adj_end  # Mettre à jour la dernière fin
 
     return trends
-
-
-def score_from_df(df: pd.DataFrame, date: str, decay: float = 0.9) -> int:
-    """
-    Calcule la classe de gain/perte en pourcentage entre open d+1 et open d+6.
-
-    - df : DataFrame avec index = date (datetime), colonnes : 'open'
-    - date : point de référence (str, ex : '2025-05-27')
-    - decay : ignoré (pour compatibilité)
-
-    Retourne un entier entre 0 et 6 selon les classes définies.
-    """
-    df = df.sort_index()
-    if date not in df.index:
-        return None, None
-
-    start_idx = df.index.get_loc(date) + 1
-    end_idx = (
-        start_idx + 5
-    )  # d+1 à d+6 inclus = 6 valeurs, donc d+1 à d+6 => [start_idx, end_idx]
-    if end_idx >= len(df):
-        return None, None
-
-    open_d1 = df.iloc[start_idx]["open"]
-    open_d6 = df.iloc[end_idx]["open"]
-    if open_d1 == 0:
-        return None, None
-
-    pct = 100 * (open_d6 - open_d1) / open_d1
-
-    # Classes :
-    # 0: < -3.5%
-    # 1: [-3.5%, -2%)
-    # 2: [-2%, -0.5%)
-    # 3: [-0.5%, 0.5%)
-    # 4: [0.5%, 2%)
-    # 5: [2%, 3.5%)
-    # 6: >= 3.5%
-    if pct < -3.5:
-        classe = 0
-    elif -3.5 <= pct < -2:
-        classe = 1
-    elif -2 <= pct < -0.5:
-        classe = 2
-    elif -0.5 <= pct < 0.5:
-        classe = 3
-    elif 0.5 <= pct < 2:
-        classe = 4
-    elif 2 <= pct < 3.5:
-        classe = 5
-    elif pct >= 3.5:
-        classe = 6
-    else:
-        return None, None  # Cas improbable
-
-    return classe, pct

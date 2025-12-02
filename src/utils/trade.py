@@ -1,3 +1,19 @@
+"""
+trade.py
+
+This module contains functions for building trade data, managing positions, and computing trading parameters. It is used to simulate trading strategies and manage portfolio operations.
+
+Functions:
+- build_trade_data(): Constructs trade data from benchmark data and models.
+- close_positions(): Closes long and short positions and updates capital and history.
+- compute_position_sizes(): Computes total position sizes and updates position info.
+- open_positions(): Opens new positions and updates capital and positions list.
+- select_positions_to_open(): Selects tickers to open new positions based on criteria.
+- select_positions_to_close(): Selects positions to close based on thresholds and criteria.
+- get_param(): Retrieves trading parameters based on the current date and interval type.
+
+"""
+
 import json
 
 import joblib
@@ -18,6 +34,20 @@ def build_trade_data(
     end_date,
     end_limit: bool = True,
 ):
+    """
+    Constructs trade data from benchmark data and models.
+
+    Args:
+        model_path (Path): Path to the directory containing the models.
+        data_path (Path): Path to the directory containing the benchmark data.
+        file_date_str (str): Date string for the benchmark file.
+        start_date (datetime): Start date for the trade data.
+        end_date (datetime): End date for the trade data.
+        end_limit (bool, optional): Whether to enforce end limits. Defaults to True.
+
+    Returns:
+        dict: Trade data organized by date and stock.
+    """
     current_date = start_date
     trade_data = {}
 
@@ -163,7 +193,23 @@ def close_positions(
     leverage=1.0,
     log=PrintLogNone(),
 ):
+    """
+    Closes long and short positions and updates capital and history.
 
+    Args:
+        positions_long_to_close (list): List of long positions to close.
+        positions_short_to_close (list): List of short positions to close.
+        bench_data (dict): Benchmark data for the current date.
+        current_date (datetime): Current date for closing positions.
+        capital (float): Current capital.
+        positions_history (list): History of closed positions.
+        callback (function, optional): Callback function for additional processing. Defaults to None.
+        leverage (float, optional): Leverage factor for positions. Defaults to 1.0.
+        log (PrintLog, optional): Logger for printing logs. Defaults to PrintLogNone().
+
+    Returns:
+        tuple: Updated capital, positions history, and cleared positions to close.
+    """
     # Close long positions
     if len(positions_long_to_close):
         interval = get_interval_type(current_date)
@@ -208,8 +254,16 @@ def close_positions(
 
 def compute_position_sizes(positions, bench_data, current_date, leverage=1.0):
     """
-    Compute total position sizes and update position info (gain, end, days).
-    Returns the total position sizes.
+    Computes total position sizes and updates position info (gain, end, days).
+
+    Args:
+        positions (list): List of current positions.
+        bench_data (dict): Benchmark data for the current date.
+        current_date (datetime): Current date for computing position sizes.
+        leverage (float, optional): Leverage factor for positions. Defaults to 1.0.
+
+    Returns:
+        float: Total position sizes.
     """
     position_sizes = 0
     for item in positions:
@@ -246,8 +300,27 @@ def open_positions(
     log=PrintLogNone(),
 ):
     """
-    Open new positions (long or short) and update capital and positions list.
-    Returns updated positions, capital, and resets positions_to_open.
+    Opens new positions (long or short) and updates capital and positions list.
+
+    Args:
+        positions_to_open (list): List of positions to open.
+        positions (list): Current list of positions.
+        bench_data (dict): Benchmark data for the current date.
+        current_date (datetime): Current date for opening positions.
+        capital (float): Current capital.
+        capital_and_position (float): Total capital and position value.
+        position_size (float): Size of each position.
+        max_positions (int): Maximum number of positions allowed.
+        open_prob_thres (float): Probability threshold for opening positions.
+        pos_type (str): Type of position ('long' or 'short').
+        prob_power (float): Power factor for probability adjustment.
+        prob_size_rate (float): Rate for adjusting position sizes.
+        callback (function, optional): Callback function for additional processing. Defaults to None.
+        leverage (float, optional): Leverage factor for positions. Defaults to 1.0.
+        log (PrintLog, optional): Logger for printing logs. Defaults to PrintLogNone().
+
+    Returns:
+        tuple: Updated positions, capital, and cleared positions to open.
     """
     interval = get_interval_type(current_date)
     if len(positions_to_open):
@@ -292,8 +365,20 @@ def select_positions_to_open(
     new_open_yprob,
 ):
     """
-    Select tickers to open new positions (long or short).
-    Returns updated positions_to_open and new_open_yprob.
+    Selects tickers to open new positions (long or short).
+
+    Args:
+        item_dict (dict): Dictionary of current items.
+        prev_item (dict): Dictionary of previous items.
+        positions (list): Current list of positions.
+        positions_to_open (list): List of positions to open.
+        stock_filter (list): List of stocks to filter.
+        class_val (int): Class value for position type (2 for long, 0 for short).
+        open_prob_thres (float): Probability threshold for opening positions.
+        new_open_yprob (float): New open probability.
+
+    Returns:
+        tuple: Updated positions to open and new open probability.
     """
     already_open = []
     for pos in positions:
@@ -335,8 +420,19 @@ def select_positions_to_close(
     capital,
 ):
     """
-    Select positions to close (long and short) based on thresholds and criteria.
-    Returns positions_long_to_close, positions_short_to_close, remove_pos_indexes.
+    Selects positions to close (long and short) based on thresholds and criteria.
+
+    Args:
+        positions (list): Current list of positions.
+        item (dict): Current item data.
+        long_close_prob_thres (float): Probability threshold for closing long positions.
+        short_close_prob_thres (float): Probability threshold for closing short positions.
+        new_open_ybull (float): New open probability for long positions.
+        new_open_ybear (float): New open probability for short positions.
+        capital (float): Current capital.
+
+    Returns:
+        tuple: Positions to close (long and short) and indexes of removed positions.
     """
     positions_long_to_close = []
     positions_short_to_close = []
@@ -415,6 +511,28 @@ def get_param(
     short_prob_powerb,
     end_limit: bool = True,
 ):
+    """
+    Retrieves trading parameters based on the current date and interval type.
+
+    Args:
+        current_date (datetime): Current date for retrieving parameters.
+        long_open_prob_thresa (float): Threshold A for opening long positions.
+        long_close_prob_thresa (float): Threshold A for closing long positions.
+        short_open_prob_thresa (float): Threshold A for opening short positions.
+        short_close_prob_thresa (float): Threshold A for closing short positions.
+        long_open_prob_thresb (float): Threshold B for opening long positions.
+        long_close_prob_thresb (float): Threshold B for closing long positions.
+        short_open_prob_thresb (float): Threshold B for opening short positions.
+        short_close_prob_thresb (float): Threshold B for closing short positions.
+        long_prob_powera (float): Power factor A for long positions.
+        short_prob_powera (float): Power factor A for short positions.
+        long_prob_powerb (float): Power factor B for long positions.
+        short_prob_powerb (float): Power factor B for short positions.
+        end_limit (bool, optional): Whether to enforce end limits. Defaults to True.
+
+    Returns:
+        tuple: Trading parameters for the current interval type.
+    """
     interval_type = get_interval_type(current_date, end_limit=end_limit)
     if "A" in interval_type:
         long_open_prob_thres = long_open_prob_thresb

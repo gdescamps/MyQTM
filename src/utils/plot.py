@@ -1,3 +1,13 @@
+"""
+plot.py
+
+This module provides utilities for plotting portfolio metrics and comparing them with NASDAQ performance. It generates visualizations and metrics summaries for portfolio analysis.
+
+Functions:
+- plot_portfolio_metrics(): Plots portfolio(s) and NASDAQ metrics using the provided metrics dictionary or list of dictionaries.
+
+"""
+
 # %%
 import io
 
@@ -13,7 +23,13 @@ from src.utils.interval import get_interval_type
 def plot_portfolio_metrics(metrics, nasdaq_metrics=None):
     """
     Plot portfolio(s) and NASDAQ metrics using only the metrics dict or a list of dicts.
-    Returns an in-memory PIL image.
+
+    Args:
+        metrics (dict or list): Metrics dictionary or list of dictionaries containing portfolio data.
+        nasdaq_metrics (dict, optional): Metrics dictionary for NASDAQ performance. Defaults to None.
+
+    Returns:
+        tuple: An in-memory PIL image of the plot and a string summary of the metrics.
     """
     # Handle single or multiple metrics
     if isinstance(metrics, list):
