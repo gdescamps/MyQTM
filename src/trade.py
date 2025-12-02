@@ -22,8 +22,8 @@ import pandas as pd
 import xgboost as xgb
 
 import src.config as config
-from src.utils.interval import get_interval_type
-from src.utils.printlog import PrintLogNone
+from src.interval import get_interval_type
+from src.printlog import PrintLogNone
 
 
 def build_trade_data(

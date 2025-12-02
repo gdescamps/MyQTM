@@ -6,7 +6,7 @@ verifying response validity and pricing calculations.
 
 from dotenv import load_dotenv
 
-from src.utils.llm import txt2txt_llm
+from src.llm import txt2txt_llm
 
 load_dotenv()
 

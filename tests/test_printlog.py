@@ -3,7 +3,7 @@
 This module verifies that PrintLog correctly captures and logs output to files.
 """
 
-from src.utils.printlog import PrintLog
+from src.printlog import PrintLog
 
 
 def test_printlog():

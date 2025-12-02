@@ -5,7 +5,7 @@ This module verifies automatic GPU selection based on available memory.
 
 import os
 
-from src.utils.cuda import auto_select_gpu
+from src.cuda import auto_select_gpu
 
 
 def test_auto_select_gpu():

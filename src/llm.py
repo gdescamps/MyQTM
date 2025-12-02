@@ -7,7 +7,7 @@ from threading import Lock
 
 from google import genai
 
-from src.utils.path import get_project_root
+from src.path import get_project_root
 
 # Define the path to the cache file
 CACHE_FILE = get_project_root() + "/llm_cache.pkl"

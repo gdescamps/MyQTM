@@ -6,11 +6,11 @@ import numpy as np
 import pandas as pd
 from tqdm import tqdm
 
-from src.utils.df import merge_by_interval
-from src.utils.indicators import compute_rsi
-from src.utils.path import get_project_root
-from src.utils.resample import round_floats
-from src.utils.trends import detect_trends
+from src.df import merge_by_interval
+from src.indicators import compute_rsi
+from src.path import get_project_root
+from src.resample import round_floats
+from src.trends import detect_trends
 
 
 def sum_chunks(lst, n):

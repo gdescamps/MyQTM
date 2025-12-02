@@ -15,7 +15,7 @@ from src.fmp import (
     fmp_profile,
     fmp_stock_news,
 )
-from src.utils.path import get_project_root
+from src.path import get_project_root
 
 
 def download_analyst_stock_recommendations(

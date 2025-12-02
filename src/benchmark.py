@@ -37,10 +37,10 @@ from config import (
     TEST_START_DATE,
     TRAIN_DIR,
 )
-from src.utils.path import get_project_root
-from src.utils.plot import plot_portfolio_metrics
-from src.utils.printlog import PrintLog
-from src.utils.trade import (
+from src.path import get_project_root
+from src.plot import plot_portfolio_metrics
+from src.printlog import PrintLog
+from src.trade import (
     build_trade_data,
     close_positions,
     compute_position_sizes,

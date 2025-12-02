@@ -4,9 +4,9 @@ import joblib
 import numpy as np
 import pandas as pd
 
-from src.utils.interval import get_interval_type
-from src.utils.path import get_project_root
-from src.utils.xgb import prepare_pipeline_for_xgboost_with_pipe
+from src.interval import get_interval_type
+from src.path import get_project_root
+from src.xgb import prepare_pipeline_for_xgboost_with_pipe
 
 
 def safe_div(a, b):

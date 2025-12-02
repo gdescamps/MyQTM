@@ -7,7 +7,7 @@ from rapidfuzz import fuzz
 from tqdm import tqdm
 
 import src.config as config
-from src.utils.path import get_project_root
+from src.path import get_project_root
 
 # %%
 CURRENT_DATE = "2025-11-28"

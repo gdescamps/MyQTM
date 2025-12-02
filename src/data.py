@@ -1,7 +1,7 @@
 from dotenv import load_dotenv
 
 from src.data_pipeline import run_pipeline
-from src.utils.printlog import PrintLog
+from src.printlog import PrintLog
 
 if __name__ == "__main__":
 

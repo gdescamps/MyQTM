@@ -6,7 +6,7 @@ import pandas as pd
 from tqdm import tqdm
 
 import src.config as config
-from src.utils.path import get_project_root
+from src.path import get_project_root
 
 
 def process_stock(stock, TRADE_END_DATE, TRAIN_START_DATE):

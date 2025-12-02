@@ -18,11 +18,11 @@ from src.ib import (
     callback_open_positions_iteractive_broker,
     callback_paris_open,
     callback_us_open,
+    ib_reboot_docker,
 )
-from src.utils.ib import ib_reboot_docker
-from src.utils.path import get_project_root
-from src.utils.printlog import PrintLog
-from src.utils.trade import (
+from src.path import get_project_root
+from src.printlog import PrintLog
+from src.trade import (
     close_positions,
     get_param,
     open_positions,

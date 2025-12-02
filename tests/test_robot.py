@@ -16,8 +16,8 @@ from src.ib import (
     callback_open_positions_iteractive_broker,
     callback_paris_open,
     callback_us_open,
+    ib_connect_once,
 )
-from src.utils.ib import ib_connect_once
 
 
 def test_robot_ib_connected():

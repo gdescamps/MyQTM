@@ -5,8 +5,8 @@ import numpy as np
 import pandas as pd
 from tqdm import tqdm
 
-from src.utils.df import merge_by_interval
-from src.utils.path import get_project_root
+from src.df import merge_by_interval
+from src.path import get_project_root
 
 
 def process_all_stocks(config):

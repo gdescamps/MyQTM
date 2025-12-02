@@ -29,8 +29,8 @@ from src.data_transform_stock_news import main as data_transform_stock_news
 from src.data_transform_stock_news_to_sentiment_scores import (
     main as transform_stock_news_to_sentiment_scores,
 )
-from src.utils.path import get_project_root
-from src.utils.printlog import PrintLogNone
+from src.path import get_project_root
+from src.printlog import PrintLogNone
 
 
 def run_pipeline(config=None, log_local=PrintLogNone()):

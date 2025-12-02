@@ -4,7 +4,7 @@ from pathlib import Path
 import pandas as pd
 
 import src.config as config
-from src.utils.path import get_project_root
+from src.path import get_project_root
 
 # %%
 # Set the path to the data directory

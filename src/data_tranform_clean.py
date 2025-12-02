@@ -3,7 +3,7 @@ from pathlib import Path
 import pandas as pd
 from tqdm import tqdm
 
-from src.utils.path import get_project_root
+from src.path import get_project_root
 
 
 def process_all_stocks(config):

@@ -31,11 +31,11 @@ from tqdm import tqdm
 from xgboost.callback import TrainingCallback
 
 import config
-from src.utils.cuda import auto_select_gpu
-from src.utils.interval import get_interval_type
-from src.utils.path import get_project_root
-from src.utils.printlog import PrintLog
-from src.utils.trade import build_trade_data
+from src.cuda import auto_select_gpu
+from src.interval import get_interval_type
+from src.path import get_project_root
+from src.printlog import PrintLog
+from src.trade import build_trade_data
 
 
 class EvalF1Callback(TrainingCallback):

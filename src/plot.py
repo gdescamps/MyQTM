@@ -17,7 +17,7 @@ import pandas as pd
 from PIL import Image
 
 import src.config as config
-from src.utils.interval import get_interval_type
+from src.interval import get_interval_type
 
 
 def plot_portfolio_metrics(metrics, nasdaq_metrics=None):

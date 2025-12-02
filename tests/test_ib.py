@@ -7,7 +7,7 @@ and market status queries. Tests should only run when IB Gateway is running.
 from ib_insync import MarketOrder, Stock
 
 from src.config import TRADE_STOCKS
-from src.utils.ib import get_capital, ib_connect_once, ib_reboot_docker, market_status
+from src.ib import get_capital, ib_connect_once, ib_reboot_docker, market_status
 
 
 def test_ib_connect():
@@ -166,7 +166,5 @@ def test_reboot_ib_docker():
     # Reconnect after reboot
     ib = ib_connect_once()
     # Verify connection is stable with multiple assertions
-    assert ib.isConnected()
-    assert ib.isConnected()
     assert ib.isConnected()
     assert ib.isConnected()

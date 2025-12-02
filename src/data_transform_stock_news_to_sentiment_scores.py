@@ -7,8 +7,8 @@ from pathlib import Path
 from tqdm import tqdm
 
 from src.config import TRADE_STOCKS
-from src.utils.llm import save_llm_cache, txt2txt_llm
-from src.utils.path import get_project_root
+from src.llm import save_llm_cache, txt2txt_llm
+from src.path import get_project_root
 
 
 def parse_llm_sentiment_response(response):

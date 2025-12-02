@@ -5,7 +5,7 @@ import cma
 import numpy as np
 
 from src.benchmark import run_benchmark
-from src.utils.plot import plot_portfolio_metrics
+from src.plot import plot_portfolio_metrics
 
 best_perf = -np.inf
 

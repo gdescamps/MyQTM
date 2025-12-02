@@ -25,11 +25,11 @@ from dotenv import load_dotenv
 
 import config
 from src.benchmark import compute_nasdaq_data, run_benchmark
+from src.cuda import auto_select_gpu
 from src.finetune import cmaes_grid_search_benchmark
-from src.utils.cuda import auto_select_gpu
-from src.utils.path import get_project_root
-from src.utils.plot import plot_portfolio_metrics
-from src.utils.printlog import PrintLog, PrintLogProcess
+from src.path import get_project_root
+from src.plot import plot_portfolio_metrics
+from src.printlog import PrintLog, PrintLogProcess
 
 
 def run_single_random_state(
