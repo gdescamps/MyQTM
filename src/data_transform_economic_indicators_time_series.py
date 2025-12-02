@@ -34,7 +34,7 @@ def preprocess_economic_indicators(config=None):
         with open(base_economic_indicators_file, "r") as f:
             base_economic_indicators = json.load(f)
 
-        base_end_date = pd.to_datetime(config.BASE_END_DATE)
+        base_end_date = pd.to_datetime(config.BASE_END_DATE2)
         after_base_data = {}
         for key in economic_indicators.keys():
             key_date = pd.to_datetime(key)

@@ -9,7 +9,11 @@ import src.config as config
 from src.fmp import (
     fmp_analyst_stock_recommendations,
     fmp_economic_indicators,
+    fmp_historical_price_eod,
+    fmp_historical_rating,
+    fmp_key_metrics,
     fmp_profile,
+    fmp_stock_news,
 )
 from src.utils.path import get_project_root
 
@@ -41,7 +45,7 @@ def download_historical_price(
     for stock in tqdm(trade_stocks):
         out_file = data_path / f"{stock}_{trade_end_date}_historical_price_full.json"
         if not out_file.exists():
-            ret = fmpsdk.historical_price_full(
+            ret = fmp_historical_price_eod(
                 apikey=apikey,
                 symbol=stock,
                 from_date=trade_start_date,
@@ -66,19 +70,19 @@ def download_stock_news(
             page_index = 0
             while True:
                 try:
-                    ret = fmpsdk.stock_news(
+                    ret = fmp_stock_news(
                         apikey=apikey,
                         from_date=trade_start_date,
                         to_date=trade_end_date,
-                        tickers=stock,
+                        symbol=stock,
                         limit=1000,
                         page=page_index,
                     )
                 except Exception as e:
-                    print(f"Error: {e}")
-                    print("Retrying...")
-                    time.sleep(2)
-                    continue
+                    # print(f"Error: {e}")
+                    # print("Retrying...")
+                    # time.sleep(2)
+                    break
                 if len(ret) == 0:
                     break
                 page_index += 1
@@ -96,7 +100,7 @@ def download_key_metrics(
         if not out_file.exists():
             key_metrics = []
             try:
-                ret = fmpsdk.key_metrics(
+                ret = fmp_key_metrics(
                     apikey=apikey, symbol=stock, period="quarter", limit=30
                 )
             except Exception as e:
@@ -118,7 +122,7 @@ def download_ratings(
         if not out_file.exists():
             key_metrics = []
             try:
-                ret = fmpsdk.historical_rating(apikey=apikey, symbol=stock, limit=2000)
+                ret = fmp_historical_rating(apikey=apikey, symbol=stock, limit=2000)
             except Exception as e:
                 print(f"Error: {e}")
                 print("Retrying...")
@@ -204,11 +208,10 @@ def download_indices(
             / f"{symbol.replace('^', '')}_{trade_end_date}_historical_index_price_full.json"
         )
         if not out_file.exists():
-            endpoint_symbol = f"index/{symbol}"
             try:
-                ret = fmpsdk.historical_price_full(
+                ret = fmp_historical_price_eod(
                     apikey=apikey,
-                    symbol=endpoint_symbol,
+                    symbol=symbol,
                     from_date=trade_start_date,
                     to_date=trade_end_date,
                 )
@@ -216,12 +219,6 @@ def download_indices(
                 # Error for {symbol}: {e}, retrying in 2s...
                 print(f"Error for {symbol}: {e}, retrying in 2s...")
                 time.sleep(2)
-                ret = fmpsdk.historical_price_full(
-                    apikey=apikey,
-                    symbol=endpoint_symbol,
-                    from_date=trade_start_date,
-                    to_date=trade_end_date,
-                )
             with open(out_file, "w") as f:
                 json.dump(ret, f, indent=2)
 

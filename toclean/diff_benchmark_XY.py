@@ -12,10 +12,10 @@ from src.utils.path import get_project_root
 data_path = Path(get_project_root()) / "data" / "fmp_data"
 
 # %%
-df_bench1 = pd.read_csv(data_path / "2025-10-22_benchmark_XY.csv")
+df_bench1 = pd.read_csv(data_path / "2025-09-05_benchmark_XY.csv")
 
 # %%
-df_bench2 = pd.read_csv(data_path / "2025-11-23_benchmark_XY.csv")
+df_bench2 = pd.read_csv(data_path / "2025-11-28_benchmark_XY.csv")
 
 # %%
 df_bench1.tail()
@@ -25,7 +25,7 @@ df_bench2.tail()
 
 # %%
 for i, stock in enumerate(config.TRADE_STOCKS):
-    if stock != "SAP":
+    if stock != "AAPL":
         continue
     df_stock1 = df_bench1[df_bench1["stock_name"] == stock]
     df_stock2 = df_bench2[df_bench2["stock_name"] == stock]

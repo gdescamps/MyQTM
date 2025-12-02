@@ -83,6 +83,26 @@ def test_fmp_stock_news():
     assert "2023-01" in ret[0]["publishedDate"]
 
 
+def test_fmp_stock_news2():
+    """
+    Verify that stock news data is retrieved and contains valid publication dates.
+
+    Queries the stock news endpoint for AAPL within a specific date range and confirms:
+    1. The "publishedDate" field is present in the response.
+    2. The earliest and latest news items fall within the specified date range.
+    """
+    ret = fmp_stock_news(
+        apikey=FMP_APIKEY,
+        symbol="AAPL",
+        from_date="2017-01-01",
+        to_date="2025-11-28",
+        limit=1000,
+        page=1,
+    )
+    # Verify that the "publishedDate" field exists in the first news item
+    assert "publishedDate" in ret[0]
+
+
 def test_fmp_key_metrics():
     """
     Verify that key financial metrics are retrieved for the specified symbol.

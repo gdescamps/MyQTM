@@ -10,9 +10,9 @@ import src.config as config
 from src.utils.path import get_project_root
 
 # %%
-CURRENT_DATE = "2025-11-18"
-PREV_DATE = "2025-10-22"
-START_DATE = "2019-01-01"
+CURRENT_DATE = "2025-11-28"
+PREV_DATE = "2025-09-05"
+START_DATE = "2021-01-01"
 
 
 # %%
@@ -56,12 +56,35 @@ def compare_files_by_date(
     # Filtrer pour garder seulement les dates <= prev_date
     prev_date_obj = pd.to_datetime(prev_date)
     start_date_obj = pd.to_datetime(start_date)
+
     df_current_filtered = df_current[
         (df_current["date"] <= prev_date_obj) & (df_current["date"] >= start_date_obj)
-    ]
+    ].copy()
+
     df_prev_filtered = df_prev[
         (df_prev["date"] <= prev_date_obj) & (df_prev["date"] >= start_date_obj)
-    ]
+    ].copy()
+
+    if "ratingScore" in df_prev_filtered.columns:
+        df_prev_filtered["overallScore"] = df_prev_filtered["ratingScore"]
+    if "ratingDetailsDCFScore" in df_prev_filtered.columns:
+        df_prev_filtered["discountedCashFlowScore"] = df_prev_filtered[
+            "ratingDetailsDCFScore"
+        ]
+    if "ratingDetailsROEScore" in df_prev_filtered.columns:
+        df_prev_filtered["returnOnEquityScore"] = df_prev_filtered[
+            "ratingDetailsROEScore"
+        ]
+    if "ratingDetailsROAScore" in df_prev_filtered.columns:
+        df_prev_filtered["returnOnAssetsScore"] = df_prev_filtered[
+            "ratingDetailsROAScore"
+        ]
+    if "ratingDetailsPEScore" in df_prev_filtered.columns:
+        df_prev_filtered["priceEarningsScore"] = df_prev_filtered[
+            "ratingDetailsPEScore"
+        ]
+    if "ratingDetailsPBScore" in df_prev_filtered.columns:
+        df_prev_filtered["priceBookScore"] = df_prev_filtered["ratingDetailsPBScore"]
 
     comparison = pd.merge(
         df_current_filtered, df_prev_filtered, on="date", how="outer", indicator=True
@@ -710,11 +733,11 @@ def check_differences_for_news(similarity_threshold: float = 95.0) -> None:
 # # %%
 # check_differences_for_all_stocks("_earnings")
 
-# # %%
-# check_differences_for_all_stocks("_ratings")
+# %%
+check_differences_for_all_stocks("_ratings")
 
-# # %%
-# check_differences_for_all_stocks("_analyst_stock_recommendations")
+# %%
+check_differences_for_all_stocks("_analyst_stock_recommendations")
 
 # # %%
 # check_differences_for_general_file("_treasury_rates")
@@ -722,5 +745,7 @@ def check_differences_for_news(similarity_threshold: float = 95.0) -> None:
 # %%
 check_differences_for_dict_file("_economic_indicators")
 
-# # %%
-# check_differences_for_news()
+# %%
+check_differences_for_news()
+
+# %%

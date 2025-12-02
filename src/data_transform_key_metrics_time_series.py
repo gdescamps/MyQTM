@@ -33,7 +33,7 @@ def process_all_stocks(config):
             with open(base_key_metrics_file, "r") as f:
                 base_key_metrics = json.load(f)
 
-            base_end_date = pd.to_datetime(config.BASE_END_DATE)
+            base_end_date = pd.to_datetime(config.BASE_END_DATE2)
             after_base_data = []
             for item in key_metrics:
                 date = pd.to_datetime(item["date"])
@@ -46,111 +46,28 @@ def process_all_stocks(config):
         df_key_metrics = pd.DataFrame(key_metrics)
         df_key_metrics["date"] = pd.to_datetime(df_key_metrics["date"])
         # Drop unnecessary columns to retain only key financial metrics
-        df_key_metrics = df_key_metrics.drop(
-            columns=[
-                "symbol",
-                "calendarYear",
-                "period",
-                "revenuePerShare",
-                "netIncomePerShare",
-                "operatingCashFlowPerShare",
-                "freeCashFlowPerShare",
-                "cashPerShare",
-                "bookValuePerShare",
-                "tangibleBookValuePerShare",
-                "shareholdersEquityPerShare",
-                "interestDebtPerShare",
-                "marketCap",
-                "enterpriseValue",
-                "peRatio",
-                "priceToSalesRatio",
-                "pocfratio",
-                "pfcfRatio",
-                "pbRatio",
-                "ptbRatio",
-                "evToSales",
-                "enterpriseValueOverEBITDA",
-                "evToOperatingCashFlow",
-                "evToFreeCashFlow",
-                "earningsYield",
-                "freeCashFlowYield",
-                "dividendYield",
-                "payoutRatio",
-                "salesGeneralAndAdministrativeToRevenue",
-                "intangiblesToTotalAssets",
-                "grahamNumber",
-                "grahamNetNet",
-                "workingCapital",
-                "tangibleAssetValue",
-                "netCurrentAssetValue",
-                "investedCapital",
-                "averageReceivables",
-                "averagePayables",
-                "averageInventory",
-                "capexPerShare",
-                "interestCoverage",
-                "calendarYear",
-                "period",
-                "revenuePerShare",
-                "netIncomePerShare",
-                "operatingCashFlowPerShare",
-                "freeCashFlowPerShare",
-                "cashPerShare",
-                "bookValuePerShare",
-                "tangibleBookValuePerShare",
-                "shareholdersEquityPerShare",
-                "interestDebtPerShare",
-                "marketCap",
-                "enterpriseValue",
-                "peRatio",
-                "priceToSalesRatio",
-                "pocfratio",
-                "pfcfRatio",
-                "pbRatio",
-                "ptbRatio",
-                "evToSales",
-                "enterpriseValueOverEBITDA",
-                "evToOperatingCashFlow",
-                "evToFreeCashFlow",
-                "earningsYield",
-                "freeCashFlowYield",
-                # "debtToEquity",
-                # "debtToAssets",
-                "netDebtToEBITDA",
-                "currentRatio",
-                "interestCoverage",
-                "incomeQuality",
-                "dividendYield",
-                "payoutRatio",
-                "salesGeneralAndAdministrativeToRevenue",
-                "researchAndDdevelopementToRevenue",
-                "intangiblesToTotalAssets",
-                "capexToOperatingCashFlow",
-                "capexToRevenue",
-                "capexToDepreciation",
-                "stockBasedCompensationToRevenue",
-                "grahamNumber",
-                "roic",
-                "returnOnTangibleAssets",
-                "grahamNetNet",
-                "workingCapital",
-                "tangibleAssetValue",
-                "netCurrentAssetValue",
-                "investedCapital",
-                "averageReceivables",
-                "averagePayables",
-                "averageInventory",
-                "daysSalesOutstanding",
-                "daysPayablesOutstanding",
-                "daysOfInventoryOnHand",
-                "receivablesTurnover",
-                "payablesTurnover",
-                "inventoryTurnover",
-                "roe",
-                "capexPerShare",
-            ],
-            errors="ignore",
-        )
+
+        if (
+            "debtToEquityRatio" in df_key_metrics.columns
+            and "debtToEquity" in df_key_metrics.columns
+        ):
+            df_key_metrics["debtToEquity"] = df_key_metrics[
+                "debtToEquityRatio"
+            ].combine_first(df_key_metrics["debtToEquity"])
+        elif "debtToEquityRatio" in df_key_metrics.columns:
+            df_key_metrics["debtToEquity"] = df_key_metrics["debtToEquityRatio"]
+
+        if (
+            "debtToAssetsRatio" in df_key_metrics.columns
+            and "debtToAssets" in df_key_metrics.columns
+        ):
+            df_key_metrics["debtToAssets"] = df_key_metrics[
+                "debtToAssetsRatio"
+            ].combine_first(df_key_metrics["debtToAssets"])
+        elif "debtToAssetsRatio" in df_key_metrics.columns:
+            df_key_metrics["debtToAssets"] = df_key_metrics["debtToAssetsRatio"]
+
+        df_key_metrics = df_key_metrics[["date", "debtToEquity", "debtToAssets"]]
 
         # Forward fill missing values
         df_key_metrics = df_key_metrics.bfill()

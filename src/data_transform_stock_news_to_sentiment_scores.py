@@ -58,7 +58,7 @@ def process_stock(stock, config):
 
     keys = list(news.keys())
     # Add progress bar for processing news items
-    for key in tqdm(keys, desc=f"{stock} news", leave=False):
+    for idx, key in enumerate(tqdm(keys, desc=f"{stock} news", leave=False), start=1):
         news_item = news[key]
         news_text = ""
         for n in news_item:
@@ -95,8 +95,10 @@ def process_stock(stock, config):
             except Exception as e:
                 print(f"Error processing sentiment for {stock} news item {key}: {e}")
                 sentiments[key] = {"company": 5, "competitors": 5, "global": 5}
+
     # Save sentiment scores to file
     sentiments_file = news_file.replace(".json", "_sentiments.json")
+    # Save any remaining cache at the end
     save_llm_cache()
     try:
         with open(sentiments_file, "w") as f:
@@ -108,7 +110,7 @@ def process_stock(stock, config):
 
 def process_all_stocks(config):
     # Process all stocks in parallel using thread pool
-    with ThreadPoolExecutor(max_workers=16) as executor:
+    with ThreadPoolExecutor(max_workers=4) as executor:
         list(
             tqdm(
                 executor.map(partial(process_stock, config=config), TRADE_STOCKS),

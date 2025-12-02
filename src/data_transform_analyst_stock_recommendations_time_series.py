@@ -38,7 +38,7 @@ def process_all_stocks(config):
             for item in base_analyst_stock_recommendations:
                 base_dates.append(item["date"])
 
-            base_end_date = pd.to_datetime(config.BASE_END_DATE)
+            base_end_date = pd.to_datetime(config.BASE_END_DATE2)
             after_base_data = []
             for item in analyst_stock_recommendations:
                 date = pd.to_datetime(item["date"])

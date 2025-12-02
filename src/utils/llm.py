@@ -2,6 +2,7 @@ import asyncio
 import hashlib
 import os
 import pickle
+import tempfile
 import time
 from threading import Lock
 
@@ -38,6 +39,7 @@ _llm_cache_lock = Lock()
 _llm_cache_update = False
 _llm_cache_hits = 0
 _llm_cache_misses = 0
+__client = None
 
 
 def txt2txt_llm(prompt, model_name="gemini-2.0-flash", cache=True):
@@ -46,6 +48,7 @@ def txt2txt_llm(prompt, model_name="gemini-2.0-flash", cache=True):
     global _llm_cache_update
     global _llm_cache_hits
     global _llm_cache_misses
+    global __client
 
     if cache:
         # Generate a unique key based on the prompt and model
@@ -63,15 +66,16 @@ def txt2txt_llm(prompt, model_name="gemini-2.0-flash", cache=True):
             _llm_cache_misses += 1
 
     if "gemini" in model_name:
-        client = genai.Client(
-            vertexai=True,
-            project=os.getenv("PROJECT_ID"),
-            location="us-east1",
-        )
+        if __client is None:
+            __client = genai.Client(
+                vertexai=True,
+                project=os.getenv("PROJECT_ID"),
+                location="us-east1",
+            )
 
         while True:
             try:
-                response = client.models.generate_content(
+                response = __client.models.generate_content(
                     model=model_name, contents=prompt
                 )
                 break
@@ -100,10 +104,26 @@ def save_llm_cache():
     global _llm_cache_update
 
     if _llm_cache_update:
-        with _llm_cache_lock:
-            with open(CACHE_FILE, "wb") as f:
-                pickle.dump(_llm_cache, f, protocol=pickle.HIGHEST_PROTOCOL)
-            _llm_cache_update = False
+        try:
+            # Write to a temporary file first
+            temp_fd, temp_path = tempfile.mkstemp(
+                dir=os.path.dirname(CACHE_FILE),
+                prefix=f".llm_cache_{int(time.time())}",
+                suffix=".tmp",
+            )
+            with _llm_cache_lock:
+                _llm_cache_copy = _llm_cache.copy()
+            with os.fdopen(temp_fd, "wb") as f:
+                pickle.dump(_llm_cache_copy, f, protocol=pickle.HIGHEST_PROTOCOL)
+            with _llm_cache_lock:
+                # Atomic rename - safer against interruptions
+                os.replace(temp_path, CACHE_FILE)
+                _llm_cache_update = False
+        except Exception as e:
+            # Clean up temp file if something went wrong
+            if os.path.exists(temp_path):
+                os.unlink(temp_path)
+            raise
 
 
 def stats_llm_cache():

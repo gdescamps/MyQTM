@@ -30,7 +30,7 @@ def process_stock(stock, TRADE_END_DATE, TRAIN_START_DATE):
             with open(base_stock_news_file, "r") as f:
                 base_stock_news = json.load(f)
 
-            base_end_date = pd.to_datetime(config.BASE_END_DATE)
+            base_end_date = pd.to_datetime(config.BASE_END_DATE2)
 
             # Filter news after base end date
             after_base_data = []

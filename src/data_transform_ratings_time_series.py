@@ -34,7 +34,7 @@ def process_all_stocks(config):
             for item in base_ratings:
                 base_dates.append(item["date"])
 
-            base_end_date = pd.to_datetime(config.BASE_END_DATE)
+            base_end_date = pd.to_datetime(config.BASE_END_DATE2)
             after_base_data = []
             for item in ratings:
                 date = pd.to_datetime(item["date"])
@@ -50,19 +50,84 @@ def process_all_stocks(config):
         # Keep only columns used in TOP_FEATURES
         columns_to_keep = [
             "date",
-            "ratingDetailsPBScore",
-            "ratingDetailsDEScore",
-            "ratingDetailsDERecommendation",
+            "ratingScore",
+            "ratingDetailsDCFScore",
             "ratingDetailsROEScore",
-            "ratingRecommendation",
+            "ratingDetailsROAScore",
+            "ratingDetailsDEScore",
+            "ratingDetailsPEScore",
+            "ratingDetailsPBScore",
         ]
 
-        # Drop all other columns
-        all_cols = set(ratings.columns)
-        keep_cols = set(columns_to_keep)
-        drop_cols = list(all_cols - keep_cols)
+        if "overallScore" in ratings.columns and "ratingScore" in ratings.columns:
+            ratings["ratingScore"] = ratings["overallScore"].combine_first(
+                ratings["ratingScore"]
+            )
+        elif "overallScore" in ratings.columns:
+            ratings["ratingScore"] = ratings["overallScore"]
 
-        ratings = ratings.drop(columns=drop_cols, errors="ignore")
+        if (
+            "discountedCashFlowScore" in ratings.columns
+            and "ratingDetailsDCFScore" in ratings.columns
+        ):
+            ratings["ratingDetailsDCFScore"] = ratings[
+                "discountedCashFlowScore"
+            ].combine_first(ratings["ratingDetailsDCFScore"])
+        elif "discountedCashFlowScore" in ratings.columns:
+            ratings["ratingDetailsDCFScore"] = ratings["discountedCashFlowScore"]
+
+        if (
+            "returnOnEquityScore" in ratings.columns
+            and "ratingDetailsROEScore" in ratings.columns
+        ):
+            ratings["ratingDetailsROEScore"] = ratings[
+                "returnOnEquityScore"
+            ].combine_first(ratings["ratingDetailsROEScore"])
+        elif "returnOnEquityScore" in ratings.columns:
+            ratings["ratingDetailsROEScore"] = ratings["returnOnEquityScore"]
+
+        if (
+            "returnOnAssetsScore" in ratings.columns
+            and "ratingDetailsROAScore" in ratings.columns
+        ):
+            ratings["ratingDetailsROAScore"] = ratings[
+                "returnOnAssetsScore"
+            ].combine_first(ratings["ratingDetailsROAScore"])
+        elif "returnOnAssetsScore" in ratings.columns:
+            ratings["ratingDetailsROAScore"] = ratings["returnOnAssetsScore"]
+
+        if (
+            "debtToEquityScore" in ratings.columns
+            and "ratingDetailsDEScore" in ratings.columns
+        ):
+            ratings["ratingDetailsDEScore"] = ratings[
+                "debtToEquityScore"
+            ].combine_first(ratings["ratingDetailsDEScore"])
+        elif "debtToEquityScore" in ratings.columns:
+            ratings["ratingDetailsDEScore"] = ratings["debtToEquityScore"]
+
+        if (
+            "priceToEarningsScore" in ratings.columns
+            and "ratingDetailsPEScore" in ratings.columns
+        ):
+            ratings["ratingDetailsPEScore"] = ratings[
+                "priceToEarningsScore"
+            ].combine_first(ratings["ratingDetailsPEScore"])
+        elif "priceToEarningsScore" in ratings.columns:
+            ratings["ratingDetailsPEScore"] = ratings["priceToEarningsScore"]
+
+        if (
+            "priceToBookScore" in ratings.columns
+            and "ratingDetailsPBScore" in ratings.columns
+        ):
+            ratings["ratingDetailsPBScore"] = ratings["priceToBookScore"].combine_first(
+                ratings["ratingDetailsPBScore"]
+            )
+        elif "priceToBookScore" in ratings.columns:
+            ratings["ratingDetailsPBScore"] = ratings["priceToBookScore"]
+
+        # Drop all other columns
+        ratings = ratings[columns_to_keep]
 
         # Create time series features with a window size of 2
         TS_SIZE = 2
