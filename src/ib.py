@@ -52,22 +52,6 @@ def ib_disconnect():
     ib = IB()
 
 
-def ib_reboot_docker():
-    try:
-        cwd = os.getcwd()
-        print(f"Rebooting IB Docker container in {cwd}")
-        ib_disconnect()
-        subprocess.run(["docker", "compose", "down"], check=True)
-        time.sleep(5)
-        subprocess.run(["docker", "compose", "up", "-d"], check=True)
-        time.sleep(20)
-        ib_connect_reset()
-        return True
-    except Exception as e:
-        print(f"Error rebooting IB Docker container: {e}")
-        return False
-
-
 def _parse_ib_hours(hours_str: str, tz: ZoneInfo):
     """
     Parse les chaînes IB d'horaires (tradingHours/liquidHours) en intervalles timezone-aware.
@@ -398,6 +382,7 @@ def callback_ib_connected(log=PrintLogNone()):
     try:
         ib = ib_connect_once()
         market_status(ib, mode="", symbol="AAPL", primaryExchange="NASDAQ")
+        time.sleep(5)
         return True
     except Exception as e:
         with log:

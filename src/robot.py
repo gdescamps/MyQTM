@@ -1,7 +1,10 @@
+import argparse
 import json
 import os
+import socket
+import subprocess
 import time
-from datetime import datetime, timedelta
+from datetime import datetime
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
@@ -18,6 +21,7 @@ from src.ib import (
     callback_open_positions_iteractive_broker,
     callback_paris_open,
     callback_us_open,
+    ib_disconnect,
     ib_reboot_docker,
 )
 from src.path import get_project_root
@@ -96,16 +100,12 @@ def daily_trade_positions():
         print("daily_trade_positions():")
 
     # wait until IB connected
-    while True:
-        if not callback_ib_connected(log=local_log):
-            with local_log:
-                print("cannot connect to IB.")
-                print("rebooting docker.")
-            ib_reboot_docker()
-        else:
-            print("IB connected.")
-            break
-        time.sleep(1)
+    if not callback_ib_connected(log=local_log):
+        with local_log:
+            print("cannot connect to IB.")
+            print("done.")
+        return
+    print("IB connected.")
 
     is_open = callback_paris_open(log=local_log)
     if not is_open:
@@ -390,56 +390,75 @@ def daily_trade_positions():
         print("done.")
 
 
+def wait_for_port(host, port, timeout=60):
+    start = time.time()
+    while time.time() - start < timeout:
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            if s.connect_ex((host, port)) == 0:
+                return True
+        time.sleep(2)
+    return False
+
+
+def is_port_connected(host: str, port: int, timeout: int = 60) -> bool:
+    """
+    Vérifie si un port TCP est accessible sur une adresse donnée.
+
+    Args:
+        host (str): Adresse IP ou nom d'hôte (ex: '127.0.0.1').
+        port (int): Numéro de port à tester (ex: 4002).
+        timeout (int, optional): Durée maximale d'attente en secondes. Par défaut 60.
+
+    Returns:
+        bool: True si le port est ouvert avant la fin du délai, sinon False.
+    """
+    start_time = time.time()
+    while time.time() - start_time < timeout:
+        try:
+            with socket.create_connection((host, port), timeout=2):
+                return True  # connexion réussie
+        except (socket.timeout, ConnectionRefusedError, OSError):
+            time.sleep(1)  # attendre avant de réessayer
+    return False  # délai dépassé
+
+
 # Main loop
 def main():
     global local_log
+    parser = argparse.ArgumentParser(description="LLMTrade Robot")
+    parser.add_argument("--data", action="store_true", help="Run daily data download")
+    parser.add_argument(
+        "--trade", action="store_true", help="Run daily trade positions"
+    )
+    args = parser.parse_args()
+
+    data_option = args.data
+    data_trade = args.trade
 
     # comment for direct debug purposes
-    # try:
-    #     # daily_download_data()
-    #     daily_trade_positions()
-    # except KeyboardInterrupt:
-    #     # clean exit on user interruption
-    #     with local_log:
-    #         print("Interruption detected, stopping the robot.")
-    # except Exception as e:
-    #     with local_log:
-    #         print("Crash in main loop:", e)
-
-    paris_tz = ZoneInfo("Europe/Paris")
-
-    def next_run_time(hour, minute):
-        now = datetime.now(paris_tz)
-        target = now.replace(hour=hour, minute=minute, second=0, microsecond=0)
-        if now >= target:
-            target += timedelta(days=1)
-        return target
-
-    while True:
-        try:
-            next_download = next_run_time(13, 0)
-            next_trade = next_run_time(15, 30)
-            next_run_dt = min(next_download, next_trade)
-            sleep_seconds = (next_run_dt - datetime.now(paris_tz)).total_seconds()
-
-            time.sleep(sleep_seconds)
-            now = datetime.now(paris_tz)
-            if abs((now - next_download).total_seconds()) < 120:
-                daily_download_data()
-
-            if abs((now - next_trade).total_seconds()) < 120:
-                daily_trade_positions()
-
-        except KeyboardInterrupt:
-            # clean exit on user interruption
-            with local_log:
-                print("Interruption detected, stopping the robot.")
-            break
-        except Exception as e:
-            with local_log:
-                print(f"Crash in main loop: {e}")
-            time.sleep(1)
-            pass
+    try:
+        if data_option:
+            daily_download_data()
+        if data_trade:
+            if is_port_connected("127.0.0.1", 4002, timeout=1):
+                print("✅ Gateway deja connectée !")
+                ib_disconnect()
+                subprocess.run(["docker", "compose", "down"], check=True)
+                time.sleep(10)
+            ib_disconnect()
+            subprocess.run(["docker", "compose", "up", "-d"], check=True)
+            print("⏳ Attente du port 4002...")
+            if wait_for_port("127.0.0.1", 4002):
+                print("✅ Gateway prête !")
+            else:
+                raise RuntimeError("❌ IB Gateway ne s'est pas lancée à temps")
+            time.sleep(30)
+            daily_trade_positions()
+            subprocess.run(["docker", "compose", "down"], check=True)
+            time.sleep(5)
+    except Exception as e:
+        with local_log:
+            print("Crash in main loop:", e)
 
 
 if __name__ == "__main__":
