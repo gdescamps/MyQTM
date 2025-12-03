@@ -22,7 +22,6 @@ from src.ib import (
     callback_paris_open,
     callback_us_open,
     ib_disconnect,
-    ib_reboot_docker,
 )
 from src.path import get_project_root
 from src.printlog import PrintLog

@@ -38,13 +38,28 @@
             "console": "integratedTerminal"
         },
         {
-            "name": "robot.py",
+            "name": "robot.py --data",
             "type": "debugpy",
             "request": "launch",
             "program": "${workspaceFolder}/src/robot.py",
             "cwd": "${workspaceFolder}/",
             "env": {},
-            "console": "integratedTerminal"
+            "console": "integratedTerminal",
+            "args": [
+                "--data"
+            ]
+        },
+        {
+            "name": "robot.py --trade",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/src/robot.py",
+            "cwd": "${workspaceFolder}/",
+            "env": {},
+            "console": "integratedTerminal",
+            "args": [
+                "--trade"
+            ]
         },
         {
             "name": "diff_fmp_data.py",
