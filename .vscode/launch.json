@@ -20,10 +20,10 @@
             "console": "integratedTerminal"
         },
         {
-            "name": "test.py",
+            "name": "benchmark.py",
             "type": "debugpy",
             "request": "launch",
-            "program": "${workspaceFolder}/src/test.py",
+            "program": "${workspaceFolder}/src/benchmark.py",
             "cwd": "${workspaceFolder}/",
             "env": {},
             "console": "integratedTerminal"

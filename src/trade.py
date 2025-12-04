@@ -131,10 +131,7 @@ def build_trade_data(
         current_date = start_date
         pc = None
         index_long = -1
-        index_long_close = -1
         index_short = -1
-        index_short_close = -1
-        index_prob = 0.0
         while current_date <= end_date:
             current_date_str = current_date.strftime("%Y-%m-%d")
             if current_date_str not in trade_data:
@@ -148,35 +145,19 @@ def build_trade_data(
             c = today_stock["class"]
             class_long = 2
             class_short = 0
-            index_prob = 0.0
             if pc is not None and c == class_long and pc != class_long:
                 index_long = 0
-                index_prob = today_stock["ybull"]
             elif pc is not None and c == class_short and pc != class_short:
                 index_short = 0
-                index_prob = today_stock["ybear"]
-            elif pc is not None and c != class_long and pc == class_long:
-                index_long_close = 0
-                index_prob = 1.0 - today_stock["ybull"]
-            elif pc is not None and c != class_short and pc == class_short:
-                index_short_close = 0
-                index_prob = 1.0 - today_stock["ybear"]
 
             today_stock["index_long"] = index_long
             today_stock["index_short"] = index_short
-            today_stock["index_long_close"] = index_long_close
-            today_stock["index_short_close"] = index_short_close
-            today_stock["index_prob"] = index_prob
 
             pc = c
             if index_long >= 0:
                 index_long += 1
             if index_short >= 0:
                 index_short += 1
-            if index_long_close >= 0:
-                index_long_close += 1
-            if index_short_close >= 0:
-                index_short_close += 1
             current_date += pd.Timedelta(days=1)
 
     return trade_data
@@ -291,9 +272,7 @@ def open_positions(
     capital_and_position,
     position_size,
     max_positions,
-    open_prob_thres,
     pos_type,
-    prob_power,
     prob_size_rate,
     callback=None,
     leverage=1.0,
@@ -311,9 +290,7 @@ def open_positions(
         capital_and_position (float): Total capital and position value.
         position_size (float): Size of each position.
         max_positions (int): Maximum number of positions allowed.
-        open_prob_thres (float): Probability threshold for opening positions.
         pos_type (str): Type of position ('long' or 'short').
-        prob_power (float): Power factor for probability adjustment.
         prob_size_rate (float): Rate for adjusting position sizes.
         callback (function, optional): Callback function for additional processing. Defaults to None.
         leverage (float, optional): Leverage factor for positions. Defaults to 1.0.
@@ -326,12 +303,7 @@ def open_positions(
     if len(positions_to_open):
         for item in positions_to_open:
             if capital > 100.0:
-                signal_prob = item["yprob"]
-                prob_power = float(abs(prob_power))
-                signal_prob = signal_prob ** (50.0 * prob_power)
-                size_factor_val = 1 + (
-                    prob_size_rate * signal_prob * (max_positions - 1)
-                )
+                size_factor_val = 0.5 * prob_size_rate * max_positions
                 size_factor_val = min(size_factor_val, max_positions)
                 size_factor_val = max(size_factor_val, 1)
                 size = min(capital, size_factor_val * position_size)
@@ -364,7 +336,7 @@ def select_positions_to_open(
     stock_filter,
     class_val,
     open_prob_thres,
-    new_open_yprob,
+    close_prob_thres,
 ):
     """
     Selects tickers to open new positions (long or short).
@@ -377,7 +349,7 @@ def select_positions_to_open(
         stock_filter (list): List of stocks to filter.
         class_val (int): Class value for position type (2 for long, 0 for short).
         open_prob_thres (float): Probability threshold for opening positions.
-        new_open_yprob (float): New open probability.
+        close_prob_thres (float): Probability threshold for closing positions.
 
     Returns:
         tuple: Updated positions to open and new open probability.
@@ -394,22 +366,24 @@ def select_positions_to_open(
         if ticker in prev_item and ticker in item_dict:
             if class_val == 2:
                 index = item_dict[ticker]["index_long"]
+                open_prob = item_dict[ticker]["ybull"]
+                prob_close = prev_item[ticker]["ybear"]
             elif class_val == 0:
                 index = item_dict[ticker]["index_short"]
-            if index >= 0 and index <= config.OPEN_DELAY:
-                if item_dict[ticker]["index_prob"] >= open_prob_thres:
+                open_prob = item_dict[ticker]["ybear"]
+                prob_close = prev_item[ticker]["ybull"]
+            if index == 0:
+                if open_prob >= open_prob_thres and prob_close <= close_prob_thres:
                     positions_to_open.append(
                         {
                             "ticker": ticker,
-                            "yprob": item_dict[ticker]["index_prob"],
+                            "yprob": open_prob,
                         }
                     )
-                    if new_open_yprob < item_dict[ticker]["index_prob"]:
-                        new_open_yprob = item_dict[ticker]["index_prob"]
                 else:
                     break
 
-    return positions_to_open, new_open_yprob
+    return positions_to_open
 
 
 def select_positions_to_close(
@@ -417,9 +391,6 @@ def select_positions_to_close(
     item,
     long_close_prob_thres,
     short_close_prob_thres,
-    new_open_ybull,
-    new_open_ybear,
-    capital,
 ):
     """
     Selects positions to close (long and short) based on thresholds and criteria.
@@ -429,8 +400,6 @@ def select_positions_to_close(
         item (dict): Current item data.
         long_close_prob_thres (float): Probability threshold for closing long positions.
         short_close_prob_thres (float): Probability threshold for closing short positions.
-        new_open_ybull (float): New open probability for long positions.
-        new_open_ybear (float): New open probability for short positions.
         capital (float): Current capital.
 
     Returns:
@@ -440,58 +409,12 @@ def select_positions_to_close(
     positions_short_to_close = []
     remove_pos_indexes = []
     for pos_index, pos in enumerate(positions):
-        open_price = pos["open_price"]
-        close_price = item[pos["ticker"]]["open"]
         if pos["type"] == "long":
-            gain = (close_price - open_price) / open_price
-        else:
-            gain = (open_price - close_price) / open_price
-        gain *= 100
-
-        c = item[pos["ticker"]]["class"]
-
-        if pos["type"] == "long":
-            if (
-                c == 0
-                or item[pos["ticker"]]["ybull"] < long_close_prob_thres
-                or (
-                    item[pos["ticker"]]["ybull"] < new_open_ybull
-                    and capital < 100.0
-                    and gain > 20.0
-                )
-            ):
-                if c == 0 or item[pos["ticker"]]["ybull"] < long_close_prob_thres:
-                    pos["close_reason"] = "prob"
-                    pos["close_yprob"] = item[pos["ticker"]]["ybull"]
-                elif (
-                    item[pos["ticker"]]["ybull"] < new_open_ybull
-                    and capital < 100.0
-                    and gain > 20.0
-                ):
-                    pos["close_reason"] = "new_open"
-                    pos["close_yprob"] = item[pos["ticker"]]["ybull"]
+            if item[pos["ticker"]]["ybear"] > long_close_prob_thres:
                 positions_long_to_close.append(pos)
                 remove_pos_indexes.append(pos_index)
         elif pos["type"] == "short":
-            if (
-                c == 2
-                or item[pos["ticker"]]["ybear"] < short_close_prob_thres
-                or (
-                    item[pos["ticker"]]["ybear"] < new_open_ybear
-                    and capital < 100.0
-                    and gain > 20.0
-                )
-            ):
-                if c == 2 or item[pos["ticker"]]["ybear"] < short_close_prob_thres:
-                    pos["close_reason"] = "prob"
-                    pos["close_yprob"] = item[pos["ticker"]]["ybear"]
-                elif (
-                    item[pos["ticker"]]["ybear"] < new_open_ybear
-                    and capital < 100.0
-                    and gain > 20.0
-                ):
-                    pos["close_reason"] = "new_open"
-                    pos["close_yprob"] = item[pos["ticker"]]["ybear"]
+            if item[pos["ticker"]]["ybull"] > short_close_prob_thres:
                 positions_short_to_close.append(pos)
                 remove_pos_indexes.append(pos_index)
     return positions_long_to_close, positions_short_to_close, remove_pos_indexes
@@ -507,10 +430,6 @@ def get_param(
     long_close_prob_thresb,
     short_open_prob_thresb,
     short_close_prob_thresb,
-    long_prob_powera,
-    short_prob_powera,
-    long_prob_powerb,
-    short_prob_powerb,
     end_limit: bool = True,
 ):
     """
@@ -526,10 +445,6 @@ def get_param(
         long_close_prob_thresb (float): Threshold B for closing long positions.
         short_open_prob_thresb (float): Threshold B for opening short positions.
         short_close_prob_thresb (float): Threshold B for closing short positions.
-        long_prob_powera (float): Power factor A for long positions.
-        short_prob_powera (float): Power factor A for short positions.
-        long_prob_powerb (float): Power factor B for long positions.
-        short_prob_powerb (float): Power factor B for short positions.
         end_limit (bool, optional): Whether to enforce end limits. Defaults to True.
 
     Returns:
@@ -541,34 +456,24 @@ def get_param(
         short_open_prob_thres = short_open_prob_thresb
         long_close_prob_thres = long_close_prob_thresb
         short_close_prob_thres = short_close_prob_thresb
-        long_prob_power = long_prob_powerb
-        short_prob_power = short_prob_powerb
     elif "B" in interval_type:
         long_open_prob_thres = long_open_prob_thresa
         short_open_prob_thres = short_open_prob_thresa
         long_close_prob_thres = long_close_prob_thresa
         short_close_prob_thres = short_close_prob_thresa
-        long_prob_power = long_prob_powera
-        short_prob_power = short_prob_powera
     elif "C" in interval_type:
         long_open_prob_thres = long_open_prob_thresb
         short_open_prob_thres = short_open_prob_thresb
         long_close_prob_thres = long_close_prob_thresb
         short_close_prob_thres = short_close_prob_thresb
-        long_prob_power = long_prob_powerb
-        short_prob_power = short_prob_powerb
     elif "D" in interval_type:
         long_open_prob_thres = long_open_prob_thresa
         short_open_prob_thres = short_open_prob_thresa
         long_close_prob_thres = long_close_prob_thresa
         short_close_prob_thres = short_close_prob_thresa
-        long_prob_power = long_prob_powera
-        short_prob_power = short_prob_powera
     return (
         long_open_prob_thres,
         short_open_prob_thres,
         long_close_prob_thres,
         short_close_prob_thres,
-        long_prob_power,
-        short_prob_power,
     )

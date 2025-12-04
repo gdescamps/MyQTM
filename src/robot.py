@@ -49,24 +49,6 @@ def daily_download_data():
     with local_log:
         print("daily_download_data():")
 
-    # # wait until IB connected
-    # while True:
-    #     if not callback_ib_connected(local_log):
-    #         with local_log:
-    #             print("cannot connect to IB.")
-    #     else:
-    #         print("IB connected.")
-    #         break
-    #     time.sleep(1)
-
-    # # check if Paris market is open
-    # is_open = callback_paris_open(local_log)
-    # if not is_open:
-    #     with local_log:
-    #         print("paris not open today, no trade.")
-    #         print("done.")
-    #     return
-
     # check if today is a weekday (Mon-Fri) in Europe/Paris
     paris_now = datetime.now(ZoneInfo("Europe/Paris"))
     if paris_now.weekday() >= 5:
@@ -79,6 +61,7 @@ def daily_download_data():
     config.TRADE_END_DATE = current_date
 
     run_pipeline(config, log_local=local_log)
+
     # TODO check if data consistency after run_pipeline
 
     with local_log:
@@ -119,7 +102,7 @@ def daily_trade_positions():
     with local_log:
         print(f"current_date: {current_date}")
 
-    with open(os.path.join(config.TRAIN_DIR, "best_params.json"), "r") as f:
+    with open(os.path.join(config.CMA_DIR, "top1_params.json"), "r") as f:
         XBEST = json.load(f)
     (
         # max_positions,
@@ -135,6 +118,7 @@ def daily_trade_positions():
         short_prob_powera,
         long_prob_powerb,
         short_prob_powerb,
+        prob_size_rate,
     ) = list(XBEST)
 
     bench_start_date = pd.to_datetime(config.TEST_START_DATE, format="%Y-%m-%d")
@@ -166,7 +150,7 @@ def daily_trade_positions():
     trade_data = build_trade_data(
         model_path=model_path,
         data_path=data_path,
-        file_date_str=TODO,
+        file_date_str=current_date,
         start_date=bench_start_date,
         end_date=bench_end_date,
         end_limit=False,  # do not limit to TEST_END_DATE
@@ -200,8 +184,6 @@ def daily_trade_positions():
         short_open_prob_thres,
         long_close_prob_thres,
         short_close_prob_thres,
-        long_prob_power,
-        short_prob_power,
     ) = get_param(
         yesterday_date,
         long_open_prob_thresa,
@@ -212,10 +194,6 @@ def daily_trade_positions():
         long_close_prob_thresb,
         short_open_prob_thresb,
         short_close_prob_thresb,
-        long_prob_powera,
-        short_prob_powera,
-        long_prob_powerb,
-        short_prob_powerb,
         end_limit=False,
     )
 
@@ -241,9 +219,7 @@ def daily_trade_positions():
         positions,
         positions_long_to_open,
         stock_filter,
-        config.MAX_POSITIONS,
         class_val=2,
-        prob_key="ybull",
         open_prob_thres=long_open_prob_thres,
         new_open_yprob=new_open_ybull,
     )
@@ -258,9 +234,7 @@ def daily_trade_positions():
         positions,
         positions_short_to_open,
         stock_filter,
-        config.MAX_POSITIONS,
         class_val=0,
-        prob_key="ybear",
         open_prob_thres=short_open_prob_thres,
         new_open_yprob=new_open_ybear,
     )
@@ -337,9 +311,8 @@ def daily_trade_positions():
         capital_and_position,
         position_size,
         config.MAX_POSITIONS,
-        long_open_prob_thres,
         "long",
-        long_prob_power,
+        prob_size_rate,
         callback_open_positions_iteractive_broker,
         log=local_log,
     )
@@ -354,9 +327,8 @@ def daily_trade_positions():
         capital_and_position,
         position_size,
         config.MAX_POSITIONS,
-        short_open_prob_thres,
         "short",
-        short_prob_power,
+        prob_size_rate,
         callback_open_positions_iteractive_broker,
         log=local_log,
     )

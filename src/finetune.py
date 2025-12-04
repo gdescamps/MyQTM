@@ -87,10 +87,6 @@ def cmaes_grid_search_benchmark(
             long_close_prob_thresb,
             short_open_prob_thresb,
             short_close_prob_thresb,
-            long_prob_powera,
-            short_prob_powera,
-            long_prob_powerb,
-            short_prob_powerb,
             prob_size_rate,
         ) = params
         global last_params
@@ -130,10 +126,6 @@ def cmaes_grid_search_benchmark(
                 LONG_CLOSE_PROB_THRESB=long_close_prob_thresb,
                 SHORT_OPEN_PROB_THRESB=short_open_prob_thresb,
                 SHORT_CLOSE_PROB_THRESB=short_close_prob_thresb,
-                LONG_PROB_POWERA=long_prob_powera,
-                SHORT_PROB_POWERA=short_prob_powera,
-                LONG_PROB_POWERB=long_prob_powerb,
-                SHORT_PROB_POWERB=short_prob_powerb,
                 PROB_SIZE_RATE=prob_size_rate,
                 MODEL_PATH=model_path,
                 data_path=data_path,

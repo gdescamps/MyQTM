@@ -24,8 +24,6 @@ Variables:
 - NEW_CANDIDATE_STOCKS: List of new candidate stocks for trading.
 - TRADE_STOCKS: Combined list of all stocks for trading.
 - TS_SIZE: Time series size for data processing.
-- OPEN_DELAY: Delay for opening positions.
-- MAX_POS_PER_DAY: Maximum positions allowed per day.
 - MAX_POSITIONS: Maximum positions allowed overall.
 - CMA_RECURSIVE: Number of recursive iterations for CMA-ES.
 - CMA_LOOPS: Number of loops for CMA-ES optimization.
@@ -50,7 +48,7 @@ BASE_END_DATE = "2025-09-05"
 
 # TRADE_END_DATE = "2025-09-05"
 TRADE_END_DATE = "2025-11-28"  # base on 10-22
-FINETUNE_END_DATE = "2025-06-05"
+FINETUNE_END_DATE = "2025-04-05"
 
 if TRADE_END_DATE == BASE_END_DATE_FILE:
     BASE_END_DATE_FILE = None
@@ -314,32 +312,26 @@ TRADE_STOCKS = list(
 
 TS_SIZE = 6
 
-OPEN_DELAY = 1
-MAX_POS_PER_DAY = 6
-MAX_POSITIONS = 24
+MAX_POSITIONS = 12
 CMA_RECURSIVE = 2
 CMA_LOOPS = 150
 CMA_EARLY_STOP_ROUNDS = 30
 CMA_STOCKS_DROP_OUT_ROUND = 10
 CMA_STOCKS_DROP_OUT = 5
-CMA_PROCESSES = 128
+CMA_PROCESSES = 64
 CMA_PARALLEL_PROCESSES = 32
-INIT_X0 = [0.6, 0.3, 0.6, 0.3, 0.6, 0.3, 0.6, 0.3, 0.5, 0.5, 0.5, 0.5, 0.4]
+INIT_X0 = [0.6, 0.3, 0.6, 0.3, 0.6, 0.3, 0.6, 0.3, 0.3]
 INIT_CMA_STD = 0.2
 
 INIT_SPACE = [
-    Real(0.2, 0.99, name="long_open_prob_thresa"),
-    Real(0.01, 0.99, name="long_close_prob_thresa"),
-    Real(0.2, 0.99, name="short_open_prob_thresa"),
-    Real(0.01, 0.99, name="short_close_prob_thresa"),
-    Real(0.2, 0.99, name="long_open_prob_thresb"),
-    Real(0.01, 0.99, name="long_close_prob_thresb"),
-    Real(0.2, 0.99, name="short_open_prob_thresb"),
-    Real(0.01, 0.99, name="short_close_prob_thresb"),
-    Real(0.05, 1.0, name="long_prob_powera"),
-    Real(0.05, 1.0, name="short_prob_powera"),
-    Real(0.05, 1.0, name="long_prob_powerb"),
-    Real(0.05, 1.0, name="short_prob_powerb"),
+    Real(0.33, 0.99, name="long_open_prob_thresa"),
+    Real(0.005, 0.99, name="long_close_prob_thresa"),
+    Real(0.33, 0.99, name="short_open_prob_thresa"),
+    Real(0.005, 0.99, name="short_close_prob_thresa"),
+    Real(0.33, 0.99, name="long_open_prob_thresb"),
+    Real(0.005, 0.99, name="long_close_prob_thresb"),
+    Real(0.33, 0.99, name="short_open_prob_thresb"),
+    Real(0.005, 0.99, name="short_close_prob_thresb"),
     Real(0.05, 1.0, name="prob_size_rate"),
 ]
 PARAM_GRID = {
@@ -353,7 +345,7 @@ PARAM_GRID = {
     "reg_alpha": [0.4],
     "reg_lambda": [4],
     "mean_std_power": [1.71],
-    "top_features": list(range(65, 85, 5)),
+    "top_features": list(range(60, 85, 5)),
 }
 
 TRADE_DATA_LOAD = None
