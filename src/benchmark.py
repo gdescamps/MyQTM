@@ -601,7 +601,6 @@ def run_benchmark(
 
     perf = 0
     positions_count = len(positions_history) + len(positions)
-    positions_count_rate = float(positions_count) / float(len(dates_portfolio))
 
     long_A_positions = len(
         [
@@ -669,7 +668,7 @@ def run_benchmark(
             * optimal_value_score(short_rate, optimal_value=0.5, sigma=0.25)
             * optimal_value_score(AB_rate, optimal_value=0.5, sigma=0.25)
             * optimal_value_score(long_short_rate, optimal_value=0.65, sigma=0.25)
-            * (float(portfolio_ret) ** 1.5)
+            * (float(portfolio_ret) ** 1.7)
             / (
                 (1 + (float(longest_portfolio_drawdown) / 100))
                 * (1 + (float(annual_roi_std) / 10))

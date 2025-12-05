@@ -48,9 +48,6 @@ def plot_portfolio_metrics(metrics, nasdaq_metrics=None):
     fig, ax1 = plt.subplots(figsize=(12, 6))
     ax1.set_yscale("log")
 
-    # Create second y-axis for count
-    ax2 = ax1.twinx()
-
     ymin = None
     ymax = None
 
@@ -59,7 +56,6 @@ def plot_portfolio_metrics(metrics, nasdaq_metrics=None):
     for idx, m in enumerate(reversed(metrics_list)):
         dates_portfolio = np.array(m["portfolio"]["dates_portfolio"])
         values_portfolio = np.array(m["portfolio"]["values_portfolio"])
-        count_portfolio = np.array(m["portfolio"]["count_portfolio"])
 
         if len(values_portfolio) == 0:
             continue
@@ -187,18 +183,6 @@ def plot_portfolio_metrics(metrics, nasdaq_metrics=None):
             label="Finetune End Date",
         )
 
-    # # Add vertical line at BASE_END_DATE if defined
-    # if config.BASE_END_DATE is not None:
-    #     base_end_date = pd.to_datetime(config.BASE_END_DATE, format="%Y-%m-%d")
-    #     ax1.axvline(
-    #         x=base_end_date,
-    #         color="magenta",
-    #         linestyle="--",
-    #         linewidth=2,
-    #         alpha=0.7,
-    #         label="Rebase Date",
-    #     )
-
     # Display metrics for the first portfolio only
     m = metrics_list[0]
     nasdaq_ret = m["nasdaq"]["return"]
@@ -320,11 +304,6 @@ def plot_portfolio_metrics(metrics, nasdaq_metrics=None):
             Line2D([0], [0], color="orange", linestyle="--", linewidth=2)
         )
         custom_labels.append("Finetune End Date")
-    # if config.BASE_END_DATE is not None:
-    #     custom_lines.append(
-    #         Line2D([0], [0], color="magenta", linestyle="--", linewidth=2)
-    #     )
-    #     custom_labels.append("Rebase Date")
 
     if custom_lines:
         ax1.legend(custom_lines, custom_labels, loc="lower right", fontsize=10)
