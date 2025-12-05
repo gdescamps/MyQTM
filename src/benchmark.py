@@ -665,10 +665,10 @@ def run_benchmark(
             * SHORT_OPEN_PROB_THRES_B
             * SHORT_CLOSE_PROB_THRES_B
             * INCREASE_POSITIONS_COUNT
-            * optimal_value_score(long_rate, optimal_value=0.5, sigma=0.4)
-            * optimal_value_score(short_rate, optimal_value=0.5, sigma=0.4)
-            * optimal_value_score(AB_rate, optimal_value=0.5, sigma=0.4)
-            * optimal_value_score(long_short_rate, optimal_value=0.7, sigma=0.4)
+            * optimal_value_score(long_rate, optimal_value=0.5, sigma=0.25)
+            * optimal_value_score(short_rate, optimal_value=0.5, sigma=0.25)
+            * optimal_value_score(AB_rate, optimal_value=0.5, sigma=0.25)
+            * optimal_value_score(long_short_rate, optimal_value=0.65, sigma=0.25)
             * (float(portfolio_ret) ** 1.5)
             / (
                 (1 + (float(longest_portfolio_drawdown) / 100))
