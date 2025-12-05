@@ -200,9 +200,12 @@ def sort_perfs(random_states, SEARCH_DIR):
         perf_path = os.path.join(SEARCH_DIR, f"perf_{random_state}.json")
         if os.path.exists(perf_path):
             with open(perf_path, "r") as f:
-                perf = json.load(f)
-                perfs.append({"perf": perf, "random_state": random_state})
-
+                try:
+                    perf = json.load(f)
+                    perfs.append({"perf": perf, "random_state": random_state})
+                except json.JSONDecodeError:
+                    # Fichier vide ou corrompu, on ignore
+                    continue
     # Sort performance list in descending order by performance score
     perfs.sort(key=lambda x: x["perf"], reverse=True)
 
