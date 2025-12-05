@@ -273,7 +273,7 @@ def open_positions(
     position_size,
     max_positions,
     pos_type,
-    prob_size_rate,
+    increase_positions_count,
     callback=None,
     leverage=1.0,
     log=PrintLogNone(),
@@ -291,7 +291,7 @@ def open_positions(
         position_size (float): Size of each position.
         max_positions (int): Maximum number of positions allowed.
         pos_type (str): Type of position ('long' or 'short').
-        prob_size_rate (float): Rate for adjusting position sizes.
+        increase_positions_count (float): Rate for adjusting position sizes.
         callback (function, optional): Callback function for additional processing. Defaults to None.
         leverage (float, optional): Leverage factor for positions. Defaults to 1.0.
         log (PrintLog, optional): Logger for printing logs. Defaults to PrintLogNone().
@@ -303,7 +303,7 @@ def open_positions(
     if len(positions_to_open):
         for item in positions_to_open:
             if capital > 100.0:
-                size_factor_val = 0.5 * prob_size_rate * max_positions
+                size_factor_val = 0.5 * (1.0 - increase_positions_count) * max_positions
                 size_factor_val = min(size_factor_val, max_positions)
                 size_factor_val = max(size_factor_val, 1)
                 size = min(capital, size_factor_val * position_size)
@@ -410,11 +410,11 @@ def select_positions_to_close(
     remove_pos_indexes = []
     for pos_index, pos in enumerate(positions):
         if pos["type"] == "long":
-            if item[pos["ticker"]]["ybear"] > long_close_prob_thres:
+            if item[pos["ticker"]]["ybear"] > (1.0 - long_close_prob_thres):
                 positions_long_to_close.append(pos)
                 remove_pos_indexes.append(pos_index)
         elif pos["type"] == "short":
-            if item[pos["ticker"]]["ybull"] > short_close_prob_thres:
+            if item[pos["ticker"]]["ybull"] > (1.0 - short_close_prob_thres):
                 positions_short_to_close.append(pos)
                 remove_pos_indexes.append(pos_index)
     return positions_long_to_close, positions_short_to_close, remove_pos_indexes

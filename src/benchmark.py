@@ -58,15 +58,15 @@ def compute_bench(
     bench_end_date,
     capital,
     max_positions,
-    long_open_prob_thresa,
-    long_close_prob_thresa,
-    short_open_prob_thresa,
-    short_close_prob_thresa,
-    long_open_prob_thresb,
-    long_close_prob_thresb,
-    short_open_prob_thresb,
-    short_close_prob_thresb,
-    prob_size_rate,
+    long_open_prob_thres_a,
+    long_close_prob_thres_a,
+    short_open_prob_thres_a,
+    short_close_prob_thres_a,
+    long_open_prob_thres_b,
+    long_close_prob_thres_b,
+    short_open_prob_thres_b,
+    short_close_prob_thres_b,
+    increase_positions_count,
     leverage=1.0,
 ):
     """
@@ -79,15 +79,15 @@ def compute_bench(
         bench_end_date (datetime): End date for the benchmark.
         capital (float): Initial capital for the benchmark.
         max_positions (int): Maximum number of positions allowed.
-        long_open_prob_thresa (float): Threshold A for opening long positions.
-        long_close_prob_thresa (float): Threshold A for closing long positions.
-        short_open_prob_thresa (float): Threshold A for opening short positions.
-        short_close_prob_thresa (float): Threshold A for closing short positions.
-        long_open_prob_thresb (float): Threshold B for opening long positions.
-        long_close_prob_thresb (float): Threshold B for closing long positions.
-        short_open_prob_thresb (float): Threshold B for opening short positions.
-        short_close_prob_thresb (float): Threshold B for closing short positions.
-        prob_size_rate (float): Rate for adjusting position sizes.
+        long_open_prob_thres_a (float): Threshold A for opening long positions.
+        long_close_prob_thres_a (float): Threshold A for closing long positions.
+        short_open_prob_thres_a (float): Threshold A for opening short positions.
+        short_close_prob_thres_a (float): Threshold A for closing short positions.
+        long_open_prob_thres_b (float): Threshold B for opening long positions.
+        long_close_prob_thres_b (float): Threshold B for closing long positions.
+        short_open_prob_thres_b (float): Threshold B for opening short positions.
+        short_close_prob_thres_b (float): Threshold B for closing short positions.
+        increase_positions_count (float): Rate for adjusting position sizes.
         leverage (float, optional): Leverage factor for positions. Defaults to 1.0.
 
     Returns:
@@ -109,9 +109,6 @@ def compute_bench(
     positions_history = []
     prev_date = None
 
-    # Define a random base seed for this execution
-    base_seed = random.randint(0, 10**9)
-
     sorted_keys = list(sorted(bench_data.keys()))
 
     for index, current_date in enumerate(sorted_keys):
@@ -123,14 +120,14 @@ def compute_bench(
             short_close_prob_thres,
         ) = get_param(
             current_date,
-            long_open_prob_thresa,
-            long_close_prob_thresa,
-            short_open_prob_thresa,
-            short_close_prob_thresa,
-            long_open_prob_thresb,
-            long_close_prob_thresb,
-            short_open_prob_thresb,
-            short_close_prob_thresb,
+            long_open_prob_thres_a,
+            long_close_prob_thres_a,
+            short_open_prob_thres_a,
+            short_close_prob_thres_a,
+            long_open_prob_thres_b,
+            long_close_prob_thres_b,
+            short_open_prob_thres_b,
+            short_close_prob_thres_b,
         )
 
         # Close positions scheduled for closing
@@ -166,7 +163,7 @@ def compute_bench(
             position_size,
             max_positions,
             "long",
-            prob_size_rate,
+            increase_positions_count,
         )
 
         # Open new short positions
@@ -180,7 +177,7 @@ def compute_bench(
             position_size,
             max_positions,
             "short",
-            prob_size_rate,
+            increase_positions_count,
         )
 
         # Recompute the total value of open positions
@@ -220,10 +217,6 @@ def compute_bench(
         stock_filter = config.TRADE_STOCKS.copy()
 
         if remove_stocks > 0:
-            # Use the same shuffle for each group of 5 consecutive days, but unique per execution
-            group_size = 10
-            group_number = index // group_size
-            random.seed(base_seed + group_number)
             random.shuffle(stock_filter)
             stock_filter = stock_filter[:-remove_stocks]
             # Ensure stocks with current positions remain in the filter
@@ -472,15 +465,15 @@ def run_benchmark(
     BENCH_END_DATE=None,
     MAX_POSITIONS=config.MAX_POSITIONS,
     INIT_CAPITAL=None,
-    LONG_OPEN_PROB_THRESA=0.60,
-    LONG_CLOSE_PROB_THRESA=0.37,
-    SHORT_OPEN_PROB_THRESA=0.60,
-    SHORT_CLOSE_PROB_THRESA=0.37,
-    LONG_OPEN_PROB_THRESB=0.60,
-    LONG_CLOSE_PROB_THRESB=0.37,
-    SHORT_OPEN_PROB_THRESB=0.60,
-    SHORT_CLOSE_PROB_THRESB=0.37,
-    PROB_SIZE_RATE=0.4,
+    LONG_OPEN_PROB_THRES_A=0.60,
+    LONG_CLOSE_PROB_THRES_A=0.37,
+    SHORT_OPEN_PROB_THRES_A=0.60,
+    SHORT_CLOSE_PROB_THRES_A=0.37,
+    LONG_OPEN_PROB_THRES_B=0.60,
+    LONG_CLOSE_PROB_THRES_B=0.37,
+    SHORT_OPEN_PROB_THRES_B=0.60,
+    SHORT_CLOSE_PROB_THRES_B=0.37,
+    INCREASE_POSITIONS_COUNT=0.4,
     MODEL_PATH=None,
     data_path=None,
     remove_stocks=5,
@@ -495,15 +488,15 @@ def run_benchmark(
         BENCH_END_DATE (str, optional): End date for the benchmark. Defaults to None.
         MAX_POSITIONS (int, optional): Maximum number of positions allowed. Defaults to config.MAX_POSITIONS.
         INIT_CAPITAL (float, optional): Initial capital for the benchmark. Defaults to None.
-        LONG_OPEN_PROB_THRESA (float, optional): Threshold A for opening long positions. Defaults to 0.60.
-        LONG_CLOSE_PROB_THRESA (float, optional): Threshold A for closing long positions. Defaults to 0.37.
-        SHORT_OPEN_PROB_THRESA (float, optional): Threshold A for opening short positions. Defaults to 0.60.
-        SHORT_CLOSE_PROB_THRESA (float, optional): Threshold A for closing short positions. Defaults to 0.37.
-        LONG_OPEN_PROB_THRESB (float, optional): Threshold B for opening long positions. Defaults to 0.60.
-        LONG_CLOSE_PROB_THRESB (float, optional): Threshold B for closing long positions. Defaults to 0.37.
-        SHORT_OPEN_PROB_THRESB (float, optional): Threshold B for opening short positions. Defaults to 0.60.
-        SHORT_CLOSE_PROB_THRESB (float, optional): Threshold B for closing short positions. Defaults to 0.37.
-        PROB_SIZE_RATE (float, optional): Rate for adjusting position sizes. Defaults to 0.4.
+        LONG_OPEN_PROB_THRES_A (float, optional): Threshold A for opening long positions. Defaults to 0.60.
+        LONG_CLOSE_PROB_THRES_A (float, optional): Threshold A for closing long positions. Defaults to 0.37.
+        SHORT_OPEN_PROB_THRES_A (float, optional): Threshold A for opening short positions. Defaults to 0.60.
+        SHORT_CLOSE_PROB_THRES_A (float, optional): Threshold A for closing short positions. Defaults to 0.37.
+        LONG_OPEN_PROB_THRES_B (float, optional): Threshold B for opening long positions. Defaults to 0.60.
+        LONG_CLOSE_PROB_THRES_B (float, optional): Threshold B for closing long positions. Defaults to 0.37.
+        SHORT_OPEN_PROB_THRES_B (float, optional): Threshold B for opening short positions. Defaults to 0.60.
+        SHORT_CLOSE_PROB_THRES_B (float, optional): Threshold B for closing short positions. Defaults to 0.37.
+        INCREASE_POSITIONS_COUNT (float, optional): Rate to increase positions count.
         MODEL_PATH (str, optional): Path to the model directory. Defaults to None.
         data_path (str, optional): Path to the data directory. Defaults to None.
         remove_stocks (int, optional): Number of stocks to remove from the benchmark. Defaults to 5.
@@ -561,15 +554,15 @@ def run_benchmark(
         bench_end_date,
         INIT_CAPITAL,
         MAX_POSITIONS,
-        LONG_OPEN_PROB_THRESA,
-        LONG_CLOSE_PROB_THRESA,
-        SHORT_OPEN_PROB_THRESA,
-        SHORT_CLOSE_PROB_THRESA,
-        LONG_OPEN_PROB_THRESB,
-        LONG_CLOSE_PROB_THRESB,
-        SHORT_OPEN_PROB_THRESB,
-        SHORT_CLOSE_PROB_THRESB,
-        PROB_SIZE_RATE,
+        LONG_OPEN_PROB_THRES_A,
+        LONG_CLOSE_PROB_THRES_A,
+        SHORT_OPEN_PROB_THRES_A,
+        SHORT_CLOSE_PROB_THRES_A,
+        LONG_OPEN_PROB_THRES_B,
+        LONG_CLOSE_PROB_THRES_B,
+        SHORT_OPEN_PROB_THRES_B,
+        SHORT_CLOSE_PROB_THRES_B,
+        INCREASE_POSITIONS_COUNT,
     )
 
     # Portfolio metrics
@@ -663,15 +656,24 @@ def run_benchmark(
         and longest_portfolio_drawdown > 5
     ):
         perf = (
-            optimal_value_score(long_rate, optimal_value=0.5, sigma=0.5)
-            * optimal_value_score(short_rate, optimal_value=0.5, sigma=0.5)
-            * optimal_value_score(AB_rate, optimal_value=0.5, sigma=0.5)
-            * optimal_value_score(long_short_rate, optimal_value=0.7, sigma=0.5)
-            * float(portfolio_ret)
+            LONG_OPEN_PROB_THRES_A
+            * LONG_CLOSE_PROB_THRES_A
+            * SHORT_OPEN_PROB_THRES_A
+            * SHORT_CLOSE_PROB_THRES_A
+            * LONG_OPEN_PROB_THRES_B
+            * LONG_CLOSE_PROB_THRES_B
+            * SHORT_OPEN_PROB_THRES_B
+            * SHORT_CLOSE_PROB_THRES_B
+            * INCREASE_POSITIONS_COUNT
+            * optimal_value_score(long_rate, optimal_value=0.5, sigma=0.4)
+            * optimal_value_score(short_rate, optimal_value=0.5, sigma=0.4)
+            * optimal_value_score(AB_rate, optimal_value=0.5, sigma=0.4)
+            * optimal_value_score(long_short_rate, optimal_value=0.7, sigma=0.4)
+            * (float(portfolio_ret) ** 1.5)
             / (
-                ((float(longest_portfolio_drawdown + 1) / 150))
-                * (1 + (float(annual_roi_std) / 20))
-                * (abs(float(portfolio_max_drawdown)) / 20)
+                (1 + (float(longest_portfolio_drawdown) / 100))
+                * (1 + (float(annual_roi_std) / 10))
+                * (1 + (abs(float(portfolio_max_drawdown)) / 10))
             )
         )
 
@@ -732,15 +734,15 @@ if __name__ == "__main__":
 
             (
                 # max_positions,
-                long_open_prob_thresa,
-                long_close_prob_thresa,
-                short_open_prob_thresa,
-                short_close_prob_thresa,
-                long_open_prob_thresb,
-                long_close_prob_thresb,
-                short_open_prob_thresb,
-                short_close_prob_thresb,
-                prob_size_rate,
+                long_open_prob_thres_a,
+                long_close_prob_thres_a,
+                short_open_prob_thres_a,
+                short_close_prob_thres_a,
+                long_open_prob_thres_b,
+                long_close_prob_thres_b,
+                short_open_prob_thres_b,
+                short_close_prob_thres_b,
+                increase_position_count,
             ) = list(XBEST)
 
             returns = []
@@ -758,15 +760,15 @@ if __name__ == "__main__":
                     BENCH_START_DATE=TEST_START_DATE,
                     BENCH_END_DATE=TEST_END_DATE,
                     INIT_CAPITAL=INITIAL_CAPITAL,
-                    LONG_OPEN_PROB_THRESA=long_open_prob_thresa,
-                    LONG_CLOSE_PROB_THRESA=long_close_prob_thresa,
-                    SHORT_OPEN_PROB_THRESA=short_open_prob_thresa,
-                    SHORT_CLOSE_PROB_THRESA=short_close_prob_thresa,
-                    LONG_OPEN_PROB_THRESB=long_open_prob_thresb,
-                    LONG_CLOSE_PROB_THRESB=long_close_prob_thresb,
-                    SHORT_OPEN_PROB_THRESB=short_open_prob_thresb,
-                    SHORT_CLOSE_PROB_THRESB=short_close_prob_thresb,
-                    PROB_SIZE_RATE=prob_size_rate,
+                    LONG_OPEN_PROB_THRES_A=long_open_prob_thres_a,
+                    LONG_CLOSE_PROB_THRES_A=long_close_prob_thres_a,
+                    SHORT_OPEN_PROB_THRES_A=short_open_prob_thres_a,
+                    SHORT_CLOSE_PROB_THRES_A=short_close_prob_thres_a,
+                    LONG_OPEN_PROB_THRES_B=long_open_prob_thres_b,
+                    LONG_CLOSE_PROB_THRES_B=long_close_prob_thres_b,
+                    SHORT_OPEN_PROB_THRES_B=short_open_prob_thres_b,
+                    SHORT_CLOSE_PROB_THRES_B=short_close_prob_thres_b,
+                    INCREASE_POSITIONS_COUNT=increase_position_count,
                     MODEL_PATH=TRAIN_DIR,
                     data_path=None,
                     remove_stocks=remove_stocks,

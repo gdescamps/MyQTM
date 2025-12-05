@@ -316,27 +316,27 @@ MAX_POSITIONS = 12
 CMA_RECURSIVE = 2
 CMA_LOOPS = 150
 CMA_EARLY_STOP_ROUNDS = 30
-CMA_STOCKS_DROP_OUT_ROUND = 10
-CMA_STOCKS_DROP_OUT = 5
+CMA_STOCKS_DROP_OUT_ROUND = 20
+CMA_STOCKS_DROP_OUT = 10
 CMA_PROCESSES = 64
 CMA_PARALLEL_PROCESSES = 32
-INIT_X0 = [0.6, 0.3, 0.6, 0.3, 0.6, 0.3, 0.6, 0.3, 0.3]
+INIT_X0 = [0.7, 0.7, 0.7, 0.7, 0.7, 0.7, 0.7, 0.7, 0.7]
 INIT_CMA_STD = 0.2
 
 INIT_SPACE = [
-    Real(0.33, 0.99, name="long_open_prob_thresa"),
-    Real(0.005, 0.99, name="long_close_prob_thresa"),
-    Real(0.33, 0.99, name="short_open_prob_thresa"),
-    Real(0.005, 0.99, name="short_close_prob_thresa"),
-    Real(0.33, 0.99, name="long_open_prob_thresb"),
-    Real(0.005, 0.99, name="long_close_prob_thresb"),
-    Real(0.33, 0.99, name="short_open_prob_thresb"),
-    Real(0.005, 0.99, name="short_close_prob_thresb"),
-    Real(0.05, 1.0, name="prob_size_rate"),
+    Real(0.01, 0.999, name="long_open_prob_thres_A"),
+    Real(0.01, 0.999, name="long_close_prob_thres_A"),
+    Real(0.01, 0.999, name="short_open_prob_thres_A"),
+    Real(0.01, 0.999, name="short_close_prob_thres_A"),
+    Real(0.01, 0.999, name="long_open_prob_thres_B"),
+    Real(0.01, 0.999, name="long_close_prob_thres_B"),
+    Real(0.01, 0.999, name="short_open_prob_thres_B"),
+    Real(0.01, 0.999, name="short_close_prob_thres_B"),
+    Real(0.01, 0.999, name="increase_positions_count"),
 ]
 PARAM_GRID = {
     "patience": [100],
-    "max_depth": [7],
+    "max_depth": [8],
     "learning_rate": [0.01],
     "subsample": [0.6],
     "colsample_bytree": [0.7],
@@ -345,7 +345,7 @@ PARAM_GRID = {
     "reg_alpha": [0.4],
     "reg_lambda": [4],
     "mean_std_power": [1.71],
-    "top_features": list(range(60, 85, 5)),
+    "top_features": list(range(55, 85, 1)),
 }
 
 TRADE_DATA_LOAD = None

@@ -113,7 +113,7 @@ def compute_f1(
         for stock in item:
             y_pred.append(item[stock]["class"])
             y_truth.append(item[stock]["Y"])
-            y_prob.append(max(item[stock]["ybull"], max(item[stock]["ybear"])))
+            y_prob.append(max(item[stock]["ybull"], item[stock]["ybear"]))
 
         y_index = np.array(y_index)
         y_pred = np.array(y_pred)
@@ -258,7 +258,7 @@ def search_threshold_for_topN(trade_data, target_sample_count=125):
             item = trade_data[current_date]
             y_prob = []
             for stock in item:
-                y_prob.append(max(item[stock]["ybull"], max(item[stock]["ybear"])))
+                y_prob.append(max(item[stock]["ybull"], item[stock]["ybear"]))
 
             y_prob = np.array(y_prob)
 
