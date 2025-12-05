@@ -14,6 +14,7 @@ import io
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+from matplotlib.lines import Line2D
 from PIL import Image
 
 import src.config as config
@@ -136,15 +137,6 @@ def plot_portfolio_metrics(metrics, nasdaq_metrics=None):
                 markersize=4,
             )
 
-            # Plot count for first portfolio
-            ax2.plot(
-                dates_portfolio,
-                count_portfolio,
-                color="purple",
-                alpha=0.5,
-                linewidth=1,
-                label="Available stocks",
-            )
         else:
             # Use a different color for each additional portfolio
             portfolio_colors = [
@@ -164,10 +156,6 @@ def plot_portfolio_metrics(metrics, nasdaq_metrics=None):
     ax1.set_ylim(bottom=ymin, top=ymax)
     ax1.set_ylabel("Portfolio Value ($) / NASDAQ (log scale)", color="tab:blue")
     ax1.tick_params(axis="y", labelcolor="tab:blue")
-
-    ax2.set_ylabel("Available Stocks Count", color="purple")
-    ax2.tick_params(axis="y", labelcolor="purple")
-    ax2.legend(loc="lower right")
 
     # Plot NASDAQ only once
     ax1.plot(
@@ -199,17 +187,17 @@ def plot_portfolio_metrics(metrics, nasdaq_metrics=None):
             label="Finetune End Date",
         )
 
-    # Add vertical line at BASE_END_DATE if defined
-    if config.BASE_END_DATE is not None:
-        base_end_date = pd.to_datetime(config.BASE_END_DATE, format="%Y-%m-%d")
-        ax1.axvline(
-            x=base_end_date,
-            color="magenta",
-            linestyle="--",
-            linewidth=2,
-            alpha=0.7,
-            label="Rebase Date",
-        )
+    # # Add vertical line at BASE_END_DATE if defined
+    # if config.BASE_END_DATE is not None:
+    #     base_end_date = pd.to_datetime(config.BASE_END_DATE, format="%Y-%m-%d")
+    #     ax1.axvline(
+    #         x=base_end_date,
+    #         color="magenta",
+    #         linestyle="--",
+    #         linewidth=2,
+    #         alpha=0.7,
+    #         label="Rebase Date",
+    #     )
 
     # Display metrics for the first portfolio only
     m = metrics_list[0]
@@ -320,6 +308,27 @@ def plot_portfolio_metrics(metrics, nasdaq_metrics=None):
         verticalalignment="top",
         bbox=dict(boxstyle="round", facecolor="white", alpha=0.7),
     )
+
+    custom_lines = []
+    custom_labels = []
+
+    if config.TRAIN_END_DATE is not None:
+        custom_lines.append(Line2D([0], [0], color="red", linestyle="--", linewidth=2))
+        custom_labels.append("Train End Date")
+    if config.FINETUNE_END_DATE is not None:
+        custom_lines.append(
+            Line2D([0], [0], color="orange", linestyle="--", linewidth=2)
+        )
+        custom_labels.append("Finetune End Date")
+    # if config.BASE_END_DATE is not None:
+    #     custom_lines.append(
+    #         Line2D([0], [0], color="magenta", linestyle="--", linewidth=2)
+    #     )
+    #     custom_labels.append("Rebase Date")
+
+    if custom_lines:
+        ax1.legend(custom_lines, custom_labels, loc="lower right", fontsize=10)
+
     plt.title("Portfolio Value, NASDAQ")
     plt.tight_layout()
     buf = io.BytesIO()
