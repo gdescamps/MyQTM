@@ -311,7 +311,7 @@ def plot_portfolio_metrics(metrics, nasdaq_metrics=None):
     plt.title("Portfolio Value, NASDAQ")
     plt.tight_layout()
     buf = io.BytesIO()
-    plt.savefig(buf, format="png")
+    plt.savefig(buf, format="png", bbox_inches="tight")
     plt.close(fig)
     buf.seek(0)
     image = Image.open(buf)
