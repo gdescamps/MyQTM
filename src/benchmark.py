@@ -643,19 +643,16 @@ def run_benchmark(
     AB_rate = (long_A_positions + short_A_positions) / (positions_count + 1)
     long_short_rate = (long_A_positions + long_B_positions) / (positions_count + 1)
 
-    def optimal_value_score(x, optimal_value=0.5, sigma=0.2):
-        # Helper function to maximize performance near a center value using Gaussian
+    def gaussian_penalty_weight(x, center=0.5, sigma=0.2):
+        # Gaussian penalty weight function for CMA-ES optimization
+        # Returns a weight in [0, 1] that penalizes deviations from center
         # sigma controls the width of the Gaussian (smaller = narrower)
-        weight = np.exp(-((x - optimal_value) ** 2) / (2 * sigma**2))
+        weight = np.exp(-((x - center) ** 2) / (2 * sigma**2))
         return max(0.0, weight)
 
-    if (
-        float(annual_roi_mean) > 5.0
-        and float(100 * ulcer_index) > 50.0
-        and longest_portfolio_drawdown > 5
-    ):
+    if float(annual_roi_mean) > 5.0 and longest_portfolio_drawdown > 5:
         perf = (
-            LONG_OPEN_PROB_THRES_A
+            LONG_OPEN_PROB_THRES_A  # favor higher thresholds for better safety
             * LONG_CLOSE_PROB_THRES_A
             * SHORT_OPEN_PROB_THRES_A
             * SHORT_CLOSE_PROB_THRES_A
@@ -664,10 +661,10 @@ def run_benchmark(
             * SHORT_OPEN_PROB_THRES_B
             * SHORT_CLOSE_PROB_THRES_B
             * INCREASE_POSITIONS_COUNT
-            * optimal_value_score(long_rate, optimal_value=0.5, sigma=0.25)
-            * optimal_value_score(short_rate, optimal_value=0.5, sigma=0.25)
-            * optimal_value_score(AB_rate, optimal_value=0.5, sigma=0.25)
-            * optimal_value_score(long_short_rate, optimal_value=0.65, sigma=0.25)
+            * gaussian_penalty_weight(long_rate, center=0.5, sigma=0.25)
+            * gaussian_penalty_weight(short_rate, center=0.5, sigma=0.25)
+            * gaussian_penalty_weight(AB_rate, center=0.5, sigma=0.25)
+            * gaussian_penalty_weight(long_short_rate, center=0.65, sigma=0.25)
             * (float(portfolio_ret) ** 1.7)
             / (
                 (1 + (float(longest_portfolio_drawdown) / 100))
@@ -814,5 +811,5 @@ if __name__ == "__main__":
             with local_log:
                 print(f"Benchmark results for top{top}_best:")
                 print(metrics_text)
-
+    local_log.copy_last()
     local_log.copy_last()
