@@ -171,7 +171,6 @@ def close_positions(
     capital,
     positions_history,
     callback=None,
-    leverage=1.0,
     log=PrintLogNone(),
 ):
     """
@@ -185,7 +184,6 @@ def close_positions(
         capital (float): Current capital.
         positions_history (list): History of closed positions.
         callback (function, optional): Callback function for additional processing. Defaults to None.
-        leverage (float, optional): Leverage factor for positions. Defaults to 1.0.
         log (PrintLog, optional): Logger for printing logs. Defaults to PrintLogNone().
 
     Returns:
@@ -197,8 +195,7 @@ def close_positions(
         for item in positions_long_to_close:
             ticker = item["ticker"]
             open_price = item["open_price"]
-            leverage_size = item["size"]
-            size = leverage_size / leverage
+            size = item["size"]
             close_price = bench_data[current_date][ticker]["open"]
             item["close_price"] = close_price
             item["close_interval"] = interval
@@ -207,7 +204,7 @@ def close_positions(
             close_price = item["close_price"]
             gain = (close_price - open_price) / open_price
             item["gain"] = 100 * gain
-            capital += (gain * leverage_size) + size
+            capital += size * (gain + 1)
             positions_history.append(item)
         positions_long_to_close = []
 
@@ -217,8 +214,7 @@ def close_positions(
         for item in positions_short_to_close:
             ticker = item["ticker"]
             open_price = item["open_price"]
-            leverage_size = item["size"]
-            size = leverage_size / leverage
+            size = item["size"]
             close_price = bench_data[current_date][ticker]["open"]
             item["close_price"] = close_price
             item["close_interval"] = interval
@@ -227,13 +223,13 @@ def close_positions(
             close_price = item["close_price"]
             gain = (open_price - close_price) / open_price
             item["gain"] = 100 * gain
-            capital += (gain * leverage_size) + size
+            capital += size * (gain + 1)
             positions_history.append(item)
         positions_short_to_close = []
     return capital, positions_history, positions_long_to_close, positions_short_to_close
 
 
-def compute_position_sizes(positions, bench_data, current_date, leverage=1.0):
+def compute_position_sizes(positions, bench_data, current_date):
     """
     Computes total position sizes and updates position info (gain, end, days).
 
@@ -241,7 +237,6 @@ def compute_position_sizes(positions, bench_data, current_date, leverage=1.0):
         positions (list): List of current positions.
         bench_data (dict): Benchmark data for the current date.
         current_date (datetime): Current date for computing position sizes.
-        leverage (float, optional): Leverage factor for positions. Defaults to 1.0.
 
     Returns:
         float: Total position sizes.
@@ -250,8 +245,7 @@ def compute_position_sizes(positions, bench_data, current_date, leverage=1.0):
     for item in positions:
         ticker = item["ticker"]
         open_price = item["open_price"]
-        leverage_size = item["size"]
-        size = leverage_size / leverage
+        size = item["size"]
         close_price = bench_data[current_date][ticker]["open"]
         if item["type"] == "long":
             gain = (close_price - open_price) / open_price
@@ -259,7 +253,7 @@ def compute_position_sizes(positions, bench_data, current_date, leverage=1.0):
             gain = (open_price - close_price) / open_price
         item["gain"] = 100 * gain
         item["end"] = current_date
-        position_sizes += (gain * leverage_size) + size
+        position_sizes += (gain * size) + size
     return position_sizes
 
 
@@ -275,7 +269,6 @@ def open_positions(
     pos_type,
     increase_positions_count,
     callback=None,
-    leverage=1.0,
     log=PrintLogNone(),
 ):
     """
@@ -293,7 +286,6 @@ def open_positions(
         pos_type (str): Type of position ('long' or 'short').
         increase_positions_count (float): Rate for adjusting position sizes.
         callback (function, optional): Callback function for additional processing. Defaults to None.
-        leverage (float, optional): Leverage factor for positions. Defaults to 1.0.
         log (PrintLog, optional): Logger for printing logs. Defaults to PrintLogNone().
 
     Returns:
@@ -313,7 +305,7 @@ def open_positions(
                 open_position = {
                     "type": pos_type,
                     "ticker": ticker,
-                    "size": leverage * size,
+                    "size": size,
                     "capital_and_position": capital_and_position,
                     "start": current_date,
                     "open_price": bench_data[current_date][ticker]["open"],

@@ -67,7 +67,6 @@ def compute_bench(
     short_open_prob_thres_b,
     short_close_prob_thres_b,
     increase_positions_count,
-    leverage=1.0,
 ):
     """
     Simulates the benchmark trading strategy and computes portfolio metrics.
@@ -88,7 +87,6 @@ def compute_bench(
         short_open_prob_thres_b (float): Threshold B for opening short positions.
         short_close_prob_thres_b (float): Threshold B for closing short positions.
         increase_positions_count (float): Rate for adjusting position sizes.
-        leverage (float, optional): Leverage factor for positions. Defaults to 1.0.
 
     Returns:
         tuple: Portfolio values, capital, positions, position history, total capital, and portfolio counts.
@@ -146,9 +144,7 @@ def compute_bench(
         )
 
         # Compute the total value of open positions
-        position_sizes = compute_position_sizes(
-            positions, bench_data, current_date, leverage
-        )
+        position_sizes = compute_position_sizes(positions, bench_data, current_date)
         capital_and_position = position_sizes + capital
         position_size = capital_and_position / max_positions
 
@@ -181,9 +177,7 @@ def compute_bench(
         )
 
         # Recompute the total value of open positions
-        position_sizes = compute_position_sizes(
-            positions, bench_data, current_date, leverage
-        )
+        position_sizes = compute_position_sizes(positions, bench_data, current_date)
 
         # Record the portfolio value for this date
         capital_and_position = position_sizes + capital
