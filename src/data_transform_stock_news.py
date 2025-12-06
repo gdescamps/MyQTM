@@ -140,7 +140,10 @@ def process_all_stocks(config):
         with ProcessPoolExecutor(max_workers=8) as executor:
             futures = {
                 executor.submit(
-                    process_stock, stock, config.TRADE_END_DATE, config.TRAIN_START_DATE
+                    process_stock,
+                    stock,
+                    config.BENCHMARK_END_DATE,
+                    config.TRAIN_START_DATE,
                 ): stock
                 for stock in config.TRADE_STOCKS
             }

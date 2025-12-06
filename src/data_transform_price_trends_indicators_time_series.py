@@ -29,12 +29,12 @@ def process_all_stocks(config):
 
         historical_index_price_file = (
             data_path
-            / f"{indice}_{config.TRADE_END_DATE}_historical_index_price_full.json"
+            / f"{indice}_{config.BENCHMARK_END_DATE}_historical_index_price_full.json"
         )
         if not os.path.exists(historical_index_price_file):
             historical_index_price_file = (
                 data_path
-                / f"{indice}_{config.TRADE_END_DATE}_historical_price_full.json"
+                / f"{indice}_{config.BENCHMARK_END_DATE}_historical_price_full.json"
             )
 
         with open(historical_index_price_file, "r") as f:
@@ -137,7 +137,8 @@ def process_all_stocks(config):
     for stock in tqdm(config.TRADE_STOCKS):
 
         historical_price_file = (
-            data_path / f"{stock}_{config.TRADE_END_DATE}_historical_price_full.json"
+            data_path
+            / f"{stock}_{config.BENCHMARK_END_DATE}_historical_price_full.json"
         )
 
         with open(historical_price_file, "r") as f:
@@ -182,7 +183,7 @@ def process_all_stocks(config):
         )
 
         # Save trend segments
-        trends_file = data_path / f"{stock}_{config.TRADE_END_DATE}_trends.json"
+        trends_file = data_path / f"{stock}_{config.BENCHMARK_END_DATE}_trends.json"
 
         with open(trends_file, "w") as f:
             json.dump(trend_segments, f, indent=4)
@@ -393,7 +394,7 @@ def process_all_stocks(config):
 
         # Save processed data to CSV
         output_file = (
-            data_path / f"{stock}_{config.TRADE_END_DATE}_historical_price_full.csv"
+            data_path / f"{stock}_{config.BENCHMARK_END_DATE}_historical_price_full.csv"
         )
         df.to_csv(output_file, index=False)
 

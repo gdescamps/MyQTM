@@ -17,7 +17,7 @@ def process_all_stocks(config):
 
         # Load key metrics data for the current stock
         key_metrics_file = (
-            data_path / f"{stock}_{config.TRADE_END_DATE}_key_metrics.json"
+            data_path / f"{stock}_{config.BENCHMARK_END_DATE}_key_metrics.json"
         )
 
         with open(key_metrics_file, "r") as f:
@@ -105,7 +105,7 @@ def process_all_stocks(config):
 
         # Load historical price data
         output_file = (
-            data_path / f"{stock}_{config.TRADE_END_DATE}_historical_price_full.csv"
+            data_path / f"{stock}_{config.BENCHMARK_END_DATE}_historical_price_full.csv"
         )
         df_price = pd.read_csv(output_file)
         df_price["date"] = pd.to_datetime(df_price["date"])
@@ -116,7 +116,7 @@ def process_all_stocks(config):
         merged = merge_by_interval(df_price, df_key_metrics, "km_days")
         merged = merged.sort_values("date", ascending=False).reset_index(drop=True)
         # Save merged data to file
-        output_file = data_path / f"{stock}_{config.TRADE_END_DATE}_all.csv"
+        output_file = data_path / f"{stock}_{config.BENCHMARK_END_DATE}_all.csv"
         merged.to_csv(output_file, index=False)
 
 

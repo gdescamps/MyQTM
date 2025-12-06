@@ -36,7 +36,7 @@ def process_stock(stock, config):
     data_path = Path(get_project_root()) / "data" / "fmp_data"
 
     # Load company profile data
-    profile_file = data_path / f"{stock}_{config.TRADE_END_DATE}_profile.json"
+    profile_file = data_path / f"{stock}_{config.BENCHMARK_END_DATE}_profile.json"
     profile_file = str(profile_file)
 
     try:
@@ -47,7 +47,7 @@ def process_stock(stock, config):
 
     sentiments = {}
     # Load news data for the stock
-    news_file = data_path / f"{stock}_{config.TRADE_END_DATE}_news.json"
+    news_file = data_path / f"{stock}_{config.BENCHMARK_END_DATE}_news.json"
     news_file = str(news_file)
 
     try:

@@ -116,7 +116,7 @@ def process_all_stocks(config):
     for stock in tqdm(config.TRADE_STOCKS):
 
         # Load price data for current stock
-        output_file = data_path / f"{stock}_{config.TRADE_END_DATE}_all.csv"
+        output_file = data_path / f"{stock}_{config.BENCHMARK_END_DATE}_all.csv"
         df_price = pd.read_csv(output_file)
         df_price["date"] = pd.to_datetime(df_price["date"])
         df_price = df_price.sort_values("date", ascending=True).reset_index(drop=True)
@@ -126,7 +126,7 @@ def process_all_stocks(config):
         merged = merge_by_interval(df_price, df_economic_indicators, None)
         merged = merged.sort_values("date", ascending=False).reset_index(drop=True)
         # Save merged data to file
-        output_file = data_path / f"{stock}_{config.TRADE_END_DATE}_all.csv"
+        output_file = data_path / f"{stock}_{config.BENCHMARK_END_DATE}_all.csv"
         merged.to_csv(output_file, index=False)
 
 

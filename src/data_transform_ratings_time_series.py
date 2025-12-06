@@ -16,7 +16,7 @@ def process_all_stocks(config):
     for stock in tqdm(config.TRADE_STOCKS):
 
         # Load ratings data for the current stock
-        ratings_file = data_path / f"{stock}_{config.TRADE_END_DATE}_ratings.json"
+        ratings_file = data_path / f"{stock}_{config.BENCHMARK_END_DATE}_ratings.json"
 
         with open(ratings_file, "r") as f:
             ratings = json.load(f)
@@ -151,7 +151,7 @@ def process_all_stocks(config):
         ratings = ratings.set_index("date")
 
         # Load existing data and merge with ratings
-        output_file = data_path / f"{stock}_{config.TRADE_END_DATE}_all.csv"
+        output_file = data_path / f"{stock}_{config.BENCHMARK_END_DATE}_all.csv"
         df_all = pd.read_csv(output_file)
         df_all["date"] = pd.to_datetime(df_all["date"])
         df_all = df_all.sort_values("date", ascending=True).reset_index(drop=True)
@@ -161,7 +161,7 @@ def process_all_stocks(config):
         merged = merge_by_interval(df_all, ratings, "r_days")
         merged = merged.sort_values("date", ascending=False).reset_index(drop=True)
         # Save merged data to file
-        output_file = data_path / f"{stock}_{config.TRADE_END_DATE}_all.csv"
+        output_file = data_path / f"{stock}_{config.BENCHMARK_END_DATE}_all.csv"
         merged.to_csv(output_file, index=False)
 
 

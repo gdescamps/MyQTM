@@ -20,14 +20,14 @@ def process_all_stocks(config):
 
         news = []
 
-        output_file = data_path / f"{stock}_{config.TRADE_END_DATE}_all.csv"
+        output_file = data_path / f"{stock}_{config.BENCHMARK_END_DATE}_all.csv"
         df_all = pd.read_csv(output_file)
         df_all.set_index("date", inplace=True)
 
         file = "news_sentiments.json"
 
         # Construct the file path for the sentiments file
-        sentiments_file = data_path / f"{stock}_{config.TRADE_END_DATE}_{file}"
+        sentiments_file = data_path / f"{stock}_{config.BENCHMARK_END_DATE}_{file}"
         sentiments_file = str(sentiments_file)
 
         if os.path.exists(sentiments_file) is False:
@@ -91,7 +91,7 @@ def process_all_stocks(config):
         merged = merged.iloc[20:]
         merged[["news_days"]] = merged[["news_days"]].astype(int)
 
-        output_file = data_path / f"{stock}_{config.TRADE_END_DATE}_all.csv"
+        output_file = data_path / f"{stock}_{config.BENCHMARK_END_DATE}_all.csv"
         merged.to_csv(output_file, index=False)
 
 

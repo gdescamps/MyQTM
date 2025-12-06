@@ -18,7 +18,7 @@ def process_all_stocks(config):
         # Load analyst stock recommendations for the current stock
         analyst_stock_recommendations_file = (
             data_path
-            / f"{stock}_{config.TRADE_END_DATE}_analyst_stock_recommendations.json"
+            / f"{stock}_{config.BENCHMARK_END_DATE}_analyst_stock_recommendations.json"
         )
 
         with open(analyst_stock_recommendations_file, "r") as f:
@@ -96,7 +96,7 @@ def process_all_stocks(config):
         )
 
         # Load existing data and merge with analyst recommendations
-        output_file = data_path / f"{stock}_{config.TRADE_END_DATE}_all.csv"
+        output_file = data_path / f"{stock}_{config.BENCHMARK_END_DATE}_all.csv"
         df_all = pd.read_csv(output_file)
         df_all["date"] = pd.to_datetime(df_all["date"])
         df_all = df_all.sort_values("date", ascending=True).reset_index(drop=True)
@@ -106,7 +106,7 @@ def process_all_stocks(config):
         merged = merge_by_interval(df_all, df_analyst_stock_recommendations, "asr_days")
         merged = merged.sort_values("date", ascending=False).reset_index(drop=True)
         # Save merged data to file
-        output_file = data_path / f"{stock}_{config.TRADE_END_DATE}_all.csv"
+        output_file = data_path / f"{stock}_{config.BENCHMARK_END_DATE}_all.csv"
         merged.to_csv(output_file, index=False)
 
 

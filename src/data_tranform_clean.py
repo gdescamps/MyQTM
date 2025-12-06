@@ -13,7 +13,7 @@ def process_all_stocks(config):
 
     for stock in tqdm(config.TRADE_STOCKS):
 
-        output_file = data_path / f"{stock}_{config.TRADE_END_DATE}_all.csv"
+        output_file = data_path / f"{stock}_{config.BENCHMARK_END_DATE}_all.csv"
         df_all = pd.read_csv(output_file)
 
         for col in df_all.columns:
@@ -21,7 +21,7 @@ def process_all_stocks(config):
                 if df_all[col].dtype == "float64":
                     df_all[col] = df_all[col].fillna(-1).astype(int)
 
-        output_file = data_path / f"{stock}_{config.TRADE_END_DATE}_all.csv"
+        output_file = data_path / f"{stock}_{config.BENCHMARK_END_DATE}_all.csv"
         df_all.to_csv(output_file, index=False)
 
 
