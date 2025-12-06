@@ -8,6 +8,6 @@ pip install -r requirements.txt
 pip install -e .
 
 echo "Please wait until DVC finishes, it will take a while..."
-dvc pull outputs.dvc
-dvc pull llm_cache.pkl.dvc
-dvc pull data/fmp_data.dvc
+dvc pull -r gcs outputs.dvc 
+dvc pull -r gcs llm_cache.pkl.dvc
+dvc pull -r gcs data/fmp_data.dvc
