@@ -290,7 +290,7 @@ def main(
         data_path=data_path,
     )
     download_economic_indicators(
-        trade_start_date=config.TRADE_START_DATE,
+        trade_start_date=config.DOWNLOAD_START_DATE,
         trade_end_date=benchmark_end_date,
         apikey=apikey,
         data_path=data_path,

@@ -5,7 +5,6 @@ This module contains configuration variables and constants used throughout the p
 
 Variables:
 - BASE_END_DATE: The base end date for data processing.
-- TRADE_START_DATE: The start date for trading operations.
 - TRAIN_START_DATE: The start date for training operations.
 - TRAIN_END_DATE: The end date for training operations.
 - TEST_START_DATE: The start date for testing operations.
@@ -52,7 +51,7 @@ if BENCHMARK_END_DATE == BASE_END_DATE_FILE:
     BASE_END_DATE_FILE = None
     BASE_END_DATE = None
 
-TRADE_START_DATE = "2017-01-01"
+DOWNLOAD_START_DATE = "2017-01-01"
 TRAIN_START_DATE = "2019-08-01"
 TRAIN_END_DATE = "2024-10-05"
 
