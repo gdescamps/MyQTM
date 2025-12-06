@@ -192,12 +192,15 @@ To run hyperparameter optimization (CMA-ES) on the current dataset:
 This will update the hyperparameters and save results in `./outputs/last_cma`.
 
 
-## Docker Setup for Interactive Brokers Gateway
+### Docker Setup for Interactive Brokers Gateway
 
 To use the `docker-compose.yml` file provided in this repository, you need to set up the Interactive Brokers Gateway Docker image. This is based on the project [ib-gateway-docker](https://github.com/gnzsnz/ib-gateway-docker).
 
 Follow the instructions in the [ib-gateway-docker repository](https://github.com/gnzsnz/ib-gateway-docker) to build and configure the Docker image. Ensure that you have the required environment variables set in your `.env` file for proper integration with the `docker-compose.yml` configuration.
 
+
+
+## 
 
 ## License
 
