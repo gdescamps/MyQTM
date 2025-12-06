@@ -73,7 +73,7 @@ def run_single_random_state(
         cma_dropout=cma_dropout,
         space=init_space,
         file_bench_end_date=config.BENCHMARK_END_DATE,
-        bench_start_date=config.TEST_START_DATE,
+        bench_start_date=config.BENCHMARK_START_DATE,
         bench_end_date=config.CMAES_END_DATE,
         init_capital=config.INITIAL_CAPITAL,
         model_path=config.TRAIN_DIR,
@@ -106,7 +106,7 @@ def run_single_random_state(
         remove_stocks = 0 if attempt == 0 else config.CMA_STOCKS_DROP_OUT
         metrics, _, _ = run_benchmark(
             FILE_BENCH_END_DATE=config.BENCHMARK_END_DATE,
-            BENCH_START_DATE=config.TEST_START_DATE,
+            BENCH_START_DATE=config.BENCHMARK_START_DATE,
             BENCH_END_DATE=config.CMAES_END_DATE,
             INIT_CAPITAL=config.INITIAL_CAPITAL,
             LONG_OPEN_PROB_THRES_A=long_open_prob_thresa,
@@ -129,7 +129,7 @@ def run_single_random_state(
         remove_stocks = 0 if attempt == 0 else config.CMA_STOCKS_DROP_OUT
         metrics, _, _ = run_benchmark(
             FILE_BENCH_END_DATE=config.BENCHMARK_END_DATE,
-            BENCH_START_DATE=config.TEST_START_DATE,
+            BENCH_START_DATE=config.BENCHMARK_START_DATE,
             BENCH_END_DATE=config.BENCHMARK_END_DATE,
             INIT_CAPITAL=config.INITIAL_CAPITAL,
             LONG_OPEN_PROB_THRES_A=long_open_prob_thresa,
@@ -155,7 +155,7 @@ def run_single_random_state(
     png_path = os.path.join(local_log.output_dir_time, f"best_{random_state}.png")
 
     nasdaq_metrics = compute_nasdaq_data(
-        BENCH_START_DATE=config.TEST_START_DATE,
+        BENCH_START_DATE=config.BENCHMARK_START_DATE,
         BENCH_END_DATE=config.BENCHMARK_END_DATE,
         MODEL_PATH=config.TRAIN_DIR,
         data_path=None,

@@ -117,7 +117,7 @@ def daily_trade_positions():
         increase_positions_count,
     ) = list(XBEST)
 
-    bench_start_date = pd.to_datetime(config.TEST_START_DATE, format="%Y-%m-%d")
+    bench_start_date = pd.to_datetime(config.BENCHMARK_START_DATE, format="%Y-%m-%d")
     bench_end_date = pd.to_datetime(current_date, format="%Y-%m-%d")
     data_path = Path(get_project_root()) / "data" / "fmp_data"
     ib_path = Path(get_project_root()) / "data" / "ib_data"

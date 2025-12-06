@@ -8,7 +8,6 @@ Variables:
 - TRAIN_START_DATE: The start date for training operations.
 - TRAIN_END_DATE: The end date for training operations.
 - TEST_START_DATE: The start date for testing operations.
-- TEST_END_DATE: The end date for testing operations.
 - INITIAL_CAPITAL: The initial capital for trading simulations.
 - DATA_DIR: Directory for storing data files.
 - TRAIN_DIR: Directory for storing training outputs.
@@ -43,6 +42,7 @@ from skopt.space import Real
 BASE_END_DATE_FILE = "2025-09-05"
 BASE_END_DATE = "2025-09-05"
 
+BENCHMARK_START_DATE = "2020-01-03"
 # BENCHMARK_END_DATE = "2025-09-05"
 BENCHMARK_END_DATE = "2025-11-28"
 CMAES_END_DATE = "2025-04-05"  # CMA-ES finetune end date
@@ -55,7 +55,6 @@ DOWNLOAD_START_DATE = "2017-01-01"
 TRAIN_START_DATE = "2019-08-01"
 TRAIN_END_DATE = "2024-10-05"
 
-TEST_START_DATE = "2020-01-03"
 INITIAL_CAPITAL = 8800
 
 DATA_DIR = "./data/"
