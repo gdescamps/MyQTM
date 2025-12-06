@@ -2,12 +2,11 @@
 
 **2025/12/06: 🔥**
 
-- Stable usage of FMP APIs.
-- Corrected data filtering by FMP prioritized for "as reported" data.
-- Filtering of news sites prone to revisions.
-- Feature ranking by importance using mean / std ^ power, performed in multiple passes.
+- Use only stable FMP APIs.
+- Prioritize "as reported" data, exclude news sites that generate fixes
+- Feature ranking by importance using mean / std ^ power with multiple passes.
 - Hyperparameter rework to ensure that parameter increases favor safety.
-- CMA-ES hyperparameters added to the performance function to prioritize safety.
+- CMA-ES hyperparameters added to the performance function to favor safety.
 - Interactive Brokers order execution enabled (paper trading).
 - Simplification of position management.
 
