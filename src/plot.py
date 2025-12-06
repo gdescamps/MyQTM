@@ -172,15 +172,15 @@ def plot_portfolio_metrics(metrics, nasdaq_metrics=None):
             label="Train End Date",
         )
 
-    if config.FINETUNE_END_DATE is not None:
-        finetune_end_date = pd.to_datetime(config.FINETUNE_END_DATE, format="%Y-%m-%d")
+    if config.CMAES_END_DATE is not None:
+        finetune_end_date = pd.to_datetime(config.CMAES_END_DATE, format="%Y-%m-%d")
         ax1.axvline(
             x=finetune_end_date,
             color="orange",
             linestyle="--",
             linewidth=2,
             alpha=0.7,
-            label="Finetune End Date",
+            label="CMA-ES End Date",
         )
 
     # Display metrics for the first portfolio only
@@ -299,7 +299,7 @@ def plot_portfolio_metrics(metrics, nasdaq_metrics=None):
     if config.TRAIN_END_DATE is not None:
         custom_lines.append(Line2D([0], [0], color="red", linestyle="--", linewidth=2))
         custom_labels.append("Train End Date")
-    if config.FINETUNE_END_DATE is not None:
+    if config.CMAES_END_DATE is not None:
         custom_lines.append(
             Line2D([0], [0], color="orange", linestyle="--", linewidth=2)
         )

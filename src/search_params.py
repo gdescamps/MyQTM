@@ -74,7 +74,7 @@ def run_single_random_state(
         space=init_space,
         file_bench_end_date=config.TEST_END_DATE,
         bench_start_date=config.TEST_START_DATE,
-        bench_end_date=config.FINETUNE_END_DATE,
+        bench_end_date=config.CMAES_END_DATE,
         init_capital=config.INITIAL_CAPITAL,
         model_path=config.TRAIN_DIR,
         data_path=None,
@@ -107,7 +107,7 @@ def run_single_random_state(
         metrics, _, _ = run_benchmark(
             FILE_BENCH_END_DATE=config.TEST_END_DATE,
             BENCH_START_DATE=config.TEST_START_DATE,
-            BENCH_END_DATE=config.FINETUNE_END_DATE,
+            BENCH_END_DATE=config.CMAES_END_DATE,
             INIT_CAPITAL=config.INITIAL_CAPITAL,
             LONG_OPEN_PROB_THRES_A=long_open_prob_thresa,
             LONG_CLOSE_PROB_THRES_A=long_close_prob_thresa,
