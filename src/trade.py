@@ -367,13 +367,11 @@ def select_positions_to_open(
             if class_val == 2:
                 index = item_dict[ticker]["index_long"]
                 open_prob = item_dict[ticker]["ybull"]
-                prob_close = prev_item[ticker]["ybear"]
             elif class_val == 0:
                 index = item_dict[ticker]["index_short"]
                 open_prob = item_dict[ticker]["ybear"]
-                prob_close = prev_item[ticker]["ybull"]
             if index == 0:
-                if open_prob >= open_prob_thres and prob_close <= close_prob_thres:
+                if open_prob >= open_prob_thres:
                     positions_to_open.append(
                         {
                             "ticker": ticker,
@@ -410,11 +408,11 @@ def select_positions_to_close(
     remove_pos_indexes = []
     for pos_index, pos in enumerate(positions):
         if pos["type"] == "long":
-            if item[pos["ticker"]]["ybear"] > (1.0 - long_close_prob_thres):
+            if item[pos["ticker"]]["ybull"] < long_close_prob_thres:
                 positions_long_to_close.append(pos)
                 remove_pos_indexes.append(pos_index)
         elif pos["type"] == "short":
-            if item[pos["ticker"]]["ybull"] > (1.0 - short_close_prob_thres):
+            if item[pos["ticker"]]["ybear"] < short_close_prob_thres:
                 positions_short_to_close.append(pos)
                 remove_pos_indexes.append(pos_index)
     return positions_long_to_close, positions_short_to_close, remove_pos_indexes
