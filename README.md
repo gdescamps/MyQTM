@@ -4,7 +4,7 @@
 
 - Use only stable FMP APIs.
 - Prioritize "as reported" data, exclude news sites that generate fixes
-- Feature ranking by importance using mean / std ^ power with multiple passes.
+- Better features ranking by importance using mean / std ^ power with multiple passes.
 - Hyperparameter rework to ensure that parameter increases favor safety.
 - CMA-ES hyperparameters added to the performance function to favor safety.
 - Interactive Brokers order execution enabled (paper trading).
@@ -100,7 +100,7 @@ To run a backtest using the initial financial data, pretrained model, and hyperp
 ./5_backtest.sh
 ```
 
-Results will be saved in the latest folder inside `./outputs/`.
+Results will be saved in the latest folder inside `./outputs/last_benchmark`.
 
 ### Prepare a new dataset
 
@@ -108,11 +108,11 @@ To update the dataset to the latest available data:
 
 1. Edit .env add your FMP API key.
 2. Edit .env add your GCP service account credential.
-3. Edit `src/config.py` and set `TRADE_END_DATE` to today's date.
+3. Edit `src/config.py` and set `BENCHMARK_END_DATE` to today's date.
 4. Run the data pipeline script:
 
 ```bash
-./2_data_pipeline.sh
+./2_data.sh
 ```
 
 This will fetch and process the latest financial data in `./data/fmp_data`.
@@ -127,7 +127,7 @@ To retrain the model on the prepared dataset, run:
 
 This will update the model and save results in `./outputs/last_train`.
 
-### Search for hyperparameters first PASS
+### Search for hyperparameters
 
 To run hyperparameter optimization (CMA-ES) on the current dataset:
 
@@ -135,29 +135,7 @@ To run hyperparameter optimization (CMA-ES) on the current dataset:
 ./4_search_hyperparams.sh
 ```
 
-This will update the hyperparameters and save results in `./outputs/last_cmaes`.
-
-### Search for hyperparameters second PASS 
-
-To run hyperparameter optimization (CMA-ES) on the current dataset:
-
-1. Edit `src/config.py`
-```
-CMA_LOOPS = 50  # number of CMA-ES loops
-CMA_EARLY_STOP_ROUNDS = 10  # early stopping rounds for CMA-ES
-CMA_STOCKS_DROP_OUT_ROUND = 10  # number of dropout rounds for CMA-ES
-CMA_STOCKS_DROP_OUT = 5  # number of stocks to drop out during CMA-ES
-INIT_X0 = [ # PASTE HYPERPARAMS FROM FIRST PASS    
-]  
-INIT_CMA_STD = 0.03
-```
-2. Run the data pipeline script:
-
-```bash
-./4_search_hyperparams.sh
-```
-
-This will update the hyperparameters and save results in `./outputs/last_cmaes`.
+This will update the hyperparameters and save results in `./outputs/last_cma`.
 
 
 ## License
