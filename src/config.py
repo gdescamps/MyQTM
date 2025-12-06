@@ -353,7 +353,7 @@ PARAM_GRID = {
     # best feature importance rank to maximize F1
     "mean_std_power": [1.71],
     # Top features search range
-    "top_features": list(range(55, 85, 1)),
+    "top_features": list(range(55, 85, 5)),
 }
 
 TRADE_DATA_LOAD = None
