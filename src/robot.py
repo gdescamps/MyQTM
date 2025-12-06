@@ -114,11 +114,7 @@ def daily_trade_positions():
         long_close_prob_thresb,
         short_open_prob_thresb,
         short_close_prob_thresb,
-        long_prob_powera,
-        short_prob_powera,
-        long_prob_powerb,
-        short_prob_powerb,
-        prob_size_rate,
+        increase_positions_count,
     ) = list(XBEST)
 
     bench_start_date = pd.to_datetime(config.TEST_START_DATE, format="%Y-%m-%d")
@@ -212,8 +208,7 @@ def daily_trade_positions():
     stock_filter = config.TRADE_STOCKS.copy()
 
     # compute long position to open
-    new_open_ybull = 0
-    positions_long_to_open, new_open_ybull = select_positions_to_open(
+    positions_long_to_open = select_positions_to_open(
         long_item,
         prev_item,
         positions,
@@ -221,13 +216,12 @@ def daily_trade_positions():
         stock_filter,
         class_val=2,
         open_prob_thres=long_open_prob_thres,
-        new_open_yprob=new_open_ybull,
+        close_prob_thres=long_close_prob_thres,
     )
     with open(ib_path / f"{current_date}_positions_long_to_open.json", "w") as f:
         json.dump(positions_long_to_open, f, indent=2)
 
     # compute short position to open
-    new_open_ybear = 0
     positions_short_to_open, new_open_ybear = select_positions_to_open(
         short_item,
         prev_item,
@@ -236,7 +230,7 @@ def daily_trade_positions():
         stock_filter,
         class_val=0,
         open_prob_thres=short_open_prob_thres,
-        new_open_yprob=new_open_ybear,
+        close_prob_thres=short_close_prob_thres,
     )
 
     with open(ib_path / f"{current_date}_positions_short_to_open.json", "w") as f:
@@ -245,13 +239,7 @@ def daily_trade_positions():
     # compute positions to close
     positions_long_to_close, positions_short_to_close, remove_pos_indexes = (
         select_positions_to_close(
-            positions,
-            item,
-            long_close_prob_thres,
-            short_close_prob_thres,
-            new_open_ybull,
-            new_open_ybear,
-            capital,
+            positions, item, long_close_prob_thres, short_close_prob_thres
         )
     )
 
@@ -312,7 +300,7 @@ def daily_trade_positions():
         position_size,
         config.MAX_POSITIONS,
         "long",
-        prob_size_rate,
+        increase_positions_count,
         callback_open_positions_iteractive_broker,
         log=local_log,
     )
@@ -328,7 +316,7 @@ def daily_trade_positions():
         position_size,
         config.MAX_POSITIONS,
         "short",
-        prob_size_rate,
+        increase_positions_count,
         callback_open_positions_iteractive_broker,
         log=local_log,
     )
