@@ -341,7 +341,7 @@ def plot_top_f1(do_plot=False):
     trade_data = build_trade_data(
         model_path=Path(get_project_root()) / local_log.output_dir_time,
         data_path=data_path,
-        file_date_str=config.TEST_END_DATE,
+        file_date_str=config.BENCHMARK_END_DATE,
         start_date=pd.to_datetime(config.TEST_START_DATE, format="%Y-%m-%d"),
         end_date=pd.to_datetime(config.TRAIN_END_DATE, format="%Y-%m-%d"),
     )

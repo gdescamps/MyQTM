@@ -28,12 +28,12 @@ from dotenv import load_dotenv
 
 import src.config as config
 from config import (
+    BENCHMARK_END_DATE,
     CMA_DIR,
     CMA_PARALLEL_PROCESSES,
     CMA_STOCKS_DROP_OUT,
     CMA_STOCKS_DROP_OUT_ROUND,
     INITIAL_CAPITAL,
-    TEST_END_DATE,
     TEST_START_DATE,
     TRAIN_DIR,
 )
@@ -746,9 +746,9 @@ if __name__ == "__main__":
             for index in range(CMA_STOCKS_DROP_OUT_ROUND):
                 remove_stocks = 0 if index == 0 else CMA_STOCKS_DROP_OUT
                 metrics, pos, remove_stocks_list = run_benchmark(
-                    FILE_BENCH_END_DATE=TEST_END_DATE,
+                    FILE_BENCH_END_DATE=BENCHMARK_END_DATE,
                     BENCH_START_DATE=TEST_START_DATE,
-                    BENCH_END_DATE=TEST_END_DATE,
+                    BENCH_END_DATE=BENCHMARK_END_DATE,
                     INIT_CAPITAL=INITIAL_CAPITAL,
                     LONG_OPEN_PROB_THRES_A=long_open_prob_thres_a,
                     LONG_CLOSE_PROB_THRES_A=long_close_prob_thres_a,
@@ -769,7 +769,7 @@ if __name__ == "__main__":
 
             nasdaq_metrics = compute_nasdaq_data(
                 BENCH_START_DATE=TEST_START_DATE,
-                BENCH_END_DATE=TEST_END_DATE,
+                BENCH_END_DATE=BENCHMARK_END_DATE,
                 MODEL_PATH=TRAIN_DIR,
                 data_path=None,
             )

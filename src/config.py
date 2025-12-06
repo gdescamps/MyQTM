@@ -59,8 +59,6 @@ TRAIN_END_DATE = "2024-10-05"
 TEST_START_DATE = "2020-01-03"
 INITIAL_CAPITAL = 8800
 
-TEST_END_DATE = BENCHMARK_END_DATE
-
 DATA_DIR = "./data/"
 TRAIN_DIR = "./outputs/last_train"
 CMA_DIR = "./outputs/last_cma"

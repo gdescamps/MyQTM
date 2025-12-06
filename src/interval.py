@@ -14,8 +14,8 @@ train_start = None
 train_start_str = None
 train_end = None
 train_end_str = None
-test_end = None
-test_end_str = None
+bench_end = None
+bench_end_str = None
 
 
 def get_interval_type(
@@ -40,10 +40,10 @@ def get_interval_type(
 
     global train_start
     global train_end
-    global test_end
+    global bench_end
     global train_start_str
     global train_end_str
-    global test_end_str
+    global bench_end_str
 
     # Initialize or refresh cached date boundaries when configuration changes.
     if train_start is None or train_start_str != config.TRAIN_START_DATE:
@@ -54,9 +54,9 @@ def get_interval_type(
         train_end = datetime.strptime(config.TRAIN_END_DATE, "%Y-%m-%d")
         train_end_str = config.TRAIN_END_DATE
 
-    if test_end is None or test_end_str != config.TEST_END_DATE:
-        test_end = datetime.strptime(config.TEST_END_DATE, "%Y-%m-%d")
-        test_end_str = config.TEST_END_DATE
+    if bench_end is None or bench_end_str != config.BENCHMARK_END_DATE:
+        bench_end = datetime.strptime(config.BENCHMARK_END_DATE, "%Y-%m-%d")
+        bench_end_str = config.BENCHMARK_END_DATE
 
     # Define the repeating cycle of interval labels for the training phase.
     interval_types = ["part1A", "part1B", "part2A", "part2B", "part3A", "part3B"]
@@ -70,7 +70,7 @@ def get_interval_type(
         return None
 
     # Enforce upper bound on dates when end_limit is enabled.
-    if end_limit and query_date > test_end:
+    if end_limit and query_date > bench_end:
         return None
 
     # When end_limit is False, dates beyond TEST_END_DATE are allowed for live robot trading.
@@ -81,7 +81,7 @@ def get_interval_type(
     interval = interval_types[interval_index % len(interval_types)]
 
     # During the test period, modify interval labels: A→C, B→D for test data identification.
-    if query_date >= train_end and query_date <= test_end:
+    if query_date >= train_end and query_date <= bench_end:
         if "A" in interval:
             return interval.replace("A", "C")
         elif "B" in interval:
