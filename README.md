@@ -198,9 +198,41 @@ To use the `docker-compose.yml` file provided in this repository, you need to se
 
 Follow the instructions in the [ib-gateway-docker repository](https://github.com/gnzsnz/ib-gateway-docker) to build and configure the Docker image. Ensure that you have the required environment variables set in your `.env` file for proper integration with the `docker-compose.yml` configuration.
 
+### Automated scheduling (cron) for robot.py
 
+This project includes a trading robot (robot.py) that can fetch the latest data and manage positions. Use cron to run the robot regularly. Example cron entries (run Monday–Friday):
 
-## 
+```
+# m h  dom mon dow   command
+30 15 * * 1-5 cd /path/to/MyQTM && /path/to/MyQTM/venv/bin/python ./MyQTM/robot.py --trade >> /path/to/MyQTM/logs/cron_trade.log 2>&1
+30 13 * * 1-5 cd /path/to/MyQTM && /path/to/MyQTM/venv/bin/python ./MyQTM/robot.py --data >> /path/to/MyQTM/logs/cron_data.log 2>&1
+```
+
+Install these cron jobs safely (run as the user that owns the project):
+
+```
+# create log directory
+mkdir -p /path/to/MyQTM/logs
+
+# create a temporary crontab file and add entries
+cat > /tmp/my_mqtm_cron <<'CRON'
+# m h  dom mon dow   command
+30 15 * * 1-5 cd /path/to/MyQTM && /path/to/MyQTM/venv/bin/python ./MyQTM/robot.py --trade >> /path/to/MyQTM/logs/cron_trade.log 2>&1
+30 13 * * 1-5 cd /path/to/MyQTM && /path/to/MyQTM/venv/bin/python ./MyQTM/robot.py --data >> /path/to/MyQTM/logs/cron_data.log 2>&1
+CRON
+
+# install the crontab
+crontab /tmp/my_mqtm_cron
+rm /tmp/my_mqtm_cron
+
+# verify
+crontab -l
+```
+
+Notes
+- Replace /path/to/MyQTM with the actual absolute path on your machine (or use ~/MyQTM).
+- Test the python commands manually before adding to cron.
+- Ensure the virtual environment and robot.py are accessible to cron (use absolute paths or source a wrapper that loads .env).
 
 ## License
 
