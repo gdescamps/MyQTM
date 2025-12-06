@@ -1,3 +1,15 @@
+## News 🚀🚀🚀
+
+**2025/12/06: 🔥**
+
+- Stable usage of FMP APIs.
+- Corrected data filtering by FMP prioritized for "as reported" data.
+- Filtering of news sites prone to revisions.
+- Feature ranking by importance using mean / std ^ power, performed in multiple passes.
+- Hyperparameter rework to ensure that parameter increases favor safety.
+- CMA-ES hyperparameters added to the performance function to prioritize safety.
+- Interactive Brokers order execution enabled (paper trading).
+
 ## My Quantitative Trading Model (MyQTM)
 
 Welcome to MyQTM, an open-source quantitative trading framework designed to deliver robust, AI-driven investment strategies for high-growth technology stocks. This project demonstrates how to achieve strong annual returns (targeting 50% ROI) by combining structured financial data, unstructured news sentiment, and advanced machine learning techniques.
