@@ -316,14 +316,14 @@ MAX_POSITIONS = 12
 CMA_RECURSIVE = 1
 CMA_LOOPS = 150
 CMA_EARLY_STOP_ROUNDS = 30
-CMA_STOCKS_DROP_OUT_ROUND = 20
-CMA_STOCKS_DROP_OUT = 10
+CMA_STOCKS_DROP_OUT_ROUND = 10
+CMA_STOCKS_DROP_OUT = 5
 CMA_PROCESSES = 128
 CMA_PARALLEL_PROCESSES = 32
 INIT_X0 = [0.7, 0.7, 0.7, 0.7, 0.7, 0.7, 0.7, 0.7, 0.7]
 INIT_CMA_STD = 0.2
 
-INIT_SPACE = [
+INIT_SPACE = [  # increase thresholds favor better safety
     Real(0.01, 0.999, name="long_open_prob_thres_A"),
     Real(0.01, 0.999, name="long_close_prob_thres_A"),
     Real(0.01, 0.999, name="short_open_prob_thres_A"),
@@ -336,7 +336,7 @@ INIT_SPACE = [
 ]
 PARAM_GRID = {
     "patience": [100],
-    "max_depth": [8],
+    "max_depth": [7],
     "learning_rate": [0.01],
     "subsample": [0.6],
     "colsample_bytree": [0.7],
