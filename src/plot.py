@@ -169,7 +169,7 @@ def plot_portfolio_metrics(metrics, nasdaq_metrics=None):
             linestyle="--",
             linewidth=2,
             alpha=0.7,
-            label="Train End Date",
+            label="Dual A/B XGBoost models training cut-off date",
         )
 
     if config.CMAES_END_DATE is not None:
@@ -180,7 +180,7 @@ def plot_portfolio_metrics(metrics, nasdaq_metrics=None):
             linestyle="--",
             linewidth=2,
             alpha=0.7,
-            label="CMA-ES End Date",
+            label="CMA-ES finetuning cut-off Date",
         )
 
     # Display metrics for the first portfolio only
