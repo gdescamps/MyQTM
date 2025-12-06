@@ -9,6 +9,7 @@
 - Hyperparameter rework to ensure that parameter increases favor safety.
 - CMA-ES hyperparameters added to the performance function to prioritize safety.
 - Interactive Brokers order execution enabled (paper trading).
+- Simplification of position management.
 
 ## My Quantitative Trading Model (MyQTM)
 
