@@ -73,7 +73,7 @@ def main(config=None):
 
     # Load and clean data for all stocks
     for idx, stock in enumerate(stock_list):
-        all_file = data_path / f"{stock}_{config.TRADE_END_DATE}_all.csv"
+        all_file = data_path / f"{stock}_{config.BENCHMARK_END_DATE}_all.csv"
         df = pd.read_csv(all_file)
 
         rows_before = len(df)
@@ -111,7 +111,7 @@ def main(config=None):
 
     # Prepare pipeline and preprocess data for XGBoost
     pipe, df_all = prepare_pipeline_for_xgboost_with_pipe(df_all_concat)
-    joblib.dump(pipe, data_path / f"{config.TRADE_END_DATE}_prep_pipeline.joblib")
+    joblib.dump(pipe, data_path / f"{config.BENCHMARK_END_DATE}_prep_pipeline.joblib")
 
     # Add stock names column in a single operation to avoid fragmentation
     stock_names = [stock_list[int(idx)] for idx in df_all["stock"]]
@@ -146,7 +146,9 @@ def main(config=None):
     df_all = df_all.copy()
 
     # Save complete benchmark dataset
-    df_all.to_csv(data_path / f"{config.TRADE_END_DATE}_benchmark_XY.csv", index=False)
+    df_all.to_csv(
+        data_path / f"{config.BENCHMARK_END_DATE}_benchmark_XY.csv", index=False
+    )
 
     # Split data into parts and save X (features) and Y (target) for each part
     df_part1A = df_all[df_all["date"].isin(part1A_dates)].copy()
@@ -155,8 +157,12 @@ def main(config=None):
     df_part1A.drop(columns=["date"], inplace=True)
     df_part1A_Y = df_part1A["trend"]
     df_part1A_X = df_part1A.drop(columns=["trend"])
-    df_part1A_X.to_csv(data_path / f"{config.TRADE_END_DATE}_part1A_X.csv", index=False)
-    df_part1A_Y.to_csv(data_path / f"{config.TRADE_END_DATE}_part1A_Y.csv", index=False)
+    df_part1A_X.to_csv(
+        data_path / f"{config.BENCHMARK_END_DATE}_part1A_X.csv", index=False
+    )
+    df_part1A_Y.to_csv(
+        data_path / f"{config.BENCHMARK_END_DATE}_part1A_Y.csv", index=False
+    )
 
     df_part1B = df_all[df_all["date"].isin(part1B_dates)].copy()
     df_part1B.dropna(inplace=True)
@@ -164,8 +170,12 @@ def main(config=None):
     df_part1B.drop(columns=["date"], inplace=True)
     df_part1B_Y = df_part1B["trend"]
     df_part1B_X = df_part1B.drop(columns=["trend"])
-    df_part1B_X.to_csv(data_path / f"{config.TRADE_END_DATE}_part1B_X.csv", index=False)
-    df_part1B_Y.to_csv(data_path / f"{config.TRADE_END_DATE}_part1B_Y.csv", index=False)
+    df_part1B_X.to_csv(
+        data_path / f"{config.BENCHMARK_END_DATE}_part1B_X.csv", index=False
+    )
+    df_part1B_Y.to_csv(
+        data_path / f"{config.BENCHMARK_END_DATE}_part1B_Y.csv", index=False
+    )
 
     df_part2A = df_all[df_all["date"].isin(part2A_dates)].copy()
     df_part2A.dropna(inplace=True)
@@ -173,8 +183,12 @@ def main(config=None):
     df_part2A.drop(columns=["date"], inplace=True)
     df_part2A_Y = df_part2A["trend"]
     df_part2A_X = df_part2A.drop(columns=["trend"])
-    df_part2A_X.to_csv(data_path / f"{config.TRADE_END_DATE}_part2A_X.csv", index=False)
-    df_part2A_Y.to_csv(data_path / f"{config.TRADE_END_DATE}_part2A_Y.csv", index=False)
+    df_part2A_X.to_csv(
+        data_path / f"{config.BENCHMARK_END_DATE}_part2A_X.csv", index=False
+    )
+    df_part2A_Y.to_csv(
+        data_path / f"{config.BENCHMARK_END_DATE}_part2A_Y.csv", index=False
+    )
 
     df_part2B = df_all[df_all["date"].isin(part2B_dates)].copy()
     df_part2B.dropna(inplace=True)
@@ -182,8 +196,12 @@ def main(config=None):
     df_part2B.drop(columns=["date"], inplace=True)
     df_part2B_Y = df_part2B["trend"]
     df_part2B_X = df_part2B.drop(columns=["trend"])
-    df_part2B_X.to_csv(data_path / f"{config.TRADE_END_DATE}_part2B_X.csv", index=False)
-    df_part2B_Y.to_csv(data_path / f"{config.TRADE_END_DATE}_part2B_Y.csv", index=False)
+    df_part2B_X.to_csv(
+        data_path / f"{config.BENCHMARK_END_DATE}_part2B_X.csv", index=False
+    )
+    df_part2B_Y.to_csv(
+        data_path / f"{config.BENCHMARK_END_DATE}_part2B_Y.csv", index=False
+    )
 
     df_part3A = df_all[df_all["date"].isin(part3A_dates)].copy()
     df_part3A.dropna(inplace=True)
@@ -191,8 +209,12 @@ def main(config=None):
     df_part3A.drop(columns=["date"], inplace=True)
     df_part3A_Y = df_part3A["trend"]
     df_part3A_X = df_part3A.drop(columns=["trend"])
-    df_part3A_X.to_csv(data_path / f"{config.TRADE_END_DATE}_part3A_X.csv", index=False)
-    df_part3A_Y.to_csv(data_path / f"{config.TRADE_END_DATE}_part3A_Y.csv", index=False)
+    df_part3A_X.to_csv(
+        data_path / f"{config.BENCHMARK_END_DATE}_part3A_X.csv", index=False
+    )
+    df_part3A_Y.to_csv(
+        data_path / f"{config.BENCHMARK_END_DATE}_part3A_Y.csv", index=False
+    )
 
     df_part3B = df_all[df_all["date"].isin(part3B_dates)].copy()
     df_part3B.dropna(inplace=True)
@@ -200,16 +222,20 @@ def main(config=None):
     df_part3B.drop(columns=["date"], inplace=True)
     df_part3B_Y = df_part3B["trend"]
     df_part3B_X = df_part3B.drop(columns=["trend"])
-    df_part3B_X.to_csv(data_path / f"{config.TRADE_END_DATE}_part3B_X.csv", index=False)
-    df_part3B_Y.to_csv(data_path / f"{config.TRADE_END_DATE}_part3B_Y.csv", index=False)
+    df_part3B_X.to_csv(
+        data_path / f"{config.BENCHMARK_END_DATE}_part3B_X.csv", index=False
+    )
+    df_part3B_Y.to_csv(
+        data_path / f"{config.BENCHMARK_END_DATE}_part3B_Y.csv", index=False
+    )
 
     # Reload feature datasets and generate ratios for each part
-    df_part1A_X = pd.read_csv(data_path / f"{config.TRADE_END_DATE}_part1A_X.csv")
-    df_part1B_X = pd.read_csv(data_path / f"{config.TRADE_END_DATE}_part1B_X.csv")
-    df_part2A_X = pd.read_csv(data_path / f"{config.TRADE_END_DATE}_part2A_X.csv")
-    df_part2B_X = pd.read_csv(data_path / f"{config.TRADE_END_DATE}_part2B_X.csv")
-    df_part3A_X = pd.read_csv(data_path / f"{config.TRADE_END_DATE}_part3A_X.csv")
-    df_part3B_X = pd.read_csv(data_path / f"{config.TRADE_END_DATE}_part3B_X.csv")
+    df_part1A_X = pd.read_csv(data_path / f"{config.BENCHMARK_END_DATE}_part1A_X.csv")
+    df_part1B_X = pd.read_csv(data_path / f"{config.BENCHMARK_END_DATE}_part1B_X.csv")
+    df_part2A_X = pd.read_csv(data_path / f"{config.BENCHMARK_END_DATE}_part2A_X.csv")
+    df_part2B_X = pd.read_csv(data_path / f"{config.BENCHMARK_END_DATE}_part2B_X.csv")
+    df_part3A_X = pd.read_csv(data_path / f"{config.BENCHMARK_END_DATE}_part3A_X.csv")
+    df_part3B_X = pd.read_csv(data_path / f"{config.BENCHMARK_END_DATE}_part3B_X.csv")
 
     # Generate financial and technical ratios for each part
     df_part1A_X = generate_ratios(df_part1A_X)
@@ -220,16 +246,28 @@ def main(config=None):
     df_part3B_X = generate_ratios(df_part3B_X)
 
     # Save enriched feature datasets
-    df_part1A_X.to_csv(data_path / f"{config.TRADE_END_DATE}_part1A_X.csv", index=False)
-    df_part1B_X.to_csv(data_path / f"{config.TRADE_END_DATE}_part1B_X.csv", index=False)
-    df_part2A_X.to_csv(data_path / f"{config.TRADE_END_DATE}_part2A_X.csv", index=False)
-    df_part2B_X.to_csv(data_path / f"{config.TRADE_END_DATE}_part2B_X.csv", index=False)
-    df_part3A_X.to_csv(data_path / f"{config.TRADE_END_DATE}_part3A_X.csv", index=False)
-    df_part3B_X.to_csv(data_path / f"{config.TRADE_END_DATE}_part3B_X.csv", index=False)
+    df_part1A_X.to_csv(
+        data_path / f"{config.BENCHMARK_END_DATE}_part1A_X.csv", index=False
+    )
+    df_part1B_X.to_csv(
+        data_path / f"{config.BENCHMARK_END_DATE}_part1B_X.csv", index=False
+    )
+    df_part2A_X.to_csv(
+        data_path / f"{config.BENCHMARK_END_DATE}_part2A_X.csv", index=False
+    )
+    df_part2B_X.to_csv(
+        data_path / f"{config.BENCHMARK_END_DATE}_part2B_X.csv", index=False
+    )
+    df_part3A_X.to_csv(
+        data_path / f"{config.BENCHMARK_END_DATE}_part3A_X.csv", index=False
+    )
+    df_part3B_X.to_csv(
+        data_path / f"{config.BENCHMARK_END_DATE}_part3B_X.csv", index=False
+    )
 
     # Generate ratios for the complete benchmark dataset and save
-    df_bench = pd.read_csv(data_path / f"{config.TRADE_END_DATE}_benchmark_XY.csv")
+    df_bench = pd.read_csv(data_path / f"{config.BENCHMARK_END_DATE}_benchmark_XY.csv")
     df_bench = generate_ratios(df_bench)
     df_bench.to_csv(
-        data_path / f"{config.TRADE_END_DATE}_benchmark_XY.csv", index=False
+        data_path / f"{config.BENCHMARK_END_DATE}_benchmark_XY.csv", index=False
     )

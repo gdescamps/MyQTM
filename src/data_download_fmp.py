@@ -19,14 +19,15 @@ from src.path import get_project_root
 
 
 def download_analyst_stock_recommendations(
-    trade_stocks=None, trade_end_date=None, apikey=None, data_path=None
+    trade_stocks=None, benchmark_end_date=None, apikey=None, data_path=None
 ):
     trade_stocks = trade_stocks or config.TRADE_STOCKS
-    trade_end_date = trade_end_date or config.TRADE_END_DATE
+    benchmark_end_date = benchmark_end_date or config.BENCHMARK_END_DATE
     data_path = data_path or Path(get_project_root()) / "data" / "fmp_data"
     for stock in tqdm(trade_stocks):
         out_file = (
-            data_path / f"{stock}_{trade_end_date}_analyst_stock_recommendations.json"
+            data_path
+            / f"{stock}_{benchmark_end_date}_analyst_stock_recommendations.json"
         )
         if not out_file.exists():
             ret = fmp_analyst_stock_recommendations(apikey=apikey, symbol=stock)
@@ -249,7 +250,7 @@ def download_profiles(
 def main(
     trade_stocks=None,
     trade_start_date=None,
-    trade_end_date=None,
+    benchmark_end_date=None,
     indices=None,
     apikey=None,
     data_path=None,
@@ -258,53 +259,53 @@ def main(
     data_path.mkdir(parents=True, exist_ok=True)
     download_analyst_stock_recommendations(
         trade_stocks=trade_stocks,
-        trade_end_date=trade_end_date,
+        benchmark_end_date=benchmark_end_date,
         apikey=apikey,
         data_path=data_path,
     )
     download_historical_price(
         trade_stocks=trade_stocks,
         trade_start_date=trade_start_date,
-        trade_end_date=trade_end_date,
+        trade_end_date=benchmark_end_date,
         apikey=apikey,
         data_path=data_path,
     )
     download_stock_news(
         trade_stocks=trade_stocks,
         trade_start_date=trade_start_date,
-        trade_end_date=trade_end_date,
+        trade_end_date=benchmark_end_date,
         apikey=apikey,
         data_path=data_path,
     )
     download_key_metrics(
         trade_stocks=trade_stocks,
-        trade_end_date=trade_end_date,
+        trade_end_date=benchmark_end_date,
         apikey=apikey,
         data_path=data_path,
     )
     download_ratings(
         trade_stocks=trade_stocks,
-        trade_end_date=trade_end_date,
+        trade_end_date=benchmark_end_date,
         apikey=apikey,
         data_path=data_path,
     )
     download_economic_indicators(
         trade_start_date=config.TRADE_START_DATE,
-        trade_end_date=trade_end_date,
+        trade_end_date=benchmark_end_date,
         apikey=apikey,
         data_path=data_path,
     )
     download_indices(
         indices=indices,
         trade_start_date=trade_start_date,
-        trade_end_date=trade_end_date,
+        trade_end_date=benchmark_end_date,
         apikey=apikey,
         data_path=data_path,
     )
 
     download_profiles(
         trade_stocks=trade_stocks,
-        trade_end_date=trade_end_date,
+        trade_end_date=benchmark_end_date,
         apikey=apikey,
         data_path=data_path,
     )

@@ -58,7 +58,7 @@ def daily_download_data():
         return
 
     current_date = datetime.now(ZoneInfo("Europe/Paris")).strftime("%Y-%m-%d")
-    config.TRADE_END_DATE = current_date
+    config.BENCHMARK_END_DATE = current_date
 
     run_pipeline(config, log_local=local_log)
 
@@ -97,7 +97,7 @@ def daily_trade_positions():
         return
 
     current_date = datetime.now(ZoneInfo("Europe/Paris")).strftime("%Y-%m-%d")
-    config.TRADE_END_DATE = current_date
+    config.BENCHMARK_END_DATE = current_date
 
     with local_log:
         print(f"current_date: {current_date}")

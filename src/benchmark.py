@@ -317,7 +317,7 @@ def compute_nasdaq_data(
         data_path = Path(get_project_root()) / "data" / "fmp_data"
 
     out_file = (
-        data_path / f"IXIC_{config.TRADE_END_DATE}_historical_index_price_full.json"
+        data_path / f"IXIC_{config.BENCHMARK_END_DATE}_historical_index_price_full.json"
     )
     with open(out_file, "r") as f:
         nasdaq_history = json.load(f)

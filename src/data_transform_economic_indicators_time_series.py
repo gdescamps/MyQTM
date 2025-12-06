@@ -18,7 +18,7 @@ def preprocess_economic_indicators(config=None):
 
     # Load economic indicators data
     economic_indicators_file = (
-        data_path / f"{config.TRADE_END_DATE}_economic_indicators.json"
+        data_path / f"{config.BENCHMARK_END_DATE}_economic_indicators.json"
     )
 
     with open(economic_indicators_file, "r") as f:

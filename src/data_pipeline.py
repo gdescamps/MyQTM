@@ -65,7 +65,7 @@ def run_pipeline(config=None, log_local=PrintLogNone()):
     download_fmp(
         trade_stocks=config.TRADE_STOCKS,
         trade_start_date=trade_start_date,
-        trade_end_date=config.TRADE_END_DATE,
+        benchmark_end_date=config.BENCHMARK_END_DATE,
         indices=config.INDICES,
         apikey=FMP_APIKEY,  # or config.FMP_APIKEY if you want to force the key here
         data_path=data_path,
