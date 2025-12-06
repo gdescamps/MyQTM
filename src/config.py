@@ -6,7 +6,6 @@ This module contains configuration variables and constants used throughout the p
 Variables:
 - BASE_END_DATE: The base end date for data processing.
 - TRADE_END_DATE: The end date for trading operations.
-- FINETUNE_END_DATE: The end date for fine-tuning operations.
 - TRADE_START_DATE: The start date for trading operations.
 - TRAIN_START_DATE: The start date for training operations.
 - TRAIN_END_DATE: The end date for training operations.
@@ -48,7 +47,7 @@ BASE_END_DATE = "2025-09-05"
 
 # TRADE_END_DATE = "2025-09-05"
 TRADE_END_DATE = "2025-11-28"  # base on 10-22
-CMAES_END_DATE = "2025-04-05"
+CMAES_END_DATE = "2025-04-05"  # CMA-ES finetune end date
 
 if TRADE_END_DATE == BASE_END_DATE_FILE:
     BASE_END_DATE_FILE = None
