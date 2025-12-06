@@ -55,7 +55,9 @@ DOWNLOAD_START_DATE = "2017-01-01"
 TRAIN_START_DATE = "2019-08-01"
 TRAIN_END_DATE = "2024-10-05"
 
-INITIAL_CAPITAL = 8800
+INITIAL_CAPITAL = (
+    8800  # Manual capital init to sync portforlio and nasdaq at BENCHMARK_START_DATE
+)
 
 DATA_DIR = "./data/"
 TRAIN_DIR = "./outputs/last_train"
@@ -63,6 +65,9 @@ CMA_DIR = "./outputs/last_cma"
 
 INDICES = ["^IXIC", "^VIX"]
 
+# Important this is website selected for quality of news
+# We keep only news sources that are not fixed after publication
+# So we could consider these news as reported
 RELIABLE_NEWS_SITES = [
     "247wallst.com",  # 156/7766 (2.01% erreurs, 1.7% des news)
     "barrons.com",  # 88/7910 (1.11% erreurs, 1.7% des news)
@@ -306,7 +311,10 @@ TRADE_STOCKS = list(
 
 TS_SIZE = 6
 
+# Maximum positions allowed overall, in practice CMA-ES will select less (3 to 4)
 MAX_POSITIONS = 12
+
+# CMA-ES optimization parameters
 CMA_RECURSIVE = 2
 CMA_LOOPS = 150
 CMA_EARLY_STOP_ROUNDS = 30
@@ -316,8 +324,8 @@ CMA_PROCESSES = 128
 CMA_PARALLEL_PROCESSES = 32
 INIT_X0 = [0.7, 0.7, 0.7, 0.7, 0.7, 0.7, 0.7, 0.7, 0.7]
 INIT_CMA_STD = 0.2
-
-INIT_SPACE = [  # increase thresholds favor better safety
+# CMA-ES optimization parameter space
+INIT_SPACE = [  # Important increase params favor better safety
     Real(0.01, 0.999, name="long_open_prob_thres_A"),
     Real(0.01, 0.999, name="long_close_prob_thres_A"),
     Real(0.01, 0.999, name="short_open_prob_thres_A"),
@@ -328,6 +336,8 @@ INIT_SPACE = [  # increase thresholds favor better safety
     Real(0.01, 0.999, name="short_close_prob_thres_B"),
     Real(0.01, 0.999, name="increase_positions_count"),
 ]
+
+# XGBoost model training parameter grid
 PARAM_GRID = {
     "patience": [100],
     "max_depth": [7],
@@ -338,7 +348,11 @@ PARAM_GRID = {
     "min_child_weight": [5],
     "reg_alpha": [0.4],
     "reg_lambda": [4],
+    # Important parameter for mean/(std^power)
+    # search power value that provides
+    # best feature importance rank to maximize F1
     "mean_std_power": [1.71],
+    # Top features search range
     "top_features": list(range(55, 85, 1)),
 }
 
