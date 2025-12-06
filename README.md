@@ -60,23 +60,77 @@ git config --global user.name "Your name "
 git config --global user.email "your.email@example.com"
 ```
 
-### Optional Credentials
+### Credentials
+Setup you .env with the following credentials
+
 - **Financial Modeling Prep (FMP):**
 	- Register at [https://site.financialmodelingprep.com/](https://site.financialmodelingprep.com/)
 	- Obtain your API key for financial data access
-    - Add your API key in .env
+    - Add your API key in `.env`:
     ```
-    FMP_APIKEY="your API key"
+    FMP_APIKEY="my key"
+    ```
+
+- **Hugging Face API Key:**
+	- Obtain your Hugging Face API key for model access.
+    - Add your API key in `.env`:
+    ```
+    HUGGINEFACE_KEY="my key"
     ```
 
 - **Google Cloud Service Account:**
 	- Download a Google Cloud service account JSON file to enable vertexai (Gemini 2.0 Flash) feature from https://cloud.google.com/
-    - Add your JSON file path in .env
+    - Add your credentials in `.env`:
     ```
-    GOOGLE_APPLICATION_CREDENTIALS="./gcp-service-account.json"
-    PROJECT_ID="my current project ID"
+    GOOGLE_APPLICATION_CREDENTIALS="/home/<user>/MyQTM/service_account.json"
+    PROJECT_ID="my project ID"
     ```
 
+- **Interactive Brokers Gateway:**
+	- Add your Interactive Brokers credentials in `.env`:
+    ```
+    TWS_USERID=<my user>
+    TWS_PASSWORD=<my IB pw>
+    # see credentials section
+    #TWS_PASSWORD_FILE
+    #TWS_USERID_PAPER=
+    #TWS_PASSWORD_PAPER=
+    #TWS_PASSWORD_PAPER_FILE=
+    ```
+
+- **IB Gateway Configuration:**
+	- Add the following optional configurations in `.env`:
+    ```
+    # ib-gateway
+    #TWS_SETTINGS_PATH=/home/ibgateway/Jts
+    # tws
+    #TWS_SETTINGS_PATH=/config/tws_settings
+    TWS_SETTINGS_PATH=
+    TWS_ACCEPT_INCOMING=
+    TRADING_MODE=paper
+    READ_ONLY_API=no
+    VNC_SERVER_PASSWORD=myVncPassword
+    TWOFA_TIMEOUT_ACTION=restart
+    TWOFA_DEVICE=
+    BYPASS_WARNING=
+    AUTO_RESTART_TIME=11:59 PM
+    AUTO_LOGOFF_TIME=
+    TWS_COLD_RESTART=
+    SAVE_TWS_SETTINGS=
+    RELOGIN_AFTER_TWOFA_TIMEOUT=yes
+    EXISTING_SESSION_DETECTED_ACTION=primary
+    ALLOW_BLIND_TRADING=no
+    CUSTOM_CONFIG=
+    SSH_TUNNEL=
+    SSH_OPTIONS=
+    SSH_ALIVE_INTERVAL=
+    SSH_ALIVE_COUNT=
+    SSH_PASSPHRASE=
+    SSH_REMOTE_PORT=
+    SSH_USER_TUNNEL=
+    SSH_RESTART=
+    SSH_VNC_PORT=
+    ```
 
 ### Setup this repo
 
