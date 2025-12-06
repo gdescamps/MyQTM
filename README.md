@@ -1,3 +1,15 @@
+## News 🚀🚀🚀
+
+**2025/12/06: 🔥**
+
+- Use only stable FMP APIs.
+- Prioritize "as reported" data, exclude news sites that generate fixes
+- Better features ranking by importance using mean / std ^ power with multiple passes.
+- Hyperparameter rework to ensure that parameter increases favor safety.
+- CMA-ES hyperparameters added to the performance function to favor safety.
+- Interactive Brokers order execution enabled (paper trading).
+- Simplification of position management.
+
 ## My Quantitative Trading Model (MyQTM)
 
 Welcome to MyQTM, an open-source quantitative trading framework designed to deliver robust, AI-driven investment strategies for high-growth technology stocks. This project demonstrates how to achieve strong annual returns (targeting 50% ROI) by combining structured financial data, unstructured news sentiment, and advanced machine learning techniques.
@@ -48,23 +60,77 @@ git config --global user.name "Your name "
 git config --global user.email "your.email@example.com"
 ```
 
-### Optional Credentials
+### Credentials
+Setup you .env with the following credentials
+
 - **Financial Modeling Prep (FMP):**
 	- Register at [https://site.financialmodelingprep.com/](https://site.financialmodelingprep.com/)
 	- Obtain your API key for financial data access
-    - Add your API key in .env
+    - Add your API key in `.env`:
     ```
-    FMP_APIKEY="your API key"
+    FMP_APIKEY="my key"
+    ```
+
+- **Hugging Face API Key:**
+	- Obtain your Hugging Face API key for model access.
+    - Add your API key in `.env`:
+    ```
+    HUGGINEFACE_KEY="my key"
     ```
 
 - **Google Cloud Service Account:**
 	- Download a Google Cloud service account JSON file to enable vertexai (Gemini 2.0 Flash) feature from https://cloud.google.com/
-    - Add your JSON file path in .env
+    - Add your credentials in `.env`:
     ```
-    GOOGLE_APPLICATION_CREDENTIALS="./gcp-service-account.json"
-    PROJECT_ID="my current project ID"
+    GOOGLE_APPLICATION_CREDENTIALS="/home/<user>/MyQTM/service_account.json"
+    PROJECT_ID="my project ID"
     ```
 
+- **Interactive Brokers Gateway:**
+	- Add your Interactive Brokers credentials in `.env`:
+    ```
+    TWS_USERID=<my user>
+    TWS_PASSWORD=<my IB pw>
+    # see credentials section
+    #TWS_PASSWORD_FILE
+    #TWS_USERID_PAPER=
+    #TWS_PASSWORD_PAPER=
+    #TWS_PASSWORD_PAPER_FILE=
+    ```
+
+- **IB Gateway Configuration:**
+	- Add the following optional configurations in `.env`:
+    ```
+    # ib-gateway
+    #TWS_SETTINGS_PATH=/home/ibgateway/Jts
+    # tws
+    #TWS_SETTINGS_PATH=/config/tws_settings
+    TWS_SETTINGS_PATH=
+    TWS_ACCEPT_INCOMING=
+    TRADING_MODE=paper
+    READ_ONLY_API=no
+    VNC_SERVER_PASSWORD=myVncPassword
+    TWOFA_TIMEOUT_ACTION=restart
+    TWOFA_DEVICE=
+    BYPASS_WARNING=
+    AUTO_RESTART_TIME=11:59 PM
+    AUTO_LOGOFF_TIME=
+    TWS_COLD_RESTART=
+    SAVE_TWS_SETTINGS=
+    RELOGIN_AFTER_TWOFA_TIMEOUT=yes
+    EXISTING_SESSION_DETECTED_ACTION=primary
+    ALLOW_BLIND_TRADING=no
+    CUSTOM_CONFIG=
+    SSH_TUNNEL=
+    SSH_OPTIONS=
+    SSH_ALIVE_INTERVAL=
+    SSH_ALIVE_COUNT=
+    SSH_PASSPHRASE=
+    SSH_REMOTE_PORT=
+    SSH_USER_TUNNEL=
+    SSH_RESTART=
+    SSH_VNC_PORT=
+    ```
 
 ### Setup this repo
 
@@ -88,7 +154,7 @@ To run a backtest using the initial financial data, pretrained model, and hyperp
 ./5_backtest.sh
 ```
 
-Results will be saved in the latest folder inside `./outputs/`.
+Results will be saved in the latest folder inside `./outputs/last_benchmark`.
 
 ### Prepare a new dataset
 
@@ -96,11 +162,11 @@ To update the dataset to the latest available data:
 
 1. Edit .env add your FMP API key.
 2. Edit .env add your GCP service account credential.
-3. Edit `src/config.py` and set `TRADE_END_DATE` to today's date.
+3. Edit `src/config.py` and set `BENCHMARK_END_DATE` to today's date.
 4. Run the data pipeline script:
 
 ```bash
-./2_data_pipeline.sh
+./2_data.sh
 ```
 
 This will fetch and process the latest financial data in `./data/fmp_data`.
@@ -115,7 +181,7 @@ To retrain the model on the prepared dataset, run:
 
 This will update the model and save results in `./outputs/last_train`.
 
-### Search for hyperparameters first PASS
+### Search for hyperparameters
 
 To run hyperparameter optimization (CMA-ES) on the current dataset:
 
@@ -123,30 +189,50 @@ To run hyperparameter optimization (CMA-ES) on the current dataset:
 ./4_search_hyperparams.sh
 ```
 
-This will update the hyperparameters and save results in `./outputs/last_cmaes`.
+This will update the hyperparameters and save results in `./outputs/last_cma`.
 
-### Search for hyperparameters second PASS 
 
-To run hyperparameter optimization (CMA-ES) on the current dataset:
+### Docker Setup for Interactive Brokers Gateway
 
-1. Edit `src/config.py`
+To use the `docker-compose.yml` file provided in this repository, you need to set up the Interactive Brokers Gateway Docker image. This is based on the project [ib-gateway-docker](https://github.com/gnzsnz/ib-gateway-docker).
+
+Follow the instructions in the [ib-gateway-docker repository](https://github.com/gnzsnz/ib-gateway-docker) to build and configure the Docker image. Ensure that you have the required environment variables set in your `.env` file for proper integration with the `docker-compose.yml` configuration.
+
+### Automated scheduling (cron) for robot.py
+
+This project includes a trading robot (robot.py) that can fetch the latest data and manage positions. Use cron to run the robot regularly. Example cron entries (run Monday–Friday):
+
 ```
-CMA_LOOPS = 50  # number of CMA-ES loops
-CMA_EARLY_STOP_ROUNDS = 10  # early stopping rounds for CMA-ES
-CMA_STOCKS_DROP_OUT_ROUND = 10  # number of dropout rounds for CMA-ES
-CMA_STOCKS_DROP_OUT = 5  # number of stocks to drop out during CMA-ES
-INIT_X0 = [ # PASTE HYPERPARAMS FROM FIRST PASS    
-]  
-INIT_CMA_STD = 0.03
-```
-2. Run the data pipeline script:
-
-```bash
-./4_search_hyperparams.sh
+# m h  dom mon dow   command
+30 15 * * 1-5 cd /path/to/MyQTM && /path/to/MyQTM/venv/bin/python ./MyQTM/robot.py --trade >> /path/to/MyQTM/logs/cron_trade.log 2>&1
+30 13 * * 1-5 cd /path/to/MyQTM && /path/to/MyQTM/venv/bin/python ./MyQTM/robot.py --data >> /path/to/MyQTM/logs/cron_data.log 2>&1
 ```
 
-This will update the hyperparameters and save results in `./outputs/last_cmaes`.
+Install these cron jobs safely (run as the user that owns the project):
 
+```
+# create log directory
+mkdir -p /path/to/MyQTM/logs
+
+# create a temporary crontab file and add entries
+cat > /tmp/my_mqtm_cron <<'CRON'
+# m h  dom mon dow   command
+30 15 * * 1-5 cd /path/to/MyQTM && /path/to/MyQTM/venv/bin/python ./MyQTM/robot.py --trade >> /path/to/MyQTM/logs/cron_trade.log 2>&1
+30 13 * * 1-5 cd /path/to/MyQTM && /path/to/MyQTM/venv/bin/python ./MyQTM/robot.py --data >> /path/to/MyQTM/logs/cron_data.log 2>&1
+CRON
+
+# install the crontab
+crontab /tmp/my_mqtm_cron
+rm /tmp/my_mqtm_cron
+
+# verify
+crontab -l
+```
+
+Notes
+- Replace /path/to/MyQTM with the actual absolute path on your machine (or use ~/MyQTM).
+- Test the python commands manually before adding to cron.
+- Ensure the virtual environment and robot.py are accessible to cron (use absolute paths or source a wrapper that loads .env).
 
 ## License
 

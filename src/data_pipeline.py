@@ -1,101 +1,145 @@
+import cProfile
+import io
 import os
+import pstats
+import sys
+from datetime import datetime, timedelta
+from pathlib import Path
 
-from dotenv import load_dotenv
-
-from src.data_analyst_stock_recommendations import main as analyst_stock_reco
-from src.data_build_intervals import main as build_intervals
-from src.data_clean_all import main as clean_all
 from src.data_download_fmp import main as download_fmp
-from src.data_earnings import main as earnings
-from src.data_economic_indicators import main as economic_indicators
-from src.data_key_metrics import main as key_metrics
-from src.data_ratings import main as ratings
-from src.data_ratios_features import main as ratios_features
-from src.data_score_news_with_LLM import main as score_news_with_LLM
-from src.data_sentiments import main as sentiments_ts
-from src.data_stock_news_news import main as stock_news
-from src.data_supervised_classes_trend import main as supervised_classes_trend
-from src.data_treasury_rates import main as treasury_rates
-from src.utils.printlog import PrintLogNone
+from src.data_tranform_clean import main as tranform_clean
+from src.data_transform_analyst_stock_recommendations_time_series import (
+    main as transform_analyst_stock_recommendations_time_series,
+)
+from src.data_transform_economic_indicators_time_series import (
+    main as transform_economic_indicators_time_series,
+)
+from src.data_transform_key_metrics_time_series import (
+    main as transform_key_metrics_time_series,
+)
+from src.data_transform_price_trends_indicators_time_series import (
+    main as transform_price_trends_indicators_time_series,
+)
+from src.data_transform_ratings_time_series import main as transform_ratings_time_series
+from src.data_transform_sentiments_time_series import (
+    main as transform_sentiments_time_series,
+)
+from src.data_transform_split_intervals import main as transform_split_intervals
+from src.data_transform_stock_news import main as data_transform_stock_news
+from src.data_transform_stock_news_to_sentiment_scores import (
+    main as transform_stock_news_to_sentiment_scores,
+)
+from src.path import get_project_root
+from src.printlog import PrintLogNone
 
-# Load environment variables from .env file
-# This ensures sensitive information like API keys is securely loaded into the environment.
-load_dotenv()
 
-# Set the API key for Financial Modeling Prep
-# The API key is retrieved from the environment variables.
-FMP_APIKEY = os.getenv("FMP_APIKEY")
+def run_pipeline(config=None, log_local=PrintLogNone()):
 
-
-def run_pipeline(config=None, log=PrintLogNone()):
     if config is None:
         import src.config as config
-    with log:
-        print("download from FMP:")
-    trade_start_date = config.TRADE_START_DATE
+
+    with log_local:
+        print("download_fmp:")
+
+    download_start_date = config.DOWNLOAD_START_DATE
+
+    if config.BASE_END_DATE_FILE is not None:
+        print(
+            f"Based data end date is defined and will be used from {config.BASE_END_DATE_FILE}"
+        )
+        # Parse the base end date
+        base_end_dt = datetime.strptime(config.BASE_END_DATE, "%Y-%m-%d")
+        # Subtract 20 calendar days
+        dt = base_end_dt - timedelta(days=20)
+        download_start_date = dt.strftime("%Y-%m-%d")
+
+    # Set the API key for Financial Modeling Prep
+    # The API key is retrieved from the environment variables.
+    FMP_APIKEY = os.getenv("FMP_APIKEY")
+
+    # Set the path to the data directory
+    # Create a directory to store downloaded data if it doesn't already exist.
+    data_path = Path(get_project_root()) / "data" / "fmp_data"
+    data_path.mkdir(parents=True, exist_ok=True)
+
     download_fmp(
         trade_stocks=config.TRADE_STOCKS,
-        trade_start_date=trade_start_date,
-        trade_end_date=config.TRADE_END_DATE,
+        trade_start_date=download_start_date,
+        benchmark_end_date=config.BENCHMARK_END_DATE,
         indices=config.INDICES,
-        commodities=config.COMMODITIES,
         apikey=FMP_APIKEY,  # or config.FMP_APIKEY if you want to force the key here
+        data_path=data_path,
     )
-    with log:
-        print("done.")
-        print("build supervised classes BULLISH RANGE BEARISH:")
-    supervised_classes_trend(config)
-    with log:
-        print("done.")
-        print("key metrics:")
-    key_metrics(config)
-    with log:
-        print("done.")
-        print("earnings:")
-    earnings(config)
-    with log:
-        print("done.")
-        print("economic indicators:")
-    economic_indicators(config)
-    with log:
-        print("done.")
-        print("analyst stock:")
-    analyst_stock_reco(config)
-    with log:
-        print("done.")
-        print("ratings:")
-    ratings(config)
-    with log:
-        print("done.")
-        print("stock news:")
-    stock_news(config)
-    with log:
-        print("done.")
-        print("score news with LLM:")
-    score_news_with_LLM(config)
-    with log:
-        print("done.")
-        print("clean up:")
-    clean_all(config)
-    with log:
-        print("done.")
-        print("treasury rates:")
-    treasury_rates(config)
-    with log:
-        print("done.")
-        print("sentiments as time series:")
-    sentiments_ts(config)
-    with log:
-        print("done.")
-        print("build intervals:")
-    build_intervals(config)
-    with log:
-        print("done.")
-        print("add features ratios:")
-    ratios_features(config)
-    with log:
-        print("done.")
 
+    if config.ENABLE_PROFILER:
+        profiler = cProfile.Profile()
+        profiler.enable()
+    with log_local:
+        print("transform_price_trends_indicators_time_series:")
+    transform_price_trends_indicators_time_series(config)
 
-if __name__ == "__main__":
-    run_pipeline()
+    with log_local:
+        print("transform_key_metrics_time_series:")
+    transform_key_metrics_time_series(config)
+
+    with log_local:
+        print("transform_economic_indicators_time_series:")
+    transform_economic_indicators_time_series(config)
+
+    with log_local:
+        print("transform_analyst_stock_recommendations_time_series:")
+    transform_analyst_stock_recommendations_time_series(config)
+
+    with log_local:
+        print("transform_ratings_time_series:")
+    transform_ratings_time_series(config)
+
+    with log_local:
+        print("transform_stock_news:")
+    data_transform_stock_news(config)
+
+    with log_local:
+        print("transform_stock_news_to_sentiment_scores:")
+    transform_stock_news_to_sentiment_scores(config)
+
+    with log_local:
+        print("clean_all:")
+    tranform_clean(config)
+
+    with log_local:
+        print("sentiments_ts:")
+    transform_sentiments_time_series(config)
+
+    with log_local:
+        print("test_train_intervals:")
+    transform_split_intervals(config)
+
+    if config.ENABLE_PROFILER:
+        profiler.disable()
+        with log_local:
+            stream_buffer = io.StringIO()
+
+            stats = pstats.Stats(profiler, stream=stream_buffer)
+
+            # --- TOP 50 BY CUMULATIVE TIME ---
+            print("\n--- TOP 50 FUNCTIONS BY CUMULATIVE TIME for hist_trend ---")
+            stats.sort_stats("cumulative")
+            # Print the top 50 lines into the buffer
+            stats.print_stats(50)
+
+            # Print the buffer content to the console
+            sys.stdout.write(stream_buffer.getvalue())
+
+            # --- TOP 50 BY SELF TIME (tottime) ---
+            stream_buffer.seek(0)
+            stream_buffer.truncate(0)
+
+            stats = pstats.Stats(profiler, stream=stream_buffer)
+
+            print("\n--- TOP 50 FUNCTIONS BY SELF TIME (tottime) for hist_trend ---")
+            stats.sort_stats("tottime")
+            stats.print_stats(50)
+
+            # Print the buffer content to the console
+            sys.stdout.write(stream_buffer.getvalue())
+            sys.stdout.write(stream_buffer.getvalue())

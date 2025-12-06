@@ -2,15 +2,6 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "data_pipeline.py",
-            "type": "debugpy",
-            "request": "launch",
-            "program": "${workspaceFolder}/src/data_pipeline.py",
-            "cwd": "${workspaceFolder}/",
-            "env": {},
-            "console": "integratedTerminal"
-        },
-        {
             "name": "train.py",
             "type": "debugpy",
             "request": "launch",
@@ -29,13 +20,55 @@
             "console": "integratedTerminal"
         },
         {
-            "name": "backtest.py",
+            "name": "benchmark.py",
             "type": "debugpy",
             "request": "launch",
-            "program": "${workspaceFolder}/src/backtest.py",
+            "program": "${workspaceFolder}/src/benchmark.py",
             "cwd": "${workspaceFolder}/",
             "env": {},
             "console": "integratedTerminal"
         },
+        {
+            "name": "data.py",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/src/data.py",
+            "cwd": "${workspaceFolder}/",
+            "env": {},
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "robot.py --data",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/src/robot.py",
+            "cwd": "${workspaceFolder}/",
+            "env": {},
+            "console": "integratedTerminal",
+            "args": [
+                "--data"
+            ]
+        },
+        {
+            "name": "robot.py --trade",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/src/robot.py",
+            "cwd": "${workspaceFolder}/",
+            "env": {},
+            "console": "integratedTerminal",
+            "args": [
+                "--trade"
+            ]
+        },
+        {
+            "name": "diff_fmp_data.py",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/toclean/diff_fmp_data.py",
+            "cwd": "${workspaceFolder}/",
+            "env": {},
+            "console": "integratedTerminal"
+        }
     ]
 }

@@ -1,5 +1,4 @@
 [core]
-    remote = gcs
     autostage = true
 [cache]
     dir = ../../../dvc-cache
@@ -7,3 +6,6 @@
     type = copy
 ['remote "gcs"']
     url = gs://gdescamps-dvc
+    credentialpath = ../dev-ml-448206-13edf23d9494.json
+['remote "secret"']
+    url = ssh://gd-gpus/perso
