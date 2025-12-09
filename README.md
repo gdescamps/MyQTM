@@ -3,6 +3,7 @@
 **2025/12/06: 🔥**
 
 - Use only stable FMP APIs.
+- Supports downloading missing data from a base date.
 - Prioritize "as reported" data, exclude news sites that generate fixes
 - Better features ranking by importance using mean / std ^ power with multiple passes.
 - Hyperparameter rework to ensure that parameter increases favor safety.
@@ -32,7 +33,7 @@ Welcome to MyQTM, an open-source quantitative trading framework designed to deli
 - **Transparent methodology**: All code and data processing steps are available for review and validation.
 
 ### Watch the Presentation
-[![YouTube Video](https://img.youtube.com/vi/c6kNWaCAw6s/0.jpg)](https://youtu.be/c6kNWaCAw6s)
+[![YouTube Video](https://img.youtube.com/vi/JyesZi2KSGI/0.jpg)](https://youtu.be/JyesZi2KSGI)
 
 ---
 
