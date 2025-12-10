@@ -2,7 +2,6 @@ import json
 import time
 from pathlib import Path
 
-import fmpsdk
 from tqdm import tqdm
 
 import src.config as config

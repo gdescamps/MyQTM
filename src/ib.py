@@ -5,10 +5,10 @@ import time
 from datetime import datetime, timezone
 from zoneinfo import ZoneInfo
 
-import fmpsdk
 from dotenv import load_dotenv
 from ib_insync import IB, MarketOrder, Stock
 
+from src.fmp import fmp_stock_quote
 from src.printlog import PrintLogNone
 
 # Load environment variables from .env file
@@ -261,7 +261,7 @@ def callback_open_positions_iteractive_broker(open_position, log=PrintLogNone())
         print(f"{open_position}")
     trade = None
     # Get current market price from FMP
-    ret = fmpsdk.quote(symbol=open_position["ticker"], apikey=FMP_APIKEY)
+    ret = fmp_stock_quote(apikey=FMP_APIKEY, symbol="AAPL")
     last_quote = float(ret[0]["price"])
     stock_count = int(open_position["size"] / last_quote)
     ib = ib_connect_once()

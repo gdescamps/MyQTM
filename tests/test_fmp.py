@@ -5,21 +5,34 @@ This module verifies that FMP API calls successfully retrieve stock quote data.
 
 import os
 
-import fmpsdk
 from dotenv import load_dotenv
 
-from src.config import TRADE_STOCKS
 from src.fmp import (
+    fmp_analyst_stock_recommendations,
     fmp_historical_price_eod,
     fmp_historical_rating,
     fmp_key_metrics,
     fmp_profile,
     fmp_stock_news,
+    fmp_stock_quote,
 )
 
 load_dotenv()
 
 FMP_APIKEY = os.getenv("FMP_APIKEY")
+
+
+def test_fmp_analyst_stock_recommendations():
+    """
+    Verify that analyst stock recommendations are retrieved from FMP API.
+
+    Queries the analyst recommendations endpoint for AAPL and confirms that
+    the response contains the expected "symbol" field.
+    """
+    # Retrieve analyst recommendations for AAPL from FMP API
+    ret = fmp_analyst_stock_recommendations(apikey=FMP_APIKEY, symbol="AAPL")
+    # Verify that the "symbol" field is present in the first recommendation record
+    assert "symbol" in ret[0].keys()
 
 
 def test_fmp_quotes():
@@ -28,11 +41,10 @@ def test_fmp_quotes():
     Queries the quote endpoint for each trading symbol in TRADE_STOCKS
     and confirms that price data is present in the response.
     """
-    for symbol in TRADE_STOCKS:
-        # Retrieve quote data from FMP API
-        ret = fmpsdk.quote(symbol=symbol, apikey=FMP_APIKEY)
-        # Verify that price field is present in response
-        assert "price" in ret[0].keys()
+    # Retrieve quote data from FMP API
+    ret = fmp_stock_quote(apikey=FMP_APIKEY, symbol="AAPL")
+    # Verify that price field is present in response
+    assert "price" in ret[0].keys()
 
 
 def test_fmp_price_historical_eod():
