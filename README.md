@@ -201,39 +201,32 @@ Follow the instructions in the [ib-gateway-docker repository](https://github.com
 
 ### Automated scheduling (cron) for robot.py
 
-This project includes a trading robot (robot.py) that can fetch the latest data and manage positions. Use cron to run the robot regularly. Example cron entries (run Monday–Friday):
+This project includes a trading robot (robot.py) that can fetch the latest data and manage positions. Use cron to run the robot regularly.
 
-```
-# m h  dom mon dow   command
-30 15 * * 1-5 cd /path/to/MyQTM && /path/to/MyQTM/venv/bin/python ./MyQTM/robot.py --trade >> /path/to/MyQTM/logs/cron_trade.log 2>&1
-30 13 * * 1-5 cd /path/to/MyQTM && /path/to/MyQTM/venv/bin/python ./MyQTM/robot.py --data >> /path/to/MyQTM/logs/cron_data.log 2>&1
-```
+To schedule the robot (run Monday–Friday):
 
-Install these cron jobs safely (run as the user that owns the project):
-
-```
-# create log directory
-mkdir -p /path/to/MyQTM/logs
-
-# create a temporary crontab file and add entries
-cat > /tmp/my_mqtm_cron <<'CRON'
-# m h  dom mon dow   command
-30 15 * * 1-5 cd /path/to/MyQTM && /path/to/MyQTM/venv/bin/python ./MyQTM/robot.py --trade >> /path/to/MyQTM/logs/cron_trade.log 2>&1
-30 13 * * 1-5 cd /path/to/MyQTM && /path/to/MyQTM/venv/bin/python ./MyQTM/robot.py --data >> /path/to/MyQTM/logs/cron_data.log 2>&1
-CRON
-
-# install the crontab
-crontab /tmp/my_mqtm_cron
-rm /tmp/my_mqtm_cron
-
-# verify
-crontab -l
+1. Create the logs directory:
+```bash
+mkdir -p /home/<user>/MyQTM/logs
 ```
 
-Notes
-- Replace /path/to/MyQTM with the actual absolute path on your machine (or use ~/MyQTM).
-- Test the python commands manually before adding to cron.
-- Ensure the virtual environment and robot.py are accessible to cron (use absolute paths or source a wrapper that loads .env).
+2. Edit your crontab:
+```bash
+crontab -e
+```
+
+3. Add these two lines:
+```
+30 15 * * 1-5 cd /home/<user>/MyQTM && /home/<user>/MyQTM/venv/bin/python ./robot.py --trade >> /home/<user>/MyQTM/logs/cron_trade.log 2>&1
+30 13 * * 1-5 cd /home/<user>/MyQTM && /home/<user>/MyQTM/venv/bin/python ./robot.py --data >> /home/<user>/MyQTM/logs/cron_data.log 2>&1
+```
+
+4. Save and exit the editor.
+
+**Notes:**
+- Replace `<user>` with your actual username (or use `~` for home directory).
+- Test the commands manually before adding to cron.
+- The robot runs at 1:30 PM (data fetch) and 3:30 PM (trading) on weekdays.
 
 ## License
 
