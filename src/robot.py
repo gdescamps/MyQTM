@@ -222,7 +222,7 @@ def daily_trade_positions():
         json.dump(positions_long_to_open, f, indent=2)
 
     # compute short position to open
-    positions_short_to_open, new_open_ybear = select_positions_to_open(
+    positions_short_to_open = select_positions_to_open(
         short_item,
         prev_item,
         positions,

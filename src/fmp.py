@@ -3,7 +3,6 @@ import typing
 from urllib.request import urlopen
 
 import certifi
-from fmpsdk.url_methods import __return_json_v3
 
 
 def get_jsonparsed_data(url):
@@ -27,20 +26,41 @@ def fmp_analyst_stock_recommendations(
     symbol: str,
 ) -> typing.Optional[typing.List[typing.Dict]]:
     """
-    Fetch analyst stock recommendations from Financial Modeling Prep API.
+    Fetch historical analyst stock grade recommendations from Financial Modeling Prep API.
 
     Args:
-        apikey: API key for FMP
-        symbol: Stock ticker symbol
+        apikey (str): API key for FMP authentication.
+        symbol (str): Stock ticker symbol (e.g., "AAPL", "GOOGL").
 
     Returns:
-        List of analyst recommendations or None
+        Optional[List[Dict]]: A list of dictionaries containing historical grade data
+                             (grades, ratings, recommendations), or None if the request fails.
     """
-    path = "analyst-stock-recommendations"
-    query_vars = {"apikey": apikey}
-    if symbol:
-        path = f"{path}/{symbol}"
-    return __return_json_v3(path=path, query_vars=query_vars)
+    # Construct the API URL with the symbol and API key as query parameters
+    url = f"https://financialmodelingprep.com/stable/grades-historical?symbol={symbol}&apikey={apikey}"
+    # Fetch and parse JSON data from the API endpoint
+    return get_jsonparsed_data(url)
+
+
+def fmp_stock_quote(
+    apikey: str,
+    symbol: str,
+) -> typing.Optional[typing.List[typing.Dict]]:
+    """
+    Fetch current stock quote data from Financial Modeling Prep API.
+
+    Args:
+        apikey (str): API key for FMP authentication.
+        symbol (str): Stock ticker symbol (e.g., "AAPL", "GOOGL").
+
+    Returns:
+        Optional[List[Dict]]: A list of dictionaries containing stock quote data
+                             (price, volume, etc.), or None if the request fails.
+    """
+    # Construct the API URL with the symbol and API key as query parameters
+    url = f"https://financialmodelingprep.com/stable/quote?symbol={symbol}&apikey={apikey}"
+    # Fetch and parse JSON data from the API endpoint
+    return get_jsonparsed_data(url)
 
 
 def fmp_economic_indicators(

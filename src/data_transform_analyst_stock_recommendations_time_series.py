@@ -61,7 +61,32 @@ def process_all_stocks(config):
             errors="ignore",
         )
 
-        df_analyst_stock_recommendations
+        columns_to_keep = [
+            "date",
+            "analystRatingsbuy",
+            "analystRatingsHold",
+            "analystRatingsSell",
+            "analystRatingsStrongSell",
+            "analystRatingsStrongBuy",
+        ]
+
+        if (
+            "analystRatingsBuy" in df_analyst_stock_recommendations.columns
+            and "analystRatingsbuy" in df_analyst_stock_recommendations.columns
+        ):
+            df_analyst_stock_recommendations["analystRatingsbuy"] = (
+                df_analyst_stock_recommendations["analystRatingsBuy"].combine_first(
+                    df_analyst_stock_recommendations["analystRatingsbuy"]
+                )
+            )
+        elif "analystRatingsBuy" in df_analyst_stock_recommendations.columns:
+            df_analyst_stock_recommendations["analystRatingsbuy"] = (
+                df_analyst_stock_recommendations["analystRatingsBuy"]
+            )
+
+        df_analyst_stock_recommendations = df_analyst_stock_recommendations[
+            columns_to_keep
+        ]
 
         # Create time series features with a window size of 4
         TS_SIZE = 4
