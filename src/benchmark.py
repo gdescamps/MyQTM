@@ -719,7 +719,7 @@ if __name__ == "__main__":
         benchmark_end_date = current_date
 
     with local_log:
-        print(f"Benchmark until: {benchmark_end_date}")
+        print(f"Benchmark until {benchmark_end_date} :")
 
     for top in range(1, CMA_PARALLEL_PROCESSES):
 
