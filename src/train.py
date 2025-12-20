@@ -206,7 +206,7 @@ def compute_f1(
         ax1.tick_params(axis="y", labelcolor="tab:blue")
 
         metrics_text = (
-            f"F1 on best 500 transitions:\n"
+            f"F1 on best {config.F1_TOP} transitions:\n"
             f"  best transitions count: {count}\n"
             f"  mean f1: {np.mean(values_f1):.3f}\n"
             f"  std f1: {np.std(values_f1):.3f}\n"
@@ -231,14 +231,15 @@ def compute_f1(
         image = Image.open(buf)
         image.save(
             os.path.join(
-                local_log.output_dir_time, f"f1_500_best_transitions_{label}.png"
+                local_log.output_dir_time,
+                f"f1_{config.F1_TOP}_best_transitions_{label}.png",
             )
         )
         buf.close()
     return np.mean(values_f1)
 
 
-def search_threshold_for_topN(trade_data, target_sample_count=125):
+def search_threshold_for_topN(trade_data, target_sample_count=int(config.F1_TOP / 4)):
     """
     Search for probability threshold that produces approximately target_sample_count predictions.
 
@@ -329,7 +330,7 @@ def split_trade_data(trade_data):
 
 def plot_top_f1(do_plot=False):
     """
-    Evaluate F1 score on 500 best transitions across all interval types.
+    Evaluate F1 score on config.F1_TOP best transitions across all interval types.
 
     Args:
         do_plot (bool): Whether to plot the F1 scores.
@@ -337,7 +338,7 @@ def plot_top_f1(do_plot=False):
     Returns:
         tuple: F1 scores for intervals A and B (long and short positions).
     """
-    # Evaluate F1 on 500 best transitions
+    # Evaluate F1 on F1_TOP best transitions
     trade_data = build_trade_data(
         model_path=Path(get_project_root()) / local_log.output_dir_time,
         data_path=data_path,
@@ -744,7 +745,7 @@ if __name__ == "__main__":
 
         # Evaluate on full test set with top transitions
         f1s = plot_top_f1(do_plot=False)
-        f1 = np.mean(f1s) - np.std(f1s)
+        f1 = np.mean(f1s) - 3 * np.std(f1s)
         f1_str = [f"{f1:.2f}" for f1 in f1s]
 
         # Update best model if F1 score improved
@@ -770,12 +771,11 @@ if __name__ == "__main__":
                 )
                 print(f"max_depth: {max_depth}")
                 print(f"mean_std_power: {mean_std_power}")
-                print(f"F1 scores on best 500 transitions: {f1_str}")
-                print(f"best F1 score on best 1000 transitions: {f1:.4f}")
+                print(f"F1 scores on best {config.F1_TOP} transitions: {f1_str}")
+                print(f"best F1 score on best {config.F1_TOP} transitions: {f1:.4f}")
         else:
-            print(f"F1 scores on best 500 transitions: {f1_str}")
-            print(f"F1 score on best 1000 transitions: {f1:.4f}")
-
+            print(f"F1 scores on best {config.F1_TOP} transitions: {f1_str}")
+            print(f"F1 score on best {config.F1_TOP} transitions: {f1:.4f}")
     # Save best final model
     if best_importance_df_sorted_by_std_mean is not None:
         best_importance_df_sorted_by_std_mean.to_csv(
@@ -969,7 +969,7 @@ if __name__ == "__main__":
 
         # Evaluate on full test set with top transitions
         f1s = plot_top_f1(do_plot=False)
-        f1 = np.mean(f1s) - np.std(f1s)
+        f1 = np.mean(f1s) - 3 * np.std(f1s)
         f1_str = [f"{f1:.2f}" for f1 in f1s]
 
         # Update best model if F1 score improved
@@ -989,12 +989,11 @@ if __name__ == "__main__":
                 print(f"Best model params: {params_grid}")
                 print(f"Selected features: {len(selected_features)}")
                 print(f"max_depth: {max_depth}")
-                print(f"F1 scores on best 500 transitions: {f1_str}")
-                print(f"best F1 score on best 1000 transitions: {f1:.4f}")
+                print(f"F1 scores on best {config.F1_TOP} transitions: {f1_str}")
+                print(f"best F1 score on best {config.F1_TOP} transitions: {f1:.4f}")
         else:
-            print(f"F1 scores on best 500 transitions: {f1_str}")
-            print(f"F1 score on best 1000 transitions: {f1:.4f}")
-
+            print(f"F1 scores on best {config.F1_TOP} transitions: {f1_str}")
+            print(f"F1 score on best {config.F1_TOP} transitions: {f1:.4f}")
     # Save best final model
     if best_modela is not None:
         selected_features_path = os.path.join(

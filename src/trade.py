@@ -264,10 +264,9 @@ def open_positions(
     current_date,
     capital,
     capital_and_position,
-    position_size,
-    max_positions,
     pos_type,
     increase_positions_count,
+    open_prob_thres,
     callback=None,
     log=PrintLogNone(),
 ):
@@ -281,8 +280,6 @@ def open_positions(
         current_date (datetime): Current date for opening positions.
         capital (float): Current capital.
         capital_and_position (float): Total capital and position value.
-        position_size (float): Size of each position.
-        max_positions (int): Maximum number of positions allowed.
         pos_type (str): Type of position ('long' or 'short').
         increase_positions_count (float): Rate for adjusting position sizes.
         callback (function, optional): Callback function for additional processing. Defaults to None.
@@ -294,11 +291,15 @@ def open_positions(
     interval = get_interval_type(current_date)
     if len(positions_to_open):
         for item in positions_to_open:
-            if capital > 100.0:
-                size_factor_val = 0.5 * (1.0 - increase_positions_count) * max_positions
-                size_factor_val = min(size_factor_val, max_positions)
-                size_factor_val = max(size_factor_val, 1)
-                size = min(capital, size_factor_val * position_size)
+            if (
+                100 * capital / capital_and_position > 5.0
+            ):  # Minimum 5% capital remaining to open new position
+                size = (
+                    (item["yprob"] ** 2)
+                    * (1.0 - increase_positions_count)
+                    * capital_and_position
+                )
+                size = min(capital, size)
                 ticker = item["ticker"]
                 if ticker not in bench_data[current_date]:
                     continue
@@ -420,6 +421,10 @@ def get_param(
     long_close_prob_thresb,
     short_open_prob_thresb,
     short_close_prob_thresb,
+    long_pos_count_a,
+    short_pos_count_a,
+    long_pos_count_b,
+    short_pos_count_b,
     end_limit: bool = True,
 ):
     """
@@ -436,7 +441,10 @@ def get_param(
         short_open_prob_thresb (float): Threshold B for opening short positions.
         short_close_prob_thresb (float): Threshold B for closing short positions.
         end_limit (bool, optional): Whether to enforce end limits. Defaults to True.
-
+        long_pos_count_a (float): Rate for adjusting long position sizes for interval A.
+        short_pos_count_a (float): Rate for adjusting short position sizes for interval A.
+        long_pos_count_b (float): Rate for adjusting long position sizes for interval B.
+        short_pos_count_b (float): Rate for adjusting short position sizes for interval B.
     Returns:
         tuple: Trading parameters for the current interval type.
     """
@@ -446,24 +454,34 @@ def get_param(
         short_open_prob_thres = short_open_prob_thresb
         long_close_prob_thres = long_close_prob_thresb
         short_close_prob_thres = short_close_prob_thresb
+        long_pos_count = long_pos_count_b
+        short_pos_count = short_pos_count_b
     elif "B" in interval_type:
         long_open_prob_thres = long_open_prob_thresa
         short_open_prob_thres = short_open_prob_thresa
         long_close_prob_thres = long_close_prob_thresa
         short_close_prob_thres = short_close_prob_thresa
+        long_pos_count = long_pos_count_a
+        short_pos_count = short_pos_count_a
     elif "C" in interval_type:
         long_open_prob_thres = long_open_prob_thresb
         short_open_prob_thres = short_open_prob_thresb
         long_close_prob_thres = long_close_prob_thresb
         short_close_prob_thres = short_close_prob_thresb
+        long_pos_count = long_pos_count_b
+        short_pos_count = short_pos_count_b
     elif "D" in interval_type:
         long_open_prob_thres = long_open_prob_thresa
         short_open_prob_thres = short_open_prob_thresa
         long_close_prob_thres = long_close_prob_thresa
         short_close_prob_thres = short_close_prob_thresa
+        long_pos_count = long_pos_count_a
+        short_pos_count = short_pos_count_a
     return (
         long_open_prob_thres,
         short_open_prob_thres,
         long_close_prob_thres,
         short_close_prob_thres,
+        long_pos_count,
+        short_pos_count,
     )
