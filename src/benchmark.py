@@ -162,7 +162,6 @@ def compute_bench(
             capital_and_position,
             "long",
             long_pos_count,
-            long_open_prob_thres,
         )
 
         # Open new short positions
@@ -175,7 +174,6 @@ def compute_bench(
             capital_and_position,
             "short",
             short_pos_count,
-            short_open_prob_thres,
         )
 
         # Recompute the total value of open positions
@@ -220,7 +218,7 @@ def compute_bench(
                     stock_filter.append(pos["ticker"])
 
         # Compute long positions to open
-        positions_long_to_open = select_positions_to_open(
+        positions_long_to_open, new_open_best_prob_long = select_positions_to_open(
             long_item,
             prev_item,
             positions,
@@ -232,7 +230,7 @@ def compute_bench(
         )
 
         # Compute short positions to open
-        positions_short_to_open = select_positions_to_open(
+        positions_short_to_open, new_open_best_prob_short = select_positions_to_open(
             short_item,
             prev_item,
             positions,
@@ -246,7 +244,14 @@ def compute_bench(
         # Compute positions to close
         positions_long_to_close, positions_short_to_close, remove_pos_indexes = (
             select_positions_to_close(
-                positions, item, long_close_prob_thres, short_close_prob_thres
+                positions,
+                item,
+                long_close_prob_thres,
+                short_close_prob_thres,
+                new_open_best_prob_long,
+                new_open_best_prob_short,
+                capital,
+                capital_and_position,
             )
         )
 
@@ -599,6 +604,7 @@ def run_benchmark(
 
     perf = 0
     positions_count = len(positions_history) + len(positions)
+    positions_count_rate = positions_count / (len(dates_portfolio) + 1)
 
     long_A_positions = len(
         [
@@ -662,15 +668,16 @@ def run_benchmark(
             * SHORT_POS_COUNTA
             * LONG_POS_COUNTB
             * SHORT_POS_COUNTB
-            * gaussian_penalty_weight(long_rate, center=0.5, sigma=0.2)
-            * gaussian_penalty_weight(short_rate, center=0.5, sigma=0.2)
-            * gaussian_penalty_weight(AB_rate, center=0.5, sigma=0.2)
-            * gaussian_penalty_weight(long_short_rate, center=0.7, sigma=0.2)
-            * (float(portfolio_ret) ** 3.0)
+            * gaussian_penalty_weight(positions_count_rate, center=0.36, sigma=0.2)
+            * gaussian_penalty_weight(long_rate, center=0.5, sigma=0.1)
+            * gaussian_penalty_weight(short_rate, center=0.5, sigma=0.1)
+            * gaussian_penalty_weight(AB_rate, center=0.5, sigma=0.1)
+            * gaussian_penalty_weight(long_short_rate, center=0.8, sigma=0.1)
+            * (float(portfolio_ret) ** 4.0)
             / (
-                (1 + (float(longest_portfolio_drawdown) / 100))
-                * (0.2 + (float(annual_roi_std) / 10))
-                * (1 + (abs(float(portfolio_max_drawdown)) / 10))
+                ((float(longest_portfolio_drawdown) / 100))
+                * (0.1 + (float(annual_roi_std) / 10))
+                * (abs(float(portfolio_max_drawdown)) / 20)
             )
         )
 
@@ -730,7 +737,7 @@ if __name__ == "__main__":
     with local_log:
         print(f"Benchmark until {benchmark_end_date} :")
 
-    for top in range(1, 2):
+    for top in range(1, config.CMA_PARALLEL_PROCESSES):
 
         if os.path.exists(os.path.join(CMA_DIR, f"top{top}_params.json")):
 

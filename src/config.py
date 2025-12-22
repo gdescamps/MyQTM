@@ -323,22 +323,35 @@ CMA_STOCKS_DROP_OUT_ROUND = 20
 CMA_STOCKS_DROP_OUT = 10
 CMA_PROCESSES = 128
 CMA_PARALLEL_PROCESSES = 32
-INIT_X0 = [0.7, 0.7, 0.7, 0.7, 0.7, 0.7, 0.7, 0.7, 0.7, 0.7, 0.7, 0.7]
+INIT_X0 = [
+    0.7,
+    0.7,
+    0.7,
+    0.7,
+    0.7,
+    0.7,
+    0.7,
+    0.7,
+    0.7,
+    0.7,
+    0.7,
+    0.7,
+]
 INIT_CMA_STD = 0.2
 # CMA-ES optimization parameter space
 INIT_SPACE = [  # Important increase params favor better safety
-    Real(0.01, 0.999, name="long_open_prob_thres_A"),
-    Real(0.01, 0.999, name="long_close_prob_thres_A"),
-    Real(0.01, 0.999, name="short_open_prob_thres_A"),
-    Real(0.01, 0.999, name="short_close_prob_thres_A"),
-    Real(0.01, 0.999, name="long_open_prob_thres_B"),
-    Real(0.01, 0.999, name="long_close_prob_thres_B"),
-    Real(0.01, 0.999, name="short_open_prob_thres_B"),
-    Real(0.01, 0.999, name="short_close_prob_thres_B"),
-    Real(0.4, 0.99, name="long_pos_count_A"),
-    Real(0.4, 0.99, name="short_pos_count_A"),
-    Real(0.4, 0.99, name="long_pos_count_B"),
-    Real(0.4, 0.99, name="short_pos_count_B"),
+    Real(0.1, 0.999, name="long_open_prob_thres_A"),
+    Real(0.1, 0.999, name="long_close_prob_thres_A"),
+    Real(0.1, 0.999, name="short_open_prob_thres_A"),
+    Real(0.1, 0.999, name="short_close_prob_thres_A"),
+    Real(0.1, 0.999, name="long_open_prob_thres_B"),
+    Real(0.1, 0.999, name="long_close_prob_thres_B"),
+    Real(0.1, 0.999, name="short_open_prob_thres_B"),
+    Real(0.1, 0.999, name="short_close_prob_thres_B"),
+    Real(0.6, 0.9, name="long_pos_count_A"),
+    Real(0.6, 0.9, name="short_pos_count_A"),
+    Real(0.6, 0.9, name="long_pos_count_B"),
+    Real(0.6, 0.9, name="short_pos_count_B"),
 ]
 
 # XGBoost model training parameter grid
@@ -357,10 +370,11 @@ PARAM_GRID = {
     # best feature importance rank to maximize F1
     "mean_std_power": [1.71],
     # Top features search range
-    "top_features": list(range(170, 180, 5)),
+    "top_features": list(range(55, 90, 5)),
 }
 
 F1_TOP = 2000
+OPEN_INDEX_DELAY = 2
 TRADE_DATA_LOAD = None
 DATES_PORTFOLIO = []
 
