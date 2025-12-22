@@ -131,7 +131,9 @@ def build_trade_data(
         current_date = start_date
         pc = None
         index_long = -1
+        index_long_zero_prob = 0.0
         index_short = -1
+        index_short_zero_prob = 0.0
         while current_date <= end_date:
             current_date_str = current_date.strftime("%Y-%m-%d")
             if current_date_str not in trade_data:
@@ -147,11 +149,15 @@ def build_trade_data(
             class_short = 0
             if pc is not None and c == class_long and pc != class_long:
                 index_long = 0
+                index_long_zero_prob = today_stock["ybull"]
             elif pc is not None and c == class_short and pc != class_short:
                 index_short = 0
+                index_short_zero_prob = today_stock["ybear"]
 
             today_stock["index_long"] = index_long
+            today_stock["index_long_zero_prob"] = index_long_zero_prob
             today_stock["index_short"] = index_short
+            today_stock["index_short_zero_prob"] = index_short_zero_prob
 
             pc = c
             if index_long >= 0:
@@ -266,7 +272,6 @@ def open_positions(
     capital_and_position,
     pos_type,
     increase_positions_count,
-    open_prob_thres,
     callback=None,
     log=PrintLogNone(),
 ):
@@ -282,6 +287,7 @@ def open_positions(
         capital_and_position (float): Total capital and position value.
         pos_type (str): Type of position ('long' or 'short').
         increase_positions_count (float): Rate for adjusting position sizes.
+        prob_pow (float): Power to raise the probability for position sizing.
         callback (function, optional): Callback function for additional processing. Defaults to None.
         log (PrintLog, optional): Logger for printing logs. Defaults to PrintLogNone().
 
@@ -295,7 +301,7 @@ def open_positions(
                 100 * capital / capital_and_position > 5.0
             ):  # Minimum 5% capital remaining to open new position
                 size = (
-                    (item["yprob"] ** 2)
+                    (item["yprob"] ** 1.5)
                     * (1.0 - increase_positions_count)
                     * capital_and_position
                 )
@@ -351,6 +357,7 @@ def select_positions_to_open(
     for pos in positions:
         already_open.append(pos["ticker"])
 
+    new_open_best_prob = 0
     for ticker in item_dict.keys():
         if ticker not in stock_filter:
             continue
@@ -359,22 +366,30 @@ def select_positions_to_open(
         if ticker in prev_item and ticker in item_dict:
             if class_val == 2:
                 index = item_dict[ticker]["index_long"]
+                open_zero_prob = item_dict[ticker]["index_long_zero_prob"]
                 open_prob = item_dict[ticker]["ybull"]
             elif class_val == 0:
                 index = item_dict[ticker]["index_short"]
+                open_zero_prob = item_dict[ticker]["index_short_zero_prob"]
                 open_prob = item_dict[ticker]["ybear"]
-            if index == 0:
-                if open_prob >= open_prob_thres:
+            if index <= config.OPEN_INDEX_DELAY and index >= 0:
+                if open_zero_prob >= open_prob_thres and (
+                    index == 0 or open_prob > open_zero_prob
+                ):
                     positions_to_open.append(
                         {
                             "ticker": ticker,
-                            "yprob": open_prob,
+                            "yprob": open_zero_prob,
+                            "yprob_open": open_prob,
+                            "index": index,
                         }
                     )
+                    if open_zero_prob > new_open_best_prob:
+                        new_open_best_prob = open_zero_prob
                 else:
                     break
 
-    return positions_to_open
+    return positions_to_open, new_open_best_prob
 
 
 def select_positions_to_close(
@@ -382,6 +397,10 @@ def select_positions_to_close(
     item,
     long_close_prob_thres,
     short_close_prob_thres,
+    new_open_best_prob_long,
+    new_open_best_prob_short,
+    capital,
+    capital_and_position,
 ):
     """
     Selects positions to close (long and short) based on thresholds and criteria.
@@ -399,15 +418,53 @@ def select_positions_to_close(
     positions_long_to_close = []
     positions_short_to_close = []
     remove_pos_indexes = []
+    capital_percent = 100 * capital / capital_and_position
+
     for pos_index, pos in enumerate(positions):
         if pos["type"] == "long":
             if item[pos["ticker"]]["ybull"] < long_close_prob_thres:
+                pos["close_reason"] = "prob"
                 positions_long_to_close.append(pos)
                 remove_pos_indexes.append(pos_index)
         elif pos["type"] == "short":
             if item[pos["ticker"]]["ybear"] < short_close_prob_thres:
+                pos["close_reason"] = "prob"
                 positions_short_to_close.append(pos)
                 remove_pos_indexes.append(pos_index)
+
+    if (
+        capital_percent < 5.0
+        and len(positions_long_to_close) == 0
+        and len(positions_short_to_close) == 0
+    ):
+
+        for pos_index, pos in enumerate(positions):
+            open_price = pos["open_price"]
+            close_price = item[pos["ticker"]]["open"]
+            if pos["type"] == "long":
+                pos_gain = (close_price - open_price) / open_price
+            else:
+                pos_gain = (open_price - close_price) / open_price
+            pos_gain *= 100
+            if pos_gain > 20:
+                open_yprob = pos["yprob"]
+                if pos["type"] == "long":
+                    if open_yprob < new_open_best_prob_long:
+                        pos["close_reason"] = "new_open"
+                        positions_long_to_close.append(pos)
+                        remove_pos_indexes.append(pos_index)
+                        capital_percent = (
+                            100  # avoid closing multiple positions in one iteration
+                        )
+                elif pos["type"] == "short":
+                    if open_yprob < new_open_best_prob_short:
+                        pos["close_reason"] = "new_open"
+                        positions_short_to_close.append(pos)
+                        remove_pos_indexes.append(pos_index)
+                        capital_percent = (
+                            100  # avoid closing multiple positions in one iteration
+                        )
+
     return positions_long_to_close, positions_short_to_close, remove_pos_indexes
 
 
