@@ -29,6 +29,15 @@
             "console": "integratedTerminal"
         },
         {
+            "name": "analyse.py",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/src/analyse.py",
+            "cwd": "${workspaceFolder}/",
+            "env": {},
+            "console": "integratedTerminal"
+        },
+        {
             "name": "data.py",
             "type": "debugpy",
             "request": "launch",
