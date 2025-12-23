@@ -261,6 +261,21 @@ def compute_bench(
         ]
         prev_date = current_date
 
+    # Implement positions close at last benchmark day, if any
+    (
+        capital,
+        positions_history,
+        positions_long_to_close,
+        positions_short_to_close,
+    ) = close_positions(
+        positions_long_to_close,
+        positions_short_to_close,
+        bench_data,
+        current_date,
+        capital,
+        positions_history,
+    )
+
     return (
         values_portfolio,
         capital_portfolio,
