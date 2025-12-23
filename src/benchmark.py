@@ -467,7 +467,6 @@ def compute_annual_roi(dates_portfolio, values_portfolio):
         annual_roi_std,
         annual_roi_min,
         annual_roi_max,
-        list(annual_roi.values())[0],
     )
 
 
@@ -614,7 +613,6 @@ def run_benchmark(
         annual_roi_std,
         annual_roi_min,
         annual_roi_max,
-        annual_roi_last,
     ) = compute_annual_roi(dates_portfolio, values_portfolio)
 
     perf = 0
