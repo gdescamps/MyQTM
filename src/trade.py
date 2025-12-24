@@ -300,11 +300,7 @@ def open_positions(
             if (
                 100 * capital / capital_and_position > 5.0
             ):  # Minimum 5% capital remaining to open new position
-                size = (
-                    (item["yprob"] ** 1.5)
-                    * (1.0 - increase_positions_count)
-                    * capital_and_position
-                )
+                size = (1.0 - increase_positions_count) * capital_and_position
                 size = min(capital, size)
                 ticker = item["ticker"]
                 if ticker not in bench_data[current_date]:
@@ -433,7 +429,8 @@ def select_positions_to_close(
                 remove_pos_indexes.append(pos_index)
 
     if (
-        capital_percent < 5.0
+        config.NEW_OPEN
+        and capital_percent < 5.0
         and len(positions_long_to_close) == 0
         and len(positions_short_to_close) == 0
     ):
@@ -478,10 +475,6 @@ def get_param(
     long_close_prob_thresb,
     short_open_prob_thresb,
     short_close_prob_thresb,
-    long_pos_count_a,
-    short_pos_count_a,
-    long_pos_count_b,
-    short_pos_count_b,
     end_limit: bool = True,
 ):
     """
@@ -498,10 +491,6 @@ def get_param(
         short_open_prob_thresb (float): Threshold B for opening short positions.
         short_close_prob_thresb (float): Threshold B for closing short positions.
         end_limit (bool, optional): Whether to enforce end limits. Defaults to True.
-        long_pos_count_a (float): Rate for adjusting long position sizes for interval A.
-        short_pos_count_a (float): Rate for adjusting short position sizes for interval A.
-        long_pos_count_b (float): Rate for adjusting long position sizes for interval B.
-        short_pos_count_b (float): Rate for adjusting short position sizes for interval B.
     Returns:
         tuple: Trading parameters for the current interval type.
     """
@@ -511,34 +500,24 @@ def get_param(
         short_open_prob_thres = short_open_prob_thresb
         long_close_prob_thres = long_close_prob_thresb
         short_close_prob_thres = short_close_prob_thresb
-        long_pos_count = long_pos_count_b
-        short_pos_count = short_pos_count_b
     elif "B" in interval_type:
         long_open_prob_thres = long_open_prob_thresa
         short_open_prob_thres = short_open_prob_thresa
         long_close_prob_thres = long_close_prob_thresa
         short_close_prob_thres = short_close_prob_thresa
-        long_pos_count = long_pos_count_a
-        short_pos_count = short_pos_count_a
     elif "C" in interval_type:
         long_open_prob_thres = long_open_prob_thresb
         short_open_prob_thres = short_open_prob_thresb
         long_close_prob_thres = long_close_prob_thresb
         short_close_prob_thres = short_close_prob_thresb
-        long_pos_count = long_pos_count_b
-        short_pos_count = short_pos_count_b
     elif "D" in interval_type:
         long_open_prob_thres = long_open_prob_thresa
         short_open_prob_thres = short_open_prob_thresa
         long_close_prob_thres = long_close_prob_thresa
         short_close_prob_thres = short_close_prob_thresa
-        long_pos_count = long_pos_count_a
-        short_pos_count = short_pos_count_a
     return (
         long_open_prob_thres,
         short_open_prob_thres,
         long_close_prob_thres,
         short_close_prob_thres,
-        long_pos_count,
-        short_pos_count,
     )

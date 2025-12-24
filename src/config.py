@@ -54,9 +54,9 @@ DOWNLOAD_START_DATE = "2017-01-01"
 TRAIN_START_DATE = "2019-08-01"
 TRAIN_END_DATE = "2024-10-05"
 
-# CMAES_END_DATE = "2025-04-05"  # CMA-ES finetune end date
+CMAES_END_DATE = "2025-04-05"  # CMA-ES finetune end date
 # CMAES_END_DATE = "2024-10-05"  # CMA-ES finetune end date
-CMAES_END_DATE = BENCHMARK_END_DATE
+# CMAES_END_DATE = BENCHMARK_END_DATE
 
 INITIAL_CAPITAL = (
     8800  # Manual capital init to sync portforlio and nasdaq at BENCHMARK_START_DATE
@@ -323,35 +323,20 @@ CMA_STOCKS_DROP_OUT_ROUND = 20
 CMA_STOCKS_DROP_OUT = 10
 CMA_PROCESSES = 128
 CMA_PARALLEL_PROCESSES = 32
-INIT_X0 = [
-    0.7,
-    0.7,
-    0.7,
-    0.7,
-    0.7,
-    0.7,
-    0.7,
-    0.7,
-    0.7,
-    0.7,
-    0.7,
-    0.7,
-]
+INIT_X0 = [0.8, 0.7, 0.8, 0.7, 0.8, 0.7, 0.8, 0.7, 0.8, 0.8]
 INIT_CMA_STD = 0.2
 # CMA-ES optimization parameter space
 INIT_SPACE = [  # Important increase params favor better safety
-    Real(0.1, 0.999, name="long_open_prob_thres_A"),
+    Real(0.75, 0.999, name="long_open_prob_thres_A"),
     Real(0.1, 0.999, name="long_close_prob_thres_A"),
-    Real(0.1, 0.999, name="short_open_prob_thres_A"),
+    Real(0.75, 0.999, name="short_open_prob_thres_A"),
     Real(0.1, 0.999, name="short_close_prob_thres_A"),
-    Real(0.1, 0.999, name="long_open_prob_thres_B"),
+    Real(0.75, 0.999, name="long_open_prob_thres_B"),
     Real(0.1, 0.999, name="long_close_prob_thres_B"),
-    Real(0.1, 0.999, name="short_open_prob_thres_B"),
+    Real(0.75, 0.999, name="short_open_prob_thres_B"),
     Real(0.1, 0.999, name="short_close_prob_thres_B"),
-    Real(0.6, 0.9, name="long_pos_count_A"),
-    Real(0.6, 0.9, name="short_pos_count_A"),
-    Real(0.6, 0.9, name="long_pos_count_B"),
-    Real(0.6, 0.9, name="short_pos_count_B"),
+    Real(0.72, 0.9, name="long_pos_count"),
+    Real(0.72, 0.9, name="short_pos_count"),
 ]
 
 # XGBoost model training parameter grid
@@ -375,6 +360,7 @@ PARAM_GRID = {
 
 F1_TOP = 2000
 OPEN_INDEX_DELAY = 2
+NEW_OPEN = True
 TRADE_DATA_LOAD = None
 DATES_PORTFOLIO = []
 
