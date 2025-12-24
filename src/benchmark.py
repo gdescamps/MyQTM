@@ -66,10 +66,8 @@ def compute_bench(
     long_close_prob_thres_b,
     short_open_prob_thres_b,
     short_close_prob_thres_b,
-    long_pos_count_a,
-    short_pos_count_a,
-    long_pos_count_b,
-    short_pos_count_b,
+    long_pos_count,
+    short_pos_count,
 ):
     """
     Simulates the benchmark trading strategy and computes portfolio metrics.
@@ -115,8 +113,6 @@ def compute_bench(
             short_open_prob_thres,
             long_close_prob_thres,
             short_close_prob_thres,
-            long_pos_count,
-            short_pos_count,
         ) = get_param(
             current_date,
             long_open_prob_thres_a,
@@ -127,10 +123,6 @@ def compute_bench(
             long_close_prob_thres_b,
             short_open_prob_thres_b,
             short_close_prob_thres_b,
-            long_pos_count_a,
-            short_pos_count_a,
-            long_pos_count_b,
-            short_pos_count_b,
         )
 
         # Close positions scheduled for closing
@@ -483,10 +475,8 @@ def run_benchmark(
     LONG_CLOSE_PROB_THRES_B=0.37,
     SHORT_OPEN_PROB_THRES_B=0.60,
     SHORT_CLOSE_PROB_THRES_B=0.37,
-    LONG_POS_COUNTA=0.4,
-    SHORT_POS_COUNTA=0.4,
-    LONG_POS_COUNTB=0.4,
-    SHORT_POS_COUNTB=0.4,
+    LONG_POS_COUNT=0.4,
+    SHORT_POS_COUNT=0.4,
     MODEL_PATH=None,
     data_path=None,
     remove_stocks=5,
@@ -508,10 +498,8 @@ def run_benchmark(
         LONG_CLOSE_PROB_THRES_B (float, optional): Threshold B for closing long positions. Defaults to 0.37.
         SHORT_OPEN_PROB_THRES_B (float, optional): Threshold B for opening short positions. Defaults to 0.60.
         SHORT_CLOSE_PROB_THRES_B (float, optional): Threshold B for closing short positions. Defaults to 0.37.
-        LONG_POS_COUNTA (float, optional): Rate to increase positions count.
-        SHORT_POS_COUNTA (float, optional): Rate to increase positions count.
-        LONG_POS_COUNTB (float, optional): Rate to increase positions count.
-        SHORT_POS_COUNTB (float, optional): Rate to increase positions count.
+        LONG_POS_COUNT (float, optional): Rate to increase positions count.
+        SHORT_POS_COUNT (float, optional): Rate to increase positions count.
         MODEL_PATH (str, optional): Path to the model directory. Defaults to None.
         data_path (str, optional): Path to the data directory. Defaults to None.
         remove_stocks (int, optional): Number of stocks to remove from the benchmark. Defaults to 5.
@@ -576,10 +564,8 @@ def run_benchmark(
         LONG_CLOSE_PROB_THRES_B,
         SHORT_OPEN_PROB_THRES_B,
         SHORT_CLOSE_PROB_THRES_B,
-        LONG_POS_COUNTA,
-        SHORT_POS_COUNTA,
-        LONG_POS_COUNTB,
-        SHORT_POS_COUNTB,
+        LONG_POS_COUNT,
+        SHORT_POS_COUNT,
     )
 
     # Portfolio metrics
@@ -677,11 +663,8 @@ def run_benchmark(
             * LONG_CLOSE_PROB_THRES_B
             * SHORT_OPEN_PROB_THRES_B
             * SHORT_CLOSE_PROB_THRES_B
-            * LONG_POS_COUNTA
-            * SHORT_POS_COUNTA
-            * LONG_POS_COUNTB
-            * SHORT_POS_COUNTB
-            * gaussian_penalty_weight(positions_count_rate, center=0.36, sigma=0.2)
+            * LONG_POS_COUNT
+            * SHORT_POS_COUNT
             * gaussian_penalty_weight(long_rate, center=0.5, sigma=0.1)
             * gaussian_penalty_weight(short_rate, center=0.5, sigma=0.1)
             * gaussian_penalty_weight(AB_rate, center=0.5, sigma=0.1)
@@ -767,10 +750,8 @@ if __name__ == "__main__":
                 long_close_prob_thres_b,
                 short_open_prob_thres_b,
                 short_close_prob_thres_b,
-                long_pos_counta,
-                short_pos_counta,
-                long_pos_countb,
-                short_pos_countb,
+                long_pos_count,
+                short_pos_count,
             ) = list(XBEST)
 
             returns = []
@@ -796,10 +777,8 @@ if __name__ == "__main__":
                     LONG_CLOSE_PROB_THRES_B=long_close_prob_thres_b,
                     SHORT_OPEN_PROB_THRES_B=short_open_prob_thres_b,
                     SHORT_CLOSE_PROB_THRES_B=short_close_prob_thres_b,
-                    LONG_POS_COUNTA=long_pos_counta,
-                    SHORT_POS_COUNTA=short_pos_counta,
-                    LONG_POS_COUNTB=long_pos_countb,
-                    SHORT_POS_COUNTB=short_pos_countb,
+                    LONG_POS_COUNTA=long_pos_count,
+                    SHORT_POS_COUNTA=short_pos_count,
                     MODEL_PATH=TRAIN_DIR,
                     data_path=None,
                     remove_stocks=remove_stocks,
