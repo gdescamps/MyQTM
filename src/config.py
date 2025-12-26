@@ -323,20 +323,22 @@ CMA_STOCKS_DROP_OUT_ROUND = 20
 CMA_STOCKS_DROP_OUT = 10
 CMA_PROCESSES = 128
 CMA_PARALLEL_PROCESSES = 32
-INIT_X0 = [0.8, 0.7, 0.8, 0.7, 0.8, 0.7, 0.8, 0.7, 0.8, 0.8]
+INIT_X0 = [0.8, 0.7, 0.8, 0.7, 0.8, 0.7, 0.8, 0.7, 0.7, 0.7, 0.1, 0.1]
 INIT_CMA_STD = 0.2
 # CMA-ES optimization parameter space
 INIT_SPACE = [  # Important increase params favor better safety
-    Real(0.75, 0.999, name="long_open_prob_thres_A"),
-    Real(0.1, 0.999, name="long_close_prob_thres_A"),
-    Real(0.75, 0.999, name="short_open_prob_thres_A"),
-    Real(0.1, 0.999, name="short_close_prob_thres_A"),
-    Real(0.75, 0.999, name="long_open_prob_thres_B"),
-    Real(0.1, 0.999, name="long_close_prob_thres_B"),
-    Real(0.75, 0.999, name="short_open_prob_thres_B"),
-    Real(0.1, 0.999, name="short_close_prob_thres_B"),
-    Real(0.72, 0.9, name="long_pos_count"),
-    Real(0.72, 0.9, name="short_pos_count"),
+    Real(0.6, 0.95, name="long_open_prob_thres_A"),
+    Real(0.1, 0.95, name="long_close_prob_thres_A"),
+    Real(0.6, 0.95, name="short_open_prob_thres_A"),
+    Real(0.1, 0.95, name="short_close_prob_thres_A"),
+    Real(0.6, 0.95, name="long_open_prob_thres_B"),
+    Real(0.1, 0.95, name="long_close_prob_thres_B"),
+    Real(0.6, 0.95, name="short_open_prob_thres_B"),
+    Real(0.1, 0.95, name="short_close_prob_thres_B"),
+    Real(0.55, 0.95, name="long_pos_count"),
+    Real(0.55, 0.95, name="short_pos_count"),
+    Real(0.03, 0.2, name="long_pos_pow"),
+    Real(0.03, 0.2, name="short_pos_pow"),
 ]
 
 # XGBoost model training parameter grid
@@ -358,7 +360,7 @@ PARAM_GRID = {
     "top_features": list(range(55, 90, 5)),
 }
 
-F1_TOP = 2000
+F1_TOP = 400
 OPEN_INDEX_DELAY = 2
 NEW_OPEN = True
 TRADE_DATA_LOAD = None

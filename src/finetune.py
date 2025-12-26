@@ -89,6 +89,8 @@ def cmaes_grid_search_benchmark(
             short_close_prob_thresb,
             long_pos_count,
             short_pos_count,
+            long_pos_pow,
+            short_pos_pow,
         ) = params
         global last_params
         global best_perf
@@ -129,6 +131,8 @@ def cmaes_grid_search_benchmark(
                 SHORT_CLOSE_PROB_THRES_B=short_close_prob_thresb,
                 LONG_POS_COUNT=long_pos_count,
                 SHORT_POS_COUNT=short_pos_count,
+                LONG_POS_POW=long_pos_pow,
+                SHORT_POS_POW=short_pos_pow,
                 MODEL_PATH=model_path,
                 data_path=data_path,
                 remove_stocks=remove_stocks,

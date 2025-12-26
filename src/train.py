@@ -745,7 +745,9 @@ if __name__ == "__main__":
 
         # Evaluate on full test set with top transitions
         f1s = plot_top_f1(do_plot=False)
-        f1 = np.mean(f1s) - 3 * np.std(f1s)
+        f1 = 0.6 * (np.mean(f1s[:2]) - np.std(f1s[:2])) + 0.4 * (
+            np.mean(f1s[2:]) - np.std(f1s[2:])
+        )
         f1_str = [f"{f1:.2f}" for f1 in f1s]
 
         # Update best model if F1 score improved
@@ -969,7 +971,9 @@ if __name__ == "__main__":
 
         # Evaluate on full test set with top transitions
         f1s = plot_top_f1(do_plot=False)
-        f1 = np.mean(f1s) - 3 * np.std(f1s)
+        f1 = 0.6 * (np.mean(f1s[:2]) - np.std(f1s[:2])) + 0.4 * (
+            np.mean(f1s[2:]) - np.std(f1s[2:])
+        )
         f1_str = [f"{f1:.2f}" for f1 in f1s]
 
         # Update best model if F1 score improved
