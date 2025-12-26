@@ -47,6 +47,10 @@ def plot_portfolio_metrics(metrics, nasdaq_metrics=None):
 
     fig, ax1 = plt.subplots(figsize=(12, 6))
     ax1.set_yscale("log")
+    ax1_ratio = ax1.twinx()
+    ax1_ratio.set_ylim(0.0, 1.0)
+    ax1_ratio.set_ylabel("Capital Used Ratio", color="red")
+    ax1_ratio.tick_params(axis="y", labelcolor="red")
 
     ymin = None
     ymax = None
@@ -56,6 +60,13 @@ def plot_portfolio_metrics(metrics, nasdaq_metrics=None):
     for idx, m in enumerate(reversed(metrics_list)):
         dates_portfolio = np.array(m["portfolio"]["dates_portfolio"])
         values_portfolio = np.array(m["portfolio"]["values_portfolio"])
+        capital_portfolio = np.array(m["portfolio"]["capital_portfolio"])
+        ratio_portfolio = np.divide(
+            capital_portfolio,
+            values_portfolio,
+            out=np.zeros_like(capital_portfolio, dtype=float),
+            where=values_portfolio != 0,
+        )
 
         if len(values_portfolio) == 0:
             continue
@@ -132,6 +143,16 @@ def plot_portfolio_metrics(metrics, nasdaq_metrics=None):
                 linestyle="None",
                 markersize=4,
             )
+            ax1_ratio.plot(
+                dates_portfolio,
+                ratio_portfolio,
+                color="#f28b82",
+                marker=".",
+                linestyle="None",
+                markersize=3,
+                alpha=0.6,
+                zorder=0,
+            )
 
         else:
             # Use a different color for each additional portfolio
@@ -148,6 +169,16 @@ def plot_portfolio_metrics(metrics, nasdaq_metrics=None):
                 marker=".",
                 linestyle="None",
                 markersize=2,
+            )
+            ax1_ratio.plot(
+                dates_portfolio,
+                ratio_portfolio,
+                color="#f28b82",
+                marker=".",
+                linestyle="None",
+                markersize=2,
+                alpha=0.4,
+                zorder=0,
             )
     ax1.set_ylim(bottom=ymin, top=ymax)
     ax1.set_ylabel("Portfolio Value ($) / NASDAQ (log scale)", color="tab:blue")
@@ -199,6 +230,7 @@ def plot_portfolio_metrics(metrics, nasdaq_metrics=None):
     short_rate_list = []
     AB_rate_list = []
     long_short_rate_list = []
+    mean_capital_used_ratio_list = []
     num_days_list = []
 
     for m in metrics_list:
@@ -218,6 +250,17 @@ def plot_portfolio_metrics(metrics, nasdaq_metrics=None):
         short_rate = m["portfolio"]["short_rate"]
         AB_rate = m["portfolio"]["AB_rate"]
         long_short_rate = m["portfolio"]["long_short_rate"]
+        capital_portfolio = np.array(m["portfolio"]["capital_portfolio"])
+        values_portfolio = np.array(m["portfolio"]["values_portfolio"])
+        capital_used_ratio = np.divide(
+            capital_portfolio,
+            values_portfolio,
+            out=np.zeros_like(capital_portfolio, dtype=float),
+            where=values_portfolio != 0,
+        )
+        mean_capital_used_ratio = (
+            np.nanmean(capital_used_ratio) if capital_used_ratio.size else 0.0
+        )
 
         portfolio_ret_list.append(portfolio_ret)
         portfolio_max_drawdown_list.append(portfolio_max_drawdown)
@@ -229,6 +272,7 @@ def plot_portfolio_metrics(metrics, nasdaq_metrics=None):
         short_rate_list.append(short_rate)
         AB_rate_list.append(AB_rate)
         long_short_rate_list.append(long_short_rate)
+        mean_capital_used_ratio_list.append(mean_capital_used_ratio)
 
     portfolio_ret = np.mean(portfolio_ret_list)
     portfolio_max_drawdown = np.mean(portfolio_max_drawdown_list)
@@ -247,6 +291,7 @@ def plot_portfolio_metrics(metrics, nasdaq_metrics=None):
     short_rate = np.mean(short_rate_list)
     AB_rate = np.mean(AB_rate_list)
     long_short_rate = np.mean(long_short_rate_list)
+    mean_capital_used_ratio = np.mean(mean_capital_used_ratio_list)
     num_days = np.mean(num_days_list)
 
     # Calcul du nombre de jours entre le premier et le dernier trade
@@ -272,6 +317,7 @@ def plot_portfolio_metrics(metrics, nasdaq_metrics=None):
         f"  Pos count: {int(positions_history_count)}\n"
         f"  Longest Drawdown: {int(longest_portfolio_drawdown)}\n"
         f"  Num days: {int(num_days)}\n"
+        f"  Mean used capital: {mean_capital_used_ratio:.2f}\n"
         f"  {mean_annual_roi_text}"
         f"  {annual_roi_text}"
         f"  AB Long Rate: {long_rate:.2f}\n"
