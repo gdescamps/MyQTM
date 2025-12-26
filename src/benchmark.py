@@ -678,7 +678,7 @@ def run_benchmark(
             * gaussian_penalty_weight(long_rate, center=0.5, sigma=0.2)
             * gaussian_penalty_weight(short_rate, center=0.5, sigma=0.2)
             * gaussian_penalty_weight(AB_rate, center=0.5, sigma=0.2)
-            * gaussian_penalty_weight(long_short_rate, center=0.7, sigma=0.1)
+            * gaussian_penalty_weight(long_short_rate, center=0.6, sigma=0.1)
             * (portfolio_ret**4.0)
             / (
                 ((float(longest_portfolio_drawdown) / 100))
