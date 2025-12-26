@@ -54,9 +54,9 @@ DOWNLOAD_START_DATE = "2017-01-01"
 TRAIN_START_DATE = "2019-08-01"
 TRAIN_END_DATE = "2024-10-05"
 
-CMAES_END_DATE = "2025-04-05"  # CMA-ES finetune end date
+# CMAES_END_DATE = "2025-04-05"  # CMA-ES finetune end date
 # CMAES_END_DATE = "2024-10-05"  # CMA-ES finetune end date
-# CMAES_END_DATE = BENCHMARK_END_DATE
+CMAES_END_DATE = BENCHMARK_END_DATE
 
 INITIAL_CAPITAL = (
     8800  # Manual capital init to sync portforlio and nasdaq at BENCHMARK_START_DATE
@@ -344,7 +344,7 @@ INIT_SPACE = [  # Important increase params favor better safety
 # XGBoost model training parameter grid
 PARAM_GRID = {
     "patience": [100],
-    "max_depth": [7],
+    "max_depth": [10],
     "learning_rate": [0.01],
     "subsample": [0.6],
     "colsample_bytree": [0.7],
@@ -358,10 +358,13 @@ PARAM_GRID = {
     "mean_std_power": [1.71],
     "mean_std_power_2nd": [1.1],
     # Top features search range
-    "top_features": list(range(55, 90, 5)),
+    "top_features": list(range(75, 90, 5)),
 }
 
-F1_TOP = 400
+
+F1_TARGET = 0.83
+# Larger step = faster threshold search (lower resolution).
+F1_THRESHOLD_STEP = 0.0001
 OPEN_INDEX_DELAY = 2
 NEW_OPEN = True
 TRADE_DATA_LOAD = None

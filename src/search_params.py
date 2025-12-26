@@ -21,6 +21,7 @@ import shutil
 from pathlib import Path
 
 import numpy as np
+from skopt.space import Real
 from dotenv import load_dotenv
 
 import config
@@ -30,6 +31,39 @@ from src.finetune import cmaes_grid_search_benchmark
 from src.path import get_project_root
 from src.plot import plot_portfolio_metrics
 from src.printlog import PrintLog, PrintLogProcess
+
+
+def load_thresholds(train_dir):
+    thresholds_path = Path(train_dir) / "thresholds.json"
+    if not thresholds_path.exists():
+        return {}
+    with open(thresholds_path, "r") as f:
+        return json.load(f)
+
+
+def override_open_threshold_bounds(init_space, thresholds_data):
+    if not thresholds_data:
+        return init_space
+    name_map = {
+        "long_open_prob_thres_A": "A_Long",
+        "long_open_prob_thres_B": "B_Long",
+        "short_open_prob_thres_A": "A_Short",
+        "short_open_prob_thres_B": "B_Short",
+    }
+    new_space = []
+    for dim in init_space:
+        if isinstance(dim, Real):
+            low = dim.low
+            high = dim.high
+            label = name_map.get(dim.name)
+            if label and label in thresholds_data:
+                threshold = thresholds_data[label].get("threshold")
+                if threshold is not None:
+                    low = max(low, float(threshold))
+            new_space.append(Real(low, high, name=dim.name))
+        else:
+            new_space.append(dim)
+    return new_space
 
 
 def run_single_random_state(
@@ -280,7 +314,9 @@ if __name__ == "__main__":
     random_states = list(range(seed, seed + config.CMA_PROCESSES))
 
     # Load optimization configuration
-    init_space = config.INIT_SPACE
+    init_space = override_open_threshold_bounds(
+        config.INIT_SPACE, load_thresholds(config.TRAIN_DIR)
+    )
 
     for iter in range(config.CMA_RECURSIVE):
 
