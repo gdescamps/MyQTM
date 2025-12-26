@@ -271,7 +271,9 @@ def open_positions(
     capital,
     capital_and_position,
     pos_type,
-    increase_positions_count,
+    pos_count,
+    pos_pow,
+    prob_thres,
     callback=None,
     log=PrintLogNone(),
 ):
@@ -286,8 +288,6 @@ def open_positions(
         capital (float): Current capital.
         capital_and_position (float): Total capital and position value.
         pos_type (str): Type of position ('long' or 'short').
-        increase_positions_count (float): Rate for adjusting position sizes.
-        prob_pow (float): Power to raise the probability for position sizing.
         callback (function, optional): Callback function for additional processing. Defaults to None.
         log (PrintLog, optional): Logger for printing logs. Defaults to PrintLogNone().
 
@@ -300,7 +300,10 @@ def open_positions(
             if (
                 100 * capital / capital_and_position > 5.0
             ):  # Minimum 5% capital remaining to open new position
-                size = (1.0 - increase_positions_count) * capital_and_position
+                yprob = item["yprob"]
+                prob = (yprob - prob_thres) / (1.0 - prob_thres)
+                prob = max(prob, 0.1) ** pos_pow
+                size = prob * (1.0 - pos_count) * capital_and_position
                 size = min(capital, size)
                 ticker = item["ticker"]
                 if ticker not in bench_data[current_date]:

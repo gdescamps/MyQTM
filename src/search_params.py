@@ -95,6 +95,8 @@ def run_single_random_state(
         short_close_prob_thresb,
         long_pos_count,
         short_pos_count,
+        long_pos_pow,
+        short_pos_pow,
     ) = list(xbest)
 
     # Initialize performance tracking lists
@@ -120,6 +122,8 @@ def run_single_random_state(
             SHORT_CLOSE_PROB_THRES_B=short_close_prob_thresb,
             LONG_POS_COUNT=long_pos_count,
             SHORT_POS_COUNT=short_pos_count,
+            LONG_POS_POW=long_pos_pow,
+            SHORT_POS_POW=short_pos_pow,
             MODEL_PATH=config.TRAIN_DIR,
             data_path=None,
             remove_stocks=remove_stocks,
@@ -145,6 +149,8 @@ def run_single_random_state(
             SHORT_CLOSE_PROB_THRES_B=short_close_prob_thresb,
             LONG_POS_COUNT=long_pos_count,
             SHORT_POS_COUNT=short_pos_count,
+            LONG_POS_POW=long_pos_pow,
+            SHORT_POS_POW=short_pos_pow,
             MODEL_PATH=config.TRAIN_DIR,
             data_path=None,
             remove_stocks=remove_stocks,

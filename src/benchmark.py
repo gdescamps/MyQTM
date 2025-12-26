@@ -68,6 +68,8 @@ def compute_bench(
     short_close_prob_thres_b,
     long_pos_count,
     short_pos_count,
+    long_pos_pow,
+    short_pos_pow,
 ):
     """
     Simulates the benchmark trading strategy and computes portfolio metrics.
@@ -154,6 +156,8 @@ def compute_bench(
             capital_and_position,
             "long",
             long_pos_count,
+            long_pos_pow,
+            long_open_prob_thres,
         )
 
         # Open new short positions
@@ -166,6 +170,8 @@ def compute_bench(
             capital_and_position,
             "short",
             short_pos_count,
+            short_pos_pow,
+            short_open_prob_thres,
         )
 
         # Recompute the total value of open positions
@@ -477,6 +483,8 @@ def run_benchmark(
     SHORT_CLOSE_PROB_THRES_B=0.37,
     LONG_POS_COUNT=0.4,
     SHORT_POS_COUNT=0.4,
+    LONG_POS_POW=0.4,
+    SHORT_POS_POW=0.4,
     MODEL_PATH=None,
     data_path=None,
     remove_stocks=5,
@@ -566,6 +574,8 @@ def run_benchmark(
         SHORT_CLOSE_PROB_THRES_B,
         LONG_POS_COUNT,
         SHORT_POS_COUNT,
+        LONG_POS_POW,
+        SHORT_POS_POW,
     )
 
     # Portfolio metrics
@@ -655,24 +665,24 @@ def run_benchmark(
 
     if float(annual_roi_mean) > 5.0 and longest_portfolio_drawdown > 5:
         perf = (
-            LONG_OPEN_PROB_THRES_A  # favor higher thresholds for better safety
-            * LONG_CLOSE_PROB_THRES_A
-            * SHORT_OPEN_PROB_THRES_A
+            LONG_CLOSE_PROB_THRES_A
             * SHORT_CLOSE_PROB_THRES_A
-            * LONG_OPEN_PROB_THRES_B
             * LONG_CLOSE_PROB_THRES_B
-            * SHORT_OPEN_PROB_THRES_B
             * SHORT_CLOSE_PROB_THRES_B
+            * LONG_OPEN_PROB_THRES_A
+            * SHORT_OPEN_PROB_THRES_A
+            * LONG_OPEN_PROB_THRES_B
+            * SHORT_OPEN_PROB_THRES_B
             * LONG_POS_COUNT
             * SHORT_POS_COUNT
-            * gaussian_penalty_weight(long_rate, center=0.5, sigma=0.1)
-            * gaussian_penalty_weight(short_rate, center=0.5, sigma=0.1)
-            * gaussian_penalty_weight(AB_rate, center=0.5, sigma=0.1)
-            * gaussian_penalty_weight(long_short_rate, center=0.8, sigma=0.1)
-            * (float(portfolio_ret) ** 4.0)
+            * gaussian_penalty_weight(long_rate, center=0.5, sigma=0.2)
+            * gaussian_penalty_weight(short_rate, center=0.5, sigma=0.2)
+            * gaussian_penalty_weight(AB_rate, center=0.5, sigma=0.2)
+            * gaussian_penalty_weight(long_short_rate, center=0.7, sigma=0.1)
+            * (portfolio_ret**4.0)
             / (
                 ((float(longest_portfolio_drawdown) / 100))
-                * (0.1 + (float(annual_roi_std) / 10))
+                * (0.2 + (float(annual_roi_std) / 10))
                 * (abs(float(portfolio_max_drawdown)) / 20)
             )
         )
@@ -752,6 +762,8 @@ if __name__ == "__main__":
                 short_close_prob_thres_b,
                 long_pos_count,
                 short_pos_count,
+                long_pos_pow,
+                short_pos_pow,
             ) = list(XBEST)
 
             returns = []
@@ -777,8 +789,10 @@ if __name__ == "__main__":
                     LONG_CLOSE_PROB_THRES_B=long_close_prob_thres_b,
                     SHORT_OPEN_PROB_THRES_B=short_open_prob_thres_b,
                     SHORT_CLOSE_PROB_THRES_B=short_close_prob_thres_b,
-                    LONG_POS_COUNTA=long_pos_count,
-                    SHORT_POS_COUNTA=short_pos_count,
+                    LONG_POS_COUNT=long_pos_count,
+                    SHORT_POS_COUNT=short_pos_count,
+                    LONG_POS_POW=long_pos_pow,
+                    SHORT_POS_POW=short_pos_pow,
                     MODEL_PATH=TRAIN_DIR,
                     data_path=None,
                     remove_stocks=remove_stocks,
