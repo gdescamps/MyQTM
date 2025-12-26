@@ -356,6 +356,7 @@ PARAM_GRID = {
     # search power value that provides
     # best feature importance rank to maximize F1
     "mean_std_power": [1.71],
+    "mean_std_power_2nd": [1.1],
     # Top features search range
     "top_features": list(range(55, 90, 5)),
 }
