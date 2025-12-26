@@ -833,14 +833,6 @@ if __name__ == "__main__":
             "feature": key,
         }
 
-    sorted_importance = sorted(
-        importance.items(),
-        key=lambda x: x[1]["mean"] / (x[1]["std"]),
-        reverse=True,
-    )
-
-    sorted_selected_features = [item[0] for item in sorted_importance]
-
     # Define hyperparameter search grid
     param_grid = config.PARAM_GRID.copy()
 
@@ -855,11 +847,11 @@ if __name__ == "__main__":
             param_grid["min_child_weight"],
             param_grid["reg_alpha"],
             param_grid["reg_lambda"],
-            param_grid["mean_std_power"],
+            param_grid["mean_std_power_2nd"],
             list(
                 range(
-                    int(0.6 * len(sorted_selected_features)),
-                    len(sorted_selected_features),
+                    int(0.6 * len(importance)),
+                    len(importance),
                     1,
                 )
             ),
@@ -877,7 +869,7 @@ if __name__ == "__main__":
         min_child_weight,
         reg_alpha,
         reg_lambda,
-        mean_std_power,
+        mean_std_power_2nd,
         top_features,
     ) in tqdm(grid):
 
@@ -890,6 +882,14 @@ if __name__ == "__main__":
         params_grid["min_child_weight"] = min_child_weight
         params_grid["reg_alpha"] = reg_alpha
         params_grid["reg_lambda"] = reg_lambda
+
+        sorted_importance = sorted(
+            importance.items(),
+            key=lambda x: x[1]["mean"] / ((0.01 + x[1]["std"]) ** mean_std_power_2nd),
+            reverse=True,
+        )
+
+        sorted_selected_features = [item[0] for item in sorted_importance]
 
         selected_features = sorted_selected_features[:top_features]
 
