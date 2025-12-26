@@ -78,22 +78,19 @@ class EvalF1Callback(TrainingCallback):
         return False  # continue training
 
 
-def compute_f1(
-    trade_data, threshold, count, label="_A_Long", close_class=None, do_plot=False
-):
+def compute_f1(trade_data, threshold, label="_A_Long", close_class=None, do_plot=False):
     """
     Compute F1 score on trade data filtered by probability threshold.
 
     Args:
         trade_data (dict): Trade data containing predictions and ground truth labels.
         threshold (float): Probability threshold for filtering predictions.
-        count (int): Target sample count for F1 computation.
         label (str): Label suffix for output files.
         close_class (int): Class label to be considered as close (for binary classification).
         do_plot (bool): Whether to plot the F1 scores.
 
     Returns:
-        float: Mean F1 score across the evaluated time periods.
+        tuple: Mean F1 score across the evaluated time periods and total positions count.
     """
     dates_f1 = []
     values_f1 = []
@@ -101,6 +98,7 @@ def compute_f1(
     mask_red = []
     mask_green = []
     mask_orange = []
+    total_count = 0
 
     sorted_keys = list(sorted(trade_data.keys()))
 
@@ -122,6 +120,7 @@ def compute_f1(
 
         # Filter predictions by probability threshold
         mask = y_prob >= threshold
+        total_count += int(np.sum(mask))
 
         y_pred_filtered = y_pred[mask]
         y_truth_filtered = y_truth[mask]
@@ -159,8 +158,15 @@ def compute_f1(
 
     values_f1 = np.array(values_f1)
     dates_f1 = np.array(dates_f1)
+    mean_f1 = float(np.mean(values_f1)) if len(values_f1) else 0.0
+    std_f1 = float(np.std(values_f1)) if len(values_f1) else 0.0
+    max_f1 = float(np.max(values_f1)) if len(values_f1) else 0.0
+    min_f1 = float(np.min(values_f1)) if len(values_f1) else 0.0
 
     # Plot F1 scores with color coding if requested
+    if do_plot and len(values_f1) == 0:
+        return mean_f1, total_count
+
     if do_plot:
         fig, ax1 = plt.subplots(figsize=(12, 6))
         ax1.set_yscale("log")
@@ -206,12 +212,13 @@ def compute_f1(
         ax1.tick_params(axis="y", labelcolor="tab:blue")
 
         metrics_text = (
-            f"F1 on best {config.F1_TOP} transitions:\n"
-            f"  best transitions count: {count}\n"
-            f"  mean f1: {np.mean(values_f1):.3f}\n"
-            f"  std f1: {np.std(values_f1):.3f}\n"
-            f"  max f1: {np.max(values_f1):.3f}\n"
-            f"  min f1: {np.min(values_f1):.3f}\n"
+            f"F1 target: {config.F1_TARGET}\n"
+            f"  threshold: {threshold:.4f}\n"
+            f"  positions count: {total_count}\n"
+            f"  mean f1: {mean_f1:.3f}\n"
+            f"  std f1: {std_f1:.3f}\n"
+            f"  max f1: {max_f1:.3f}\n"
+            f"  min f1: {min_f1:.3f}\n"
         )
         ax1.text(
             0.01,
@@ -232,50 +239,65 @@ def compute_f1(
         image.save(
             os.path.join(
                 local_log.output_dir_time,
-                f"f1_{config.F1_TOP}_best_transitions_{label}.png",
+                f"best_transitions_{label}.png",
             )
         )
         buf.close()
-    return np.mean(values_f1)
+    return mean_f1, total_count
 
 
-def search_threshold_for_topN(trade_data, target_sample_count=int(config.F1_TOP / 4)):
+def search_threshold_for_f1_target(
+    trade_data,
+    f1_target=config.F1_TARGET,
+    threshold_min=0.7,
+    threshold_max=0.9,
+    threshold_step=config.F1_THRESHOLD_STEP,
+):
     """
-    Search for probability threshold that produces approximately target_sample_count predictions.
+    Search for threshold that maximizes positions count while meeting the F1 target.
 
     Args:
         trade_data (dict): Trade data containing predictions.
-        target_sample_count (int): Target number of samples for the threshold search.
+        f1_target (float): Target mean F1 score threshold.
+        threshold_min (float): Minimum threshold value.
+        threshold_max (float): Maximum threshold value.
+        threshold_step (float): Threshold step size.
 
     Returns:
-        tuple: Optimal threshold and the corresponding sample count.
+        tuple: Optimal threshold, count, mean F1, and whether target was met.
     """
-    sorted_keys = list(sorted(trade_data.keys()))
-    final_sample_count = 0
-    final_threshold = 0
-    for threshold in np.arange(0.33, 0.90, 0.0005):
-        count = 0
-        for index, current_date in enumerate(sorted_keys):
-            item = trade_data[current_date]
-            y_prob = []
-            for stock in item:
-                y_prob.append(max(item[stock]["ybull"], item[stock]["ybear"]))
+    best_threshold = threshold_min
+    best_count = -1
+    best_mean_f1 = -np.inf
 
-            y_prob = np.array(y_prob)
+    fallback_threshold = threshold_min
+    fallback_count = -1
+    fallback_mean_f1 = -np.inf
 
-            mask = y_prob >= threshold
-            y_prob_filtered = y_prob[mask]
-            count += len(y_prob_filtered)
-
-        # Find threshold closest to target count
-        if abs(target_sample_count - count) <= abs(
-            target_sample_count - final_sample_count
+    # Progress bar helps track the threshold sweep during training.
+    thresholds = np.arange(threshold_min, threshold_max, threshold_step)
+    for threshold in tqdm(
+        thresholds,
+        desc=f"Threshold search (F1>={f1_target})",
+        leave=False,
+    ):
+        mean_f1, count = compute_f1(trade_data, threshold, do_plot=False)
+        if mean_f1 >= f1_target and count > best_count:
+            best_threshold = threshold
+            best_count = count
+            best_mean_f1 = mean_f1
+            # First threshold that meets target gives the max count.
+            break
+        if mean_f1 > fallback_mean_f1 or (
+            np.isclose(mean_f1, fallback_mean_f1) and count > fallback_count
         ):
-            final_threshold = threshold
-            final_sample_count = count
-            if final_sample_count == target_sample_count:
-                break
-    return final_threshold, final_sample_count
+            fallback_threshold = threshold
+            fallback_count = count
+            fallback_mean_f1 = mean_f1
+
+    if best_count >= 0:
+        return best_threshold, best_count, best_mean_f1, True
+    return fallback_threshold, fallback_count, fallback_mean_f1, False
 
 
 def split_trade_data(trade_data):
@@ -330,15 +352,15 @@ def split_trade_data(trade_data):
 
 def plot_top_f1(do_plot=False):
     """
-    Evaluate F1 score on config.F1_TOP best transitions across all interval types.
+    Evaluate F1 scores and target thresholds across all interval types.
 
     Args:
         do_plot (bool): Whether to plot the F1 scores.
 
     Returns:
-        tuple: F1 scores for intervals A and B (long and short positions).
+        tuple: F1 scores, thresholds, counts, target hits, and labels.
     """
-    # Evaluate F1 on F1_TOP best transitions
+    # Evaluate F1 with thresholds that maximize positions above the target
     trade_data = build_trade_data(
         model_path=Path(get_project_root()) / local_log.output_dir_time,
         data_path=data_path,
@@ -353,55 +375,54 @@ def plot_top_f1(do_plot=False):
         trade_dataB_short,
     ) = split_trade_data(trade_data)
 
-    final_threshold_Along, final_sample_count_Along = search_threshold_for_topN(
-        trade_dataA_long
-    )
-    final_threshold_Blong, final_sample_count_Blong = search_threshold_for_topN(
-        trade_dataB_long
-    )
-    final_threshold_Ashort, final_sample_count_Ashort = search_threshold_for_topN(
-        trade_dataA_short
-    )
-    final_threshold_Bshort, final_sample_count_Bshort = search_threshold_for_topN(
-        trade_dataB_short
-    )
-
-    f1_A_long = compute_f1(
-        trade_dataA_long,
-        final_threshold_Along,
-        final_sample_count_Along,
-        label="_A_Long",
-        do_plot=do_plot,
-    )
-    f1_B_long = compute_f1(
-        trade_dataB_long,
-        final_threshold_Blong,
-        final_sample_count_Blong,
-        label="_B_Long",
-        do_plot=do_plot,
-    )
-    f1_A_short = compute_f1(
-        trade_dataA_short,
-        final_threshold_Ashort,
-        final_sample_count_Ashort,
-        label="_A_Short",
-        do_plot=do_plot,
-    )
-    f1_B_short = compute_f1(
-        trade_dataB_short,
-        final_threshold_Bshort,
-        final_sample_count_Bshort,
-        label="_B_Short",
-        do_plot=do_plot,
-    )
-    f1s = [
-        float(f1_A_long),
-        float(f1_B_long),
-        float(f1_A_short),
-        float(f1_B_short),
+    labels = ["A_Long", "B_Long", "A_Short", "B_Short"]
+    segments = [
+        (trade_dataA_long, "_A_Long"),
+        (trade_dataB_long, "_B_Long"),
+        (trade_dataA_short, "_A_Short"),
+        (trade_dataB_short, "_B_Short"),
     ]
 
-    return f1s
+    thresholds = []
+    counts = []
+    f1s = []
+    target_hits = []
+
+    for trade_data_segment, label_suffix in segments:
+        threshold, count, mean_f1, hit_target = search_threshold_for_f1_target(
+            trade_data_segment
+        )
+        if do_plot:
+            mean_f1, count = compute_f1(
+                trade_data_segment,
+                threshold,
+                label=label_suffix,
+                do_plot=True,
+            )
+        thresholds.append(float(threshold))
+        counts.append(int(count))
+        f1s.append(float(mean_f1))
+        target_hits.append(bool(hit_target))
+
+    return f1s, thresholds, counts, target_hits, labels
+
+
+def save_thresholds_json(output_dir, labels, thresholds, counts, target_hits, f1s):
+    """Save best thresholds to a JSON file for downstream CMA-ES initialization."""
+    data = {}
+    for label, threshold, count, hit, f1 in zip(
+        labels, thresholds, counts, target_hits, f1s
+    ):
+        data[label] = {
+            "threshold": float(threshold),
+            "count": int(count),
+            "f1": float(f1),
+            "hit_target": bool(hit),
+            "f1_target": float(config.F1_TARGET),
+        }
+    thresholds_path = os.path.join(output_dir, "thresholds.json")
+    with open(thresholds_path, "w") as f:
+        json.dump(data, f, indent=2)
 
 
 if __name__ == "__main__":
@@ -508,7 +529,8 @@ if __name__ == "__main__":
 
     local_log = PrintLog(extra_name="_train", enable=False)
 
-    best_f1 = 0
+    best_positions_score = -np.inf
+    best_positions_mean = -np.inf
     best_importance_df_sorted_by_std_mean = None
     best_modela = None
     best_modelb = None
@@ -743,19 +765,43 @@ if __name__ == "__main__":
         with open(ntree_limit_path, "w") as f:
             json.dump({"ntree_limit": int(f1_callbackb.best_iter + 1)}, f)
 
-        # Evaluate on full test set with top transitions
-        f1s = plot_top_f1(do_plot=False)
-        f1 = 0.6 * (np.mean(f1s[:2]) - np.std(f1s[:2])) + 0.4 * (
-            np.mean(f1s[2:]) - np.std(f1s[2:])
-        )
+        # Evaluate on full test set with target-driven thresholds
+        f1s, thresholds, counts, target_hits, labels = plot_top_f1(do_plot=False)
+        target_counts = [count if hit else 0 for count, hit in zip(counts, target_hits)]
+        positions_mean = float(np.mean(target_counts)) if len(target_counts) else 0.0
+        positions_std = float(np.std(target_counts)) if len(target_counts) else 0.0
+        positions_score = positions_mean - positions_std
+        mean_f1_all = float(np.mean(f1s)) if len(f1s) else 0.0
         f1_str = [f"{f1:.2f}" for f1 in f1s]
+        thresholds_str = ", ".join(
+            f"{label}={threshold:.4f}" for label, threshold in zip(labels, thresholds)
+        )
+        counts_str = ", ".join(
+            f"{label}={count}" for label, count in zip(labels, counts)
+        )
+        target_hit_str = ", ".join(
+            f"{label}={'ok' if hit else 'miss'}"
+            for label, hit in zip(labels, target_hits)
+        )
 
-        # Update best model if F1 score improved
-        if f1 > best_f1:
-            plot_top_f1(do_plot=True)
+        # Update best model if positions score improved.
+        if positions_score > best_positions_score or (
+            np.isclose(positions_score, best_positions_score)
+            and positions_mean > best_positions_mean
+        ):
+            # plot_top_f1(do_plot=True)
+            save_thresholds_json(
+                local_log.output_dir_time,
+                labels,
+                thresholds,
+                counts,
+                target_hits,
+                f1s,
+            )
 
             # Save best variables
-            best_f1 = f1
+            best_positions_score = positions_score
+            best_positions_mean = positions_mean
             best_importance_df_sorted_by_std_mean = (
                 importance_df_sorted_by_std_mean.copy()
             )
@@ -773,11 +819,16 @@ if __name__ == "__main__":
                 )
                 print(f"max_depth: {max_depth}")
                 print(f"mean_std_power: {mean_std_power}")
-                print(f"F1 scores on best {config.F1_TOP} transitions: {f1_str}")
-                print(f"best F1 score on best {config.F1_TOP} transitions: {f1:.4f}")
+                print(f"F1 scores: {f1_str}")
+                print(f"F1_TARGET={config.F1_TARGET} thresholds: {thresholds_str}")
+                print(f"Positions count: {counts_str}")
+                print(f"Target hit: {target_hit_str}")
+                print(
+                    "Positions score: "
+                    f"{positions_score:.2f} (mean={positions_mean:.2f}, std={positions_std:.2f})"
+                )
         else:
-            print(f"F1 scores on best {config.F1_TOP} transitions: {f1_str}")
-            print(f"F1 score on best {config.F1_TOP} transitions: {f1:.4f}")
+            pass
     # Save best final model
     if best_importance_df_sorted_by_std_mean is not None:
         best_importance_df_sorted_by_std_mean.to_csv(
@@ -969,18 +1020,42 @@ if __name__ == "__main__":
         with open(ntree_limit_path, "w") as f:
             json.dump({"ntree_limit": int(f1_callbackb.best_iter + 1)}, f)
 
-        # Evaluate on full test set with top transitions
-        f1s = plot_top_f1(do_plot=False)
-        f1 = 0.6 * (np.mean(f1s[:2]) - np.std(f1s[:2])) + 0.4 * (
-            np.mean(f1s[2:]) - np.std(f1s[2:])
-        )
+        # Evaluate on full test set with target-driven thresholds
+        f1s, thresholds, counts, target_hits, labels = plot_top_f1(do_plot=False)
+        target_counts = [count if hit else 0 for count, hit in zip(counts, target_hits)]
+        positions_mean = float(np.mean(target_counts)) if len(target_counts) else 0.0
+        positions_std = float(np.std(target_counts)) if len(target_counts) else 0.0
+        positions_score = positions_mean - positions_std
+        mean_f1_all = float(np.mean(f1s)) if len(f1s) else 0.0
         f1_str = [f"{f1:.2f}" for f1 in f1s]
+        thresholds_str = ", ".join(
+            f"{label}={threshold:.4f}" for label, threshold in zip(labels, thresholds)
+        )
+        counts_str = ", ".join(
+            f"{label}={count}" for label, count in zip(labels, counts)
+        )
+        target_hit_str = ", ".join(
+            f"{label}={'ok' if hit else 'miss'}"
+            for label, hit in zip(labels, target_hits)
+        )
 
-        # Update best model if F1 score improved
-        if f1 > best_f1:
-            plot_top_f1(do_plot=True)
+        # Update best model if positions score improved.
+        if positions_score > best_positions_score or (
+            np.isclose(positions_score, best_positions_score)
+            and positions_mean > best_positions_mean
+        ):
+            # plot_top_f1(do_plot=True)
+            save_thresholds_json(
+                local_log.output_dir_time,
+                labels,
+                thresholds,
+                counts,
+                target_hits,
+                f1s,
+            )
 
-            best_f1 = f1
+            best_positions_score = positions_score
+            best_positions_mean = positions_mean
             best_modela = modela.copy()
             best_modelb = modelb.copy()
 
@@ -993,11 +1068,16 @@ if __name__ == "__main__":
                 print(f"Best model params: {params_grid}")
                 print(f"Selected features: {len(selected_features)}")
                 print(f"max_depth: {max_depth}")
-                print(f"F1 scores on best {config.F1_TOP} transitions: {f1_str}")
-                print(f"best F1 score on best {config.F1_TOP} transitions: {f1:.4f}")
+                print(f"F1 scores: {f1_str}")
+                print(f"F1_TARGET={config.F1_TARGET} thresholds: {thresholds_str}")
+                print(f"Positions count: {counts_str}")
+                print(f"Target hit: {target_hit_str}")
+                print(
+                    "Positions score: "
+                    f"{positions_score:.2f} (mean={positions_mean:.2f}, std={positions_std:.2f})"
+                )
         else:
-            print(f"F1 scores on best {config.F1_TOP} transitions: {f1_str}")
-            print(f"F1 score on best {config.F1_TOP} transitions: {f1:.4f}")
+            pass
     # Save best final model
     if best_modela is not None:
         selected_features_path = os.path.join(
