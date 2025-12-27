@@ -249,19 +249,22 @@ def compute_f1(trade_data, threshold, label="_A_Long", close_class=None, do_plot
 def search_threshold_for_f1_target(
     trade_data,
     f1_target=config.F1_TARGET,
-    threshold_min=0.7,
-    threshold_max=0.9,
+    threshold_min=0.65,
+    threshold_max=0.95,
     threshold_step=config.F1_THRESHOLD_STEP,
+    step_multipliers=(50000, 10000, 5000, 1000, 500, 100, 50, 10, 5, 2, 1),
 ):
     """
-    Search for threshold that maximizes positions count while meeting the F1 target.
+    Search for threshold that maximizes positions count while meeting the F1 target,
+    using a coarse-to-fine sweep that narrows bounds between passes.
 
     Args:
         trade_data (dict): Trade data containing predictions.
         f1_target (float): Target mean F1 score threshold.
         threshold_min (float): Minimum threshold value.
         threshold_max (float): Maximum threshold value.
-        threshold_step (float): Threshold step size.
+        threshold_step (float): Finest threshold step size.
+        step_multipliers (tuple): Coarse-to-fine step multipliers.
 
     Returns:
         tuple: Optimal threshold, count, mean F1, and whether target was met.
@@ -269,33 +272,74 @@ def search_threshold_for_f1_target(
     best_threshold = threshold_min
     best_count = -1
     best_mean_f1 = -np.inf
+    hit_target = False
 
     fallback_threshold = threshold_min
     fallback_count = -1
     fallback_mean_f1 = -np.inf
 
-    # Progress bar helps track the threshold sweep during training.
-    thresholds = np.arange(threshold_min, threshold_max, threshold_step)
-    for threshold in tqdm(
-        thresholds,
-        desc=f"Threshold search (F1>={f1_target})",
-        leave=False,
-    ):
-        mean_f1, count = compute_f1(trade_data, threshold, do_plot=False)
-        if mean_f1 >= f1_target and count > best_count:
-            best_threshold = threshold
-            best_count = count
-            best_mean_f1 = mean_f1
-            # First threshold that meets target gives the max count.
-            break
-        if mean_f1 > fallback_mean_f1 or (
-            np.isclose(mean_f1, fallback_mean_f1) and count > fallback_count
-        ):
-            fallback_threshold = threshold
-            fallback_count = count
-            fallback_mean_f1 = mean_f1
+    search_min = threshold_min
+    search_max = threshold_max
 
-    if best_count >= 0:
+    for step_multiplier in step_multipliers:
+        step = threshold_step * step_multiplier
+        if step <= 0 or search_min >= search_max:
+            continue
+
+        local_best_threshold = search_min
+        local_best_count = -1
+        local_best_mean_f1 = -np.inf
+        local_hit_target = False
+
+        local_fallback_threshold = search_min
+        local_fallback_count = -1
+        local_fallback_mean_f1 = -np.inf
+
+        # Progress bar helps track the threshold sweep during training.
+        thresholds = np.arange(search_min, search_max, step)
+        for threshold in tqdm(
+            thresholds,
+            desc=f"Threshold search (F1>={f1_target}) step={step:.6f}",
+            leave=False,
+        ):
+            mean_f1, count = compute_f1(trade_data, threshold, do_plot=False)
+            if mean_f1 >= f1_target and count > local_best_count:
+                local_best_threshold = threshold
+                local_best_count = count
+                local_best_mean_f1 = mean_f1
+                local_hit_target = True
+                # First threshold that meets target gives the max count.
+                break
+            if mean_f1 > local_fallback_mean_f1 or (
+                np.isclose(mean_f1, local_fallback_mean_f1)
+                and count > local_fallback_count
+            ):
+                local_fallback_threshold = threshold
+                local_fallback_count = count
+                local_fallback_mean_f1 = mean_f1
+
+        if local_hit_target:
+            best_threshold = local_best_threshold
+            best_count = local_best_count
+            best_mean_f1 = local_best_mean_f1
+            hit_target = True
+            center = local_best_threshold
+        else:
+            center = local_fallback_threshold
+
+        if local_fallback_mean_f1 > fallback_mean_f1 or (
+            np.isclose(local_fallback_mean_f1, fallback_mean_f1)
+            and local_fallback_count > fallback_count
+        ):
+            fallback_threshold = local_fallback_threshold
+            fallback_count = local_fallback_count
+            fallback_mean_f1 = local_fallback_mean_f1
+
+        # Narrow bounds around the best coarse threshold for the next pass.
+        search_min = max(threshold_min, center - step)
+        search_max = min(threshold_max, center + step)
+
+    if hit_target:
         return best_threshold, best_count, best_mean_f1, True
     return fallback_threshold, fallback_count, fallback_mean_f1, False
 
@@ -348,6 +392,35 @@ def split_trade_data(trade_data):
         trade_dataB_long,
         trade_dataB_short,
     )
+
+
+def compute_positions_score(labels, counts, target_hits, long_weight=0.6, short_weight=0.4):
+    """
+    Compute a weighted positions score by separating long and short segments.
+
+    Returns:
+        tuple: positions_score, positions_mean, positions_std
+    """
+    target_counts = [count if hit else 0 for count, hit in zip(counts, target_hits)]
+    long_counts = [
+        count for count, label in zip(target_counts, labels) if "Long" in label
+    ]
+    short_counts = [
+        count for count, label in zip(target_counts, labels) if "Short" in label
+    ]
+
+    long_mean = float(np.mean(long_counts)) if len(long_counts) else 0.0
+    long_std = float(np.std(long_counts)) if len(long_counts) else 0.0
+    short_mean = float(np.mean(short_counts)) if len(short_counts) else 0.0
+    short_std = float(np.std(short_counts)) if len(short_counts) else 0.0
+
+    long_score = long_mean - long_std
+    short_score = short_mean - short_std
+    positions_score = long_weight * long_score + short_weight * short_score
+
+    positions_mean = float(np.mean(target_counts)) if len(target_counts) else 0.0
+    positions_std = float(np.std(target_counts)) if len(target_counts) else 0.0
+    return positions_score, positions_mean, positions_std
 
 
 def plot_top_f1(do_plot=False):
@@ -767,10 +840,9 @@ if __name__ == "__main__":
 
         # Evaluate on full test set with target-driven thresholds
         f1s, thresholds, counts, target_hits, labels = plot_top_f1(do_plot=False)
-        target_counts = [count if hit else 0 for count, hit in zip(counts, target_hits)]
-        positions_mean = float(np.mean(target_counts)) if len(target_counts) else 0.0
-        positions_std = float(np.std(target_counts)) if len(target_counts) else 0.0
-        positions_score = positions_mean - positions_std
+        positions_score, positions_mean, positions_std = compute_positions_score(
+            labels, counts, target_hits
+        )
         mean_f1_all = float(np.mean(f1s)) if len(f1s) else 0.0
         f1_str = [f"{f1:.2f}" for f1 in f1s]
         thresholds_str = ", ".join(
@@ -824,10 +896,13 @@ if __name__ == "__main__":
                 print(f"Positions count: {counts_str}")
                 print(f"Target hit: {target_hit_str}")
                 print(
-                    "Positions score: "
+                    "Best Positions score: "
                     f"{positions_score:.2f} (mean={positions_mean:.2f}, std={positions_std:.2f})"
                 )
         else:
+            print(f"F1 scores: {f1_str}")
+            print(f"F1_TARGET={config.F1_TARGET} thresholds: {thresholds_str}")
+            print(f"Positions count: {counts_str}")
             pass
     # Save best final model
     if best_importance_df_sorted_by_std_mean is not None:
@@ -1022,10 +1097,9 @@ if __name__ == "__main__":
 
         # Evaluate on full test set with target-driven thresholds
         f1s, thresholds, counts, target_hits, labels = plot_top_f1(do_plot=False)
-        target_counts = [count if hit else 0 for count, hit in zip(counts, target_hits)]
-        positions_mean = float(np.mean(target_counts)) if len(target_counts) else 0.0
-        positions_std = float(np.std(target_counts)) if len(target_counts) else 0.0
-        positions_score = positions_mean - positions_std
+        positions_score, positions_mean, positions_std = compute_positions_score(
+            labels, counts, target_hits
+        )
         mean_f1_all = float(np.mean(f1s)) if len(f1s) else 0.0
         f1_str = [f"{f1:.2f}" for f1 in f1s]
         thresholds_str = ", ".join(
@@ -1073,10 +1147,13 @@ if __name__ == "__main__":
                 print(f"Positions count: {counts_str}")
                 print(f"Target hit: {target_hit_str}")
                 print(
-                    "Positions score: "
+                    "Best Positions score: "
                     f"{positions_score:.2f} (mean={positions_mean:.2f}, std={positions_std:.2f})"
                 )
         else:
+            print(f"F1 scores: {f1_str}")
+            print(f"F1_TARGET={config.F1_TARGET} thresholds: {thresholds_str}")
+            print(f"Positions count: {counts_str}")
             pass
     # Save best final model
     if best_modela is not None:
