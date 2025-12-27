@@ -195,6 +195,7 @@ def run_single_random_state(
             MODEL_PATH=config.TRAIN_DIR,
             data_path=None,
             remove_stocks=remove_stocks,
+            attempt=attempt,
         )
         perf = metrics["portfolio"]["perf"]
         performances.append(perf)
@@ -222,6 +223,7 @@ def run_single_random_state(
             MODEL_PATH=config.TRAIN_DIR,
             data_path=None,
             remove_stocks=remove_stocks,
+            attempt=attempt,
             force_reload=True,
         )
         metrics_list.append(metrics)

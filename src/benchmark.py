@@ -15,6 +15,7 @@ Main Execution:
 - Saves benchmark results and generates performance plots.
 """
 
+import hashlib
 import json
 import os
 import random
@@ -70,6 +71,7 @@ def compute_bench(
     short_pos_count,
     long_pos_pow,
     short_pos_pow,
+    attempt,
 ):
     """
     Simulates the benchmark trading strategy and computes portfolio metrics.
@@ -208,7 +210,14 @@ def compute_bench(
         stock_filter = config.TRADE_STOCKS.copy()
 
         if remove_stocks > 0:
-            random.shuffle(stock_filter)
+
+            stock_filter = sorted(stock_filter)
+            seed_source = f"{current_date}_{attempt}"
+            seed_value = int.from_bytes(
+                hashlib.sha256(seed_source.encode("utf-8")).digest()[:8],
+                byteorder="big",
+            )
+            random.Random(seed_value).shuffle(stock_filter)
             stock_filter = stock_filter[:-remove_stocks]
             # Ensure stocks with current positions remain in the filter
             for pos in positions:
@@ -488,6 +497,7 @@ def run_benchmark(
     MODEL_PATH=None,
     data_path=None,
     remove_stocks=5,
+    attempt=0,
     force_reload=False,
 ):
     """
@@ -576,6 +586,7 @@ def run_benchmark(
         SHORT_POS_COUNT,
         LONG_POS_POW,
         SHORT_POS_POW,
+        attempt,
     )
 
     # Portfolio metrics
