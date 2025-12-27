@@ -335,8 +335,8 @@ INIT_SPACE = [  # Important increase params favor better safety
     Real(0.1, 0.95, name="long_close_prob_thres_B"),
     Real(0.6, 0.95, name="short_open_prob_thres_B"),
     Real(0.1, 0.95, name="short_close_prob_thres_B"),
-    Real(0.55, 0.95, name="long_pos_count"),
-    Real(0.55, 0.95, name="short_pos_count"),
+    Real(0.65, 0.95, name="long_pos_count"),
+    Real(0.65, 0.95, name="short_pos_count"),
     Real(0.03, 0.2, name="long_pos_pow"),
     Real(0.03, 0.2, name="short_pos_pow"),
 ]
@@ -344,7 +344,7 @@ INIT_SPACE = [  # Important increase params favor better safety
 # XGBoost model training parameter grid
 PARAM_GRID = {
     "patience": [100],
-    "max_depth": [10],
+    "max_depth": [7],
     "learning_rate": [0.01],
     "subsample": [0.6],
     "colsample_bytree": [0.7],
@@ -358,13 +358,13 @@ PARAM_GRID = {
     "mean_std_power": [1.71],
     "mean_std_power_2nd": [1.1],
     # Top features search range
-    "top_features": list(range(75, 90, 5)),
+    "top_features": list(range(70, 90, 5)),
 }
 
 
-F1_TARGET = 0.83
+F1_TARGET = 0.80
 # Larger step = faster threshold search (lower resolution).
-F1_THRESHOLD_STEP = 0.0001
+F1_THRESHOLD_STEP = 0.0000005
 OPEN_INDEX_DELAY = 2
 NEW_OPEN = True
 TRADE_DATA_LOAD = None
