@@ -21,8 +21,8 @@ import shutil
 from pathlib import Path
 
 import numpy as np
-from skopt.space import Real
 from dotenv import load_dotenv
+from skopt.space import Real
 
 import config
 from src.benchmark import compute_nasdaq_data, run_benchmark
@@ -50,6 +50,12 @@ def override_open_threshold_bounds(init_space, thresholds_data):
         "short_open_prob_thres_A": "A_Short",
         "short_open_prob_thres_B": "B_Short",
     }
+    close_map = {
+        "long_open_prob_thres_A": "long_close_prob_thres_A",
+        "long_open_prob_thres_B": "long_close_prob_thres_B",
+        "short_open_prob_thres_A": "short_close_prob_thres_A",
+        "short_open_prob_thres_B": "short_close_prob_thres_B",
+    }
     new_space = []
     for dim in init_space:
         if isinstance(dim, Real):
@@ -59,11 +65,39 @@ def override_open_threshold_bounds(init_space, thresholds_data):
             if label and label in thresholds_data:
                 threshold = thresholds_data[label].get("threshold")
                 if threshold is not None:
-                    low = max(low, float(threshold))
+                    low = float(threshold) - 0.1
+                    high = float(threshold) + 0.1
             new_space.append(Real(low, high, name=dim.name))
         else:
             new_space.append(dim)
+    open_index = -1
+    close_index = -1
+    for open_key in name_map.keys():
+        close_key = close_map[open_key]
+        for index_dim, dim in enumerate(new_space):
+            if dim.name == open_key:
+                open_index = index_dim
+                break
+        for index_dim, dim in enumerate(new_space):
+            if dim.name == close_key:
+                close_index = index_dim
+                break
+    new_space[close_index].high = new_space[open_index].high
     return new_space
+
+
+def clamp_x0_to_space(x0, space):
+    if not x0:
+        return x0
+    clipped = []
+    for value, dim in zip(x0, space):
+        if isinstance(dim, Real):
+            low = dim.low
+            high = dim.high
+            clipped.append(min(max(float(value), low), high))
+        else:
+            clipped.append(value)
+    return clipped
 
 
 def run_single_random_state(
@@ -332,6 +366,7 @@ if __name__ == "__main__":
 
             # Load optimization configuration
             init_x0 = config.INIT_X0
+            init_x0 = clamp_x0_to_space(init_x0, init_space)
             init_cma_std = config.INIT_CMA_STD
 
             # Start parallel processes for current batch
@@ -377,7 +412,7 @@ if __name__ == "__main__":
                 top_params_path = os.path.join(config.CMA_DIR, f"top{top}_params.json")
                 with open(top_params_path, "r") as f:
                     best_param = json.load(f)
-                init_x0 = best_param
+                init_x0 = clamp_x0_to_space(best_param, init_space)
                 init_cma_std = config.INIT_CMA_STD / (iter + 1)  # Reduce std for finer
 
                 p = multiprocessing.Process(
