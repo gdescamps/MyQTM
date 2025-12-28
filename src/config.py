@@ -316,14 +316,14 @@ TS_SIZE = 6
 
 
 # CMA-ES optimization parameters
-CMA_RECURSIVE = 2
+CMA_RECURSIVE = 1
 CMA_LOOPS = 150
 CMA_EARLY_STOP_ROUNDS = 30
 CMA_STOCKS_DROP_OUT_ROUND = 20
 CMA_STOCKS_DROP_OUT = 10
 CMA_PROCESSES = 128
 CMA_PARALLEL_PROCESSES = 32
-INIT_X0 = [0.8, 0.7, 0.8, 0.7, 0.8, 0.7, 0.8, 0.7, 0.7, 0.7, 0.1, 0.1]
+INIT_X0 = [0.8, 0.33, 0.8, 0.33, 0.8, 0.33, 0.8, 0.33, 0.85, 0.85, 0.1, 0.1]
 INIT_CMA_STD = 0.2
 # CMA-ES optimization parameter space
 INIT_SPACE = [  # Important increase params favor better safety
@@ -335,8 +335,8 @@ INIT_SPACE = [  # Important increase params favor better safety
     Real(0.1, 0.95, name="long_close_prob_thres_B"),
     Real(0.6, 0.95, name="short_open_prob_thres_B"),
     Real(0.1, 0.95, name="short_close_prob_thres_B"),
-    Real(0.65, 0.95, name="long_pos_count"),
-    Real(0.65, 0.95, name="short_pos_count"),
+    Real(0.6, 0.95, name="long_pos_count"),
+    Real(0.6, 0.95, name="short_pos_count"),
     Real(0.03, 0.2, name="long_pos_pow"),
     Real(0.03, 0.2, name="short_pos_pow"),
 ]

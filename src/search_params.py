@@ -33,59 +33,6 @@ from src.plot import plot_portfolio_metrics
 from src.printlog import PrintLog, PrintLogProcess
 
 
-def load_thresholds(train_dir):
-    thresholds_path = Path(train_dir) / "thresholds.json"
-    if not thresholds_path.exists():
-        return {}
-    with open(thresholds_path, "r") as f:
-        return json.load(f)
-
-
-def override_open_threshold_bounds(init_space, thresholds_data):
-    if not thresholds_data:
-        return init_space
-    name_map = {
-        "long_open_prob_thres_A": "A_Long",
-        "long_open_prob_thres_B": "B_Long",
-        "short_open_prob_thres_A": "A_Short",
-        "short_open_prob_thres_B": "B_Short",
-    }
-    close_map = {
-        "long_open_prob_thres_A": "long_close_prob_thres_A",
-        "long_open_prob_thres_B": "long_close_prob_thres_B",
-        "short_open_prob_thres_A": "short_close_prob_thres_A",
-        "short_open_prob_thres_B": "short_close_prob_thres_B",
-    }
-    new_space = []
-    for dim in init_space:
-        if isinstance(dim, Real):
-            low = dim.low
-            high = dim.high
-            label = name_map.get(dim.name)
-            if label and label in thresholds_data:
-                threshold = thresholds_data[label].get("threshold")
-                if threshold is not None:
-                    low = float(threshold) - 0.1
-                    high = float(threshold) + 0.1
-            new_space.append(Real(low, high, name=dim.name))
-        else:
-            new_space.append(dim)
-    open_index = -1
-    close_index = -1
-    for open_key in name_map.keys():
-        close_key = close_map[open_key]
-        for index_dim, dim in enumerate(new_space):
-            if dim.name == open_key:
-                open_index = index_dim
-                break
-        for index_dim, dim in enumerate(new_space):
-            if dim.name == close_key:
-                close_index = index_dim
-                break
-    new_space[close_index].high = new_space[open_index].high
-    return new_space
-
-
 def clamp_x0_to_space(x0, space):
     if not x0:
         return x0
@@ -95,8 +42,6 @@ def clamp_x0_to_space(x0, space):
             low = dim.low
             high = dim.high
             clipped.append(min(max(float(value), low), high))
-        else:
-            clipped.append(value)
     return clipped
 
 
@@ -349,10 +294,11 @@ if __name__ == "__main__":
     # Generate list of random states for parallel processes
     random_states = list(range(seed, seed + config.CMA_PROCESSES))
 
-    # Load optimization configuration
-    init_space = override_open_threshold_bounds(
-        config.INIT_SPACE, load_thresholds(config.TRAIN_DIR)
-    )
+    # # Load optimization configuration
+    # init_space = override_open_threshold_bounds(
+    #     config.INIT_SPACE, load_thresholds(config.TRAIN_DIR)
+    # )
+    init_space = config.INIT_SPACE
 
     for iter in range(config.CMA_RECURSIVE):
 
@@ -368,7 +314,6 @@ if __name__ == "__main__":
 
             # Load optimization configuration
             init_x0 = config.INIT_X0
-            init_x0 = clamp_x0_to_space(init_x0, init_space)
             init_cma_std = config.INIT_CMA_STD
 
             # Start parallel processes for current batch
