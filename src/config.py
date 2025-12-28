@@ -361,11 +361,8 @@ PARAM_GRID = {
     "top_features": list(range(70, 90, 5)),
 }
 
-
-F1_TARGET = 0.80
-# Larger step = faster threshold search (lower resolution).
-F1_THRESHOLD_STEP = 0.0000005
-OPEN_INDEX_DELAY = 2
+F1_THRESHOLD_STEP = 0.001
+OPEN_INDEX_DELAY = 1
 NEW_OPEN = True
 TRADE_DATA_LOAD = None
 DATES_PORTFOLIO = []
