@@ -134,6 +134,9 @@ def build_trade_data(
         index_long_zero_prob = 0.0
         index_short = -1
         index_short_zero_prob = 0.0
+        min_prob = None
+        open_price = None
+        zero_item = None
         while current_date <= end_date:
             current_date_str = current_date.strftime("%Y-%m-%d")
             if current_date_str not in trade_data:
@@ -149,10 +152,32 @@ def build_trade_data(
             class_short = 0
             if pc is not None and c == class_long and pc != class_long:
                 index_long = 0
-                index_long_zero_prob = today_stock["ybull"]
+                zero_item = today_stock
+                open_price = today_stock["open"]
+                min_prob = index_long_zero_prob = today_stock["ybull"]
             elif pc is not None and c == class_short and pc != class_short:
                 index_short = 0
-                index_short_zero_prob = today_stock["ybear"]
+                zero_item = today_stock
+                open_price = today_stock["open"]
+                min_prob = index_short_zero_prob = today_stock["ybear"]
+            elif open_price is not None and c != class_long and pc == class_long:
+                close_price = today_stock["open"]
+                gain = (close_price - open_price) / open_price
+                min_prob = min(min_prob, today_stock["ybull"])
+                zero_item["gain"] = gain
+                zero_item["min_prob"] = min_prob
+                open_price = None
+            elif open_price is not None and c != class_short and pc == class_short:
+                close_price = today_stock["open"]
+                gain = (open_price - close_price) / open_price
+                min_prob = min(min_prob, today_stock["ybear"])
+                zero_item["gain"] = gain
+                zero_item["min_prob"] = min_prob
+                open_price = None
+            elif open_price is not None and c == class_long and pc == class_long:
+                min_prob = min(min_prob, today_stock["ybull"])
+            elif open_price is not None and c == class_short and pc == class_short:
+                min_prob = min(min_prob, today_stock["ybear"])
 
             today_stock["index_long"] = index_long
             today_stock["index_long_zero_prob"] = index_long_zero_prob
