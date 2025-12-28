@@ -80,7 +80,7 @@ class EvalF1Callback(TrainingCallback):
 
 def compute_gain(trade_data, threshold):
     gain = 1.0
-    total_count = 0
+    count = 0
     sorted_keys = list(sorted(trade_data.keys()))
     for _, current_date in enumerate(sorted_keys):
         item = trade_data[current_date]
@@ -94,8 +94,8 @@ def compute_gain(trade_data, threshold):
                 yprob = item[stock]["ybear"]
             if yprob >= threshold:
                 gain *= 1.0 + item[stock]["gain"]
-                total_count += 1
-    return gain, total_count
+                count += 1
+    return gain, count
 
 
 def search_threshold_for_perf(
