@@ -127,6 +127,29 @@ def build_trade_data(
         current_date += pd.Timedelta(days=1)
 
     stocks = list(set(stocks))
+
+    for stock in stocks:
+        current_date = start_date
+        yesterday_stock = None
+        while current_date <= end_date:
+            current_date_str = current_date.strftime("%Y-%m-%d")
+            if current_date_str not in trade_data:
+                current_date += pd.Timedelta(days=1)
+                continue
+            today = trade_data[current_date_str]
+            if stock not in today:
+                current_date += pd.Timedelta(days=1)
+                continue
+            today_stock = today[stock]
+            if yesterday_stock:
+                yesterday_stock["close"] = today_stock["open"]
+            yesterday_stock = today_stock
+            current_date += pd.Timedelta(days=1)
+
+        if yesterday_stock and today_stock:
+            if "close" not in yesterday_stock:
+                yesterday_stock["close"] = today_stock["open"]
+
     for stock in stocks:
         current_date = start_date
         pc = None
@@ -134,9 +157,9 @@ def build_trade_data(
         index_long_zero_prob = 0.0
         index_short = -1
         index_short_zero_prob = 0.0
-        min_prob = None
         open_price = None
         zero_item = None
+        prev_item = None
         while current_date <= end_date:
             current_date_str = current_date.strftime("%Y-%m-%d")
             if current_date_str not in trade_data:
@@ -154,30 +177,24 @@ def build_trade_data(
                 index_long = 0
                 zero_item = today_stock
                 open_price = today_stock["open"]
-                min_prob = index_long_zero_prob = today_stock["ybull"]
+                index_long_zero_prob = today_stock["ybull"]
             elif pc is not None and c == class_short and pc != class_short:
                 index_short = 0
                 zero_item = today_stock
                 open_price = today_stock["open"]
-                min_prob = index_short_zero_prob = today_stock["ybear"]
+                index_short_zero_prob = today_stock["ybear"]
             elif open_price is not None and c != class_long and pc == class_long:
-                close_price = today_stock["open"]
+                close_price = today_stock["close"]
                 gain = (close_price - open_price) / open_price
-                min_prob = min(min_prob, today_stock["ybull"])
+                today_stock["gain"] = gain
                 zero_item["gain"] = gain
-                zero_item["min_prob"] = min_prob
                 open_price = None
             elif open_price is not None and c != class_short and pc == class_short:
-                close_price = today_stock["open"]
+                close_price = today_stock["close"]
                 gain = (open_price - close_price) / open_price
-                min_prob = min(min_prob, today_stock["ybear"])
+                today_stock["gain"] = gain
                 zero_item["gain"] = gain
-                zero_item["min_prob"] = min_prob
                 open_price = None
-            elif open_price is not None and c == class_long and pc == class_long:
-                min_prob = min(min_prob, today_stock["ybull"])
-            elif open_price is not None and c == class_short and pc == class_short:
-                min_prob = min(min_prob, today_stock["ybear"])
 
             today_stock["index_long"] = index_long
             today_stock["index_long_zero_prob"] = index_long_zero_prob
@@ -381,7 +398,6 @@ def select_positions_to_open(
     for pos in positions:
         already_open.append(pos["ticker"])
 
-    new_open_best_prob = 0
     for ticker in item_dict.keys():
         if ticker not in stock_filter:
             continue
@@ -398,7 +414,7 @@ def select_positions_to_open(
                 open_prob = item_dict[ticker]["ybear"]
             if index <= config.OPEN_INDEX_DELAY and index >= 0:
                 if open_zero_prob >= open_prob_thres and (
-                    index == 0 or open_prob > open_zero_prob
+                    index == 0 or open_prob >= open_zero_prob
                 ):
                     positions_to_open.append(
                         {
@@ -408,12 +424,10 @@ def select_positions_to_open(
                             "index": index,
                         }
                     )
-                    if open_zero_prob > new_open_best_prob:
-                        new_open_best_prob = open_zero_prob
                 else:
                     break
 
-    return positions_to_open, new_open_best_prob
+    return positions_to_open
 
 
 def select_positions_to_close(
@@ -421,8 +435,8 @@ def select_positions_to_close(
     item,
     long_close_prob_thres,
     short_close_prob_thres,
-    new_open_best_prob_long,
-    new_open_best_prob_short,
+    positions_long_to_open,
+    positions_short_to_open,
     capital,
     capital_and_position,
 ):
@@ -446,12 +460,18 @@ def select_positions_to_close(
 
     for pos_index, pos in enumerate(positions):
         if pos["type"] == "long":
-            if item[pos["ticker"]]["ybull"] < long_close_prob_thres:
+            if (
+                item[pos["ticker"]]["ybull"] < long_close_prob_thres
+                or item[pos["ticker"]]["class"] != 2
+            ):
                 pos["close_reason"] = "prob"
                 positions_long_to_close.append(pos)
                 remove_pos_indexes.append(pos_index)
         elif pos["type"] == "short":
-            if item[pos["ticker"]]["ybear"] < short_close_prob_thres:
+            if (
+                item[pos["ticker"]]["ybear"] < short_close_prob_thres
+                or item[pos["ticker"]]["class"] != 0
+            ):
                 pos["close_reason"] = "prob"
                 positions_short_to_close.append(pos)
                 remove_pos_indexes.append(pos_index)
@@ -459,36 +479,26 @@ def select_positions_to_close(
     if (
         config.NEW_OPEN
         and capital_percent < 5.0
+        and (len(positions_long_to_open) > 0 or len(positions_short_to_open) > 0)
         and len(positions_long_to_close) == 0
         and len(positions_short_to_close) == 0
     ):
-
         for pos_index, pos in enumerate(positions):
             open_price = pos["open_price"]
             close_price = item[pos["ticker"]]["open"]
             if pos["type"] == "long":
-                pos_gain = (close_price - open_price) / open_price
+                pos_gain = 100 * (close_price - open_price) / open_price
             else:
-                pos_gain = (open_price - close_price) / open_price
-            pos_gain *= 100
-            if pos_gain > 20:
-                open_yprob = pos["yprob"]
+                pos_gain = 100 * (open_price - close_price) / open_price
+            if pos_gain > 10:
                 if pos["type"] == "long":
-                    if open_yprob < new_open_best_prob_long:
-                        pos["close_reason"] = "new_open"
-                        positions_long_to_close.append(pos)
-                        remove_pos_indexes.append(pos_index)
-                        capital_percent = (
-                            100  # avoid closing multiple positions in one iteration
-                        )
+                    pos["close_reason"] = "new_open"
+                    positions_long_to_close.append(pos)
+                    remove_pos_indexes.append(pos_index)
                 elif pos["type"] == "short":
-                    if open_yprob < new_open_best_prob_short:
-                        pos["close_reason"] = "new_open"
-                        positions_short_to_close.append(pos)
-                        remove_pos_indexes.append(pos_index)
-                        capital_percent = (
-                            100  # avoid closing multiple positions in one iteration
-                        )
+                    pos["close_reason"] = "new_open"
+                    positions_short_to_close.append(pos)
+                    remove_pos_indexes.append(pos_index)
 
     return positions_long_to_close, positions_short_to_close, remove_pos_indexes
 
