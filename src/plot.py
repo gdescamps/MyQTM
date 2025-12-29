@@ -67,6 +67,7 @@ def plot_portfolio_metrics(metrics, nasdaq_metrics=None):
             out=np.zeros_like(capital_portfolio, dtype=float),
             where=values_portfolio != 0,
         )
+        ratio_portfolio = 1.0 - ratio_portfolio
 
         if len(values_portfolio) == 0:
             continue
@@ -258,6 +259,7 @@ def plot_portfolio_metrics(metrics, nasdaq_metrics=None):
             out=np.zeros_like(capital_portfolio, dtype=float),
             where=values_portfolio != 0,
         )
+        capital_used_ratio = 1.0 - capital_used_ratio
         mean_capital_used_ratio = (
             np.nanmean(capital_used_ratio) if capital_used_ratio.size else 0.0
         )
