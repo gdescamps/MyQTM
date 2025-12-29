@@ -148,33 +148,34 @@ def compute_bench(
         position_sizes = compute_position_sizes(positions, bench_data, current_date)
         capital_and_position = position_sizes + capital
 
-        # Open new long positions
-        positions, capital, positions_long_to_open = open_positions(
-            positions_long_to_open,
-            positions,
-            bench_data,
-            current_date,
-            capital,
-            capital_and_position,
-            "long",
-            long_pos_count,
-            long_pos_pow,
-            long_open_prob_thres,
-        )
-
-        # Open new short positions
-        positions, capital, positions_short_to_open = open_positions(
-            positions_short_to_open,
-            positions,
-            bench_data,
-            current_date,
-            capital,
-            capital_and_position,
-            "short",
-            short_pos_count,
-            short_pos_pow,
-            short_open_prob_thres,
-        )
+        if len(positions_long_to_open) > len(positions_short_to_open):
+            # Open new long positions
+            positions, capital, positions_long_to_open = open_positions(
+                positions_long_to_open,
+                positions,
+                bench_data,
+                current_date,
+                capital,
+                capital_and_position,
+                "long",
+                long_pos_count,
+                long_pos_pow,
+                long_open_prob_thres,
+            )
+        else:
+            # Open new short positions
+            positions, capital, positions_short_to_open = open_positions(
+                positions_short_to_open,
+                positions,
+                bench_data,
+                current_date,
+                capital,
+                capital_and_position,
+                "short",
+                short_pos_count,
+                short_pos_pow,
+                short_open_prob_thres,
+            )
 
         # Recompute the total value of open positions
         position_sizes = compute_position_sizes(positions, bench_data, current_date)
