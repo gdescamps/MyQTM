@@ -677,19 +677,27 @@ def run_benchmark(
 
     if float(annual_roi_mean) > 5.0 and longest_portfolio_drawdown > 5:
         perf = (
-            LONG_CLOSE_PROB_THRES_A
+            LONG_OPEN_PROB_THRES_A
+            * SHORT_OPEN_PROB_THRES_A
+            * LONG_OPEN_PROB_THRES_B
+            * SHORT_OPEN_PROB_THRES_B
+            * LONG_CLOSE_PROB_THRES_A
             * SHORT_CLOSE_PROB_THRES_A
             * LONG_CLOSE_PROB_THRES_B
             * SHORT_CLOSE_PROB_THRES_B
+            * LONG_POS_COUNT
+            * SHORT_POS_COUNT
             * gaussian_penalty_weight(long_rate, center=0.5, sigma=0.3)
             * gaussian_penalty_weight(short_rate, center=0.5, sigma=0.3)
             * gaussian_penalty_weight(AB_rate, center=0.5, sigma=0.3)
-            * gaussian_penalty_weight(long_short_rate, center=0.6, sigma=0.15)
-            * (annual_roi_mean**6)
+            * gaussian_penalty_weight(long_short_rate, center=0.7, sigma=0.15)
+            * portfolio_ret**5
             / (
-                ((float(longest_portfolio_drawdown) / 100))
-                * (0.2 + (float(annual_roi_std) / 10))
-                * (abs(float(portfolio_max_drawdown)) / 20)
+                0.01
+                * float(longest_portfolio_drawdown)
+                * (0.1 * float(annual_roi_std) + 0.5)
+                * 10
+                * abs(float(portfolio_max_drawdown))
             )
         )
 
