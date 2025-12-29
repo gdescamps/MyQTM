@@ -316,7 +316,7 @@ TS_SIZE = 6
 
 
 # CMA-ES optimization parameters
-CMA_RECURSIVE = 1
+CMA_RECURSIVE = 2
 CMA_LOOPS = 150
 CMA_EARLY_STOP_ROUNDS = 30
 CMA_STOCKS_DROP_OUT_ROUND = 20
@@ -327,16 +327,16 @@ INIT_X0 = [0.8, 0.33, 0.8, 0.33, 0.8, 0.33, 0.8, 0.33, 0.85, 0.85, 0.1, 0.1]
 INIT_CMA_STD = 0.2
 # CMA-ES optimization parameter space
 INIT_SPACE = [  # Important increase params favor better safety
-    Real(0.6, 0.95, name="long_open_prob_thres_A"),
+    Real(0.33, 0.95, name="long_open_prob_thres_A"),
     Real(0.1, 0.95, name="long_close_prob_thres_A"),
-    Real(0.6, 0.95, name="short_open_prob_thres_A"),
+    Real(0.33, 0.95, name="short_open_prob_thres_A"),
     Real(0.1, 0.95, name="short_close_prob_thres_A"),
-    Real(0.6, 0.95, name="long_open_prob_thres_B"),
+    Real(0.33, 0.95, name="long_open_prob_thres_B"),
     Real(0.1, 0.95, name="long_close_prob_thres_B"),
-    Real(0.6, 0.95, name="short_open_prob_thres_B"),
+    Real(0.33, 0.95, name="short_open_prob_thres_B"),
     Real(0.1, 0.95, name="short_close_prob_thres_B"),
-    Real(0.6, 0.95, name="long_pos_count"),
-    Real(0.6, 0.95, name="short_pos_count"),
+    Real(0.55, 0.95, name="long_pos_count"),
+    Real(0.55, 0.95, name="short_pos_count"),
     Real(0.03, 0.2, name="long_pos_pow"),
     Real(0.03, 0.2, name="short_pos_pow"),
 ]
@@ -344,7 +344,7 @@ INIT_SPACE = [  # Important increase params favor better safety
 # XGBoost model training parameter grid
 PARAM_GRID = {
     "patience": [100],
-    "max_depth": [7],
+    "max_depth": [9],
     "learning_rate": [0.01],
     "subsample": [0.6],
     "colsample_bytree": [0.7],
@@ -358,11 +358,11 @@ PARAM_GRID = {
     "mean_std_power": [1.71],
     "mean_std_power_2nd": [1.1],
     # Top features search range
-    "top_features": list(range(70, 90, 5)),
+    "top_features": list(range(70, 200, 3)),
 }
 
-F1_THRESHOLD_STEP = 0.001
-OPEN_INDEX_DELAY = 1
+F1_THRESHOLD_STEP = 0.0002
+OPEN_INDEX_DELAY = 2
 NEW_OPEN = True
 TRADE_DATA_LOAD = None
 DATES_PORTFOLIO = []
