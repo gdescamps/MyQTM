@@ -13,5 +13,7 @@
         "source.organizeImports": "explicit"
     },
     "jupyter.debugJustMyCode": true,
-    "jupyter.stopOnFirstLineWhileDebugging": false
+    "jupyter.stopOnFirstLineWhileDebugging": false,
+    "workbench.list.horizontalSpacing": 8,
+    "workbench.list.verticalSpacing": 4
 }
