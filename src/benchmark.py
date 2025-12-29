@@ -226,7 +226,7 @@ def compute_bench(
                     stock_filter.append(pos["ticker"])
 
         # Compute long positions to open
-        positions_long_to_open, new_open_best_prob_long = select_positions_to_open(
+        positions_long_to_open = select_positions_to_open(
             long_item,
             prev_item,
             positions,
@@ -238,7 +238,7 @@ def compute_bench(
         )
 
         # Compute short positions to open
-        positions_short_to_open, new_open_best_prob_short = select_positions_to_open(
+        positions_short_to_open = select_positions_to_open(
             short_item,
             prev_item,
             positions,
@@ -256,8 +256,8 @@ def compute_bench(
                 item,
                 long_close_prob_thres,
                 short_close_prob_thres,
-                new_open_best_prob_long,
-                new_open_best_prob_short,
+                positions_long_to_open,
+                positions_short_to_open,
                 capital,
                 capital_and_position,
             )
