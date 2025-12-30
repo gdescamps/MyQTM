@@ -12,6 +12,7 @@ Functions:
 """
 
 # Import necessary libraries
+import argparse
 import io
 import json
 import os
@@ -308,6 +309,19 @@ def format_threshold_details(
 
 if __name__ == "__main__":
 
+    parser = argparse.ArgumentParser(description="Train XGBoost models.")
+    parser.add_argument(
+        "--max_depth",
+        type=int,
+        default=None,
+        help="Override XGBoost max_depth in PARAM_GRID and base params.",
+    )
+    args = parser.parse_args()
+    max_depth_override = args.max_depth
+
+    if max_depth_override is not None:
+        config.PARAM_GRID["max_depth"] = [max_depth_override]
+
     # Load environment variables from .env file
     # This ensures sensitive information like API keys is securely loaded into the environment
     load_dotenv()
@@ -377,7 +391,7 @@ if __name__ == "__main__":
         "device": "cuda",
         "objective": "multi:softprob",
         "num_class": len(np.unique(df_part1A_Y)),
-        "max_depth": 5,
+        "max_depth": max_depth_override if max_depth_override is not None else 5,
         "learning_rate": 0.01,
         "subsample": 0.6,
         "colsample_bytree": 0.7,
