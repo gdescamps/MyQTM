@@ -85,9 +85,7 @@ def override_open_threshold_bounds(space, thresholds, margin=0.05):
     for dim in space:
         if isinstance(dim, Real) and dim.name in overrides:
             center = overrides[dim.name]
-            updated_space.append(
-                Real(center - margin, center + margin, name=dim.name)
-            )
+            updated_space.append(Real(center - margin, center + margin, name=dim.name))
         else:
             updated_space.append(dim)
     return updated_space
