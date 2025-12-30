@@ -340,6 +340,7 @@ INIT_X0 = [
     0.85,
     0.1,
     0.1,
+    0.1,
     TREND_SCORE_THRES,
 ]
 INIT_CMA_STD = 0.2
@@ -357,6 +358,7 @@ INIT_SPACE = [  # Important increase params favor better safety
     Real(0.55, 0.95, name="short_pos_count"),
     Real(0.03, 0.2, name="long_pos_pow"),
     Real(0.03, 0.2, name="short_pos_pow"),
+    Real(0.05, 0.2, name="pos_gain_close_thres"),
     Real(0.5, 0.7, name="trend_score_thres"),
 ]
 CMA_PARAM_NAMES = [dim.name for dim in INIT_SPACE]
@@ -364,7 +366,7 @@ CMA_PARAM_NAMES = [dim.name for dim in INIT_SPACE]
 # XGBoost model training parameter grid
 PARAM_GRID = {
     "patience": [100],
-    "max_depth": [7],
+    "max_depth": [6],
     "learning_rate": [0.01],
     "subsample": [0.6],
     "colsample_bytree": [0.7],
@@ -378,7 +380,7 @@ PARAM_GRID = {
     "mean_std_power": [1.71],
     "mean_std_power_2nd": [1.1],
     # Top features search range
-    "top_features": list(range(70, 200, 3)),
+    "top_features": list(range(150, 200, 3)),
 }
 
 FEATURES_2ND_RATIO_SEARCH = 0.6

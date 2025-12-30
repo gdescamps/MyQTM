@@ -229,7 +229,8 @@ def close_positions(
         positions_short_to_close (list): List of short positions to close.
         bench_data (dict): Benchmark data for the current date.
         current_date (datetime): Current date for closing positions.
-        capital (float): Current capital.
+    capital (float): Current capital.
+    pos_gain_close_thres (float): Gain threshold to close positions early.
         positions_history (list): History of closed positions.
         callback (function, optional): Callback function for additional processing. Defaults to None.
         log (PrintLog, optional): Logger for printing logs. Defaults to PrintLogNone().
@@ -339,6 +340,7 @@ def open_positions(
     Returns:
         tuple: Updated positions, capital, and cleared positions to open.
     """
+
     def resolve_param(param, item_type):
         if isinstance(param, dict):
             return param.get(item_type)
@@ -483,6 +485,7 @@ def select_positions_to_close(
     positions_short_to_open,
     capital,
     capital_and_position,
+    pos_gain_close_thres=0.1,
 ):
     """
     Selects positions to close (long and short) based on thresholds and criteria.
@@ -531,10 +534,10 @@ def select_positions_to_close(
             open_price = pos["open_price"]
             close_price = item[pos["ticker"]]["open"]
             if pos["type"] == "long":
-                pos_gain = 100 * (close_price - open_price) / open_price
+                pos_gain = (close_price - open_price) / open_price
             else:
-                pos_gain = 100 * (open_price - close_price) / open_price
-            if pos_gain > 10:
+                pos_gain = (open_price - close_price) / open_price
+            if pos_gain > pos_gain_close_thres:
                 if pos["type"] == "long":
                     pos["close_reason"] = "new_open"
                     positions_long_to_close.append(pos)

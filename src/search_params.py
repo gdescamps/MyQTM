@@ -154,6 +154,7 @@ def run_single_random_state(
     )
     # Extract optimized trading parameters
     params = list(xbest)
+    params_extended = params + [0.1, config.TREND_SCORE_THRES]
     (
         long_open_prob_thresa,
         long_close_prob_thresa,
@@ -167,11 +168,9 @@ def run_single_random_state(
         short_pos_count,
         long_pos_pow,
         short_pos_pow,
-    ) = params[:12]
-    if len(params) >= 13:
-        trend_score_thres = params[12]
-    else:
-        trend_score_thres = config.TREND_SCORE_THRES
+        pos_gain_close_thres,
+        trend_score_thres,
+    ) = params_extended[:14]
 
     # Initialize performance tracking lists
     performances = []
@@ -198,6 +197,7 @@ def run_single_random_state(
             SHORT_POS_COUNT=short_pos_count,
             LONG_POS_POW=long_pos_pow,
             SHORT_POS_POW=short_pos_pow,
+            POS_GAIN_CLOSE_THRES=pos_gain_close_thres,
             TREND_SCORE_THRES=trend_score_thres,
             MODEL_PATH=config.TRAIN_DIR,
             data_path=None,
@@ -227,6 +227,7 @@ def run_single_random_state(
             SHORT_POS_COUNT=short_pos_count,
             LONG_POS_POW=long_pos_pow,
             SHORT_POS_POW=short_pos_pow,
+            POS_GAIN_CLOSE_THRES=pos_gain_close_thres,
             TREND_SCORE_THRES=trend_score_thres,
             MODEL_PATH=config.TRAIN_DIR,
             data_path=None,

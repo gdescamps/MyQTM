@@ -118,6 +118,7 @@ def compute_bench(
     short_pos_count,
     long_pos_pow,
     short_pos_pow,
+    pos_gain_close_thres,
     attempt,
 ):
     """
@@ -138,6 +139,7 @@ def compute_bench(
         long_close_prob_thres_b (float): Threshold B for closing long positions.
         short_open_prob_thres_b (float): Threshold B for opening short positions.
         short_close_prob_thres_b (float): Threshold B for closing short positions.
+        pos_gain_close_thres (float): Gain threshold to close positions early.
     Returns:
         tuple: Portfolio values, capital, positions, position history, total capital,
             portfolio counts, and trend stats.
@@ -309,6 +311,7 @@ def compute_bench(
                 positions_short_to_open,
                 capital,
                 capital_and_position,
+                pos_gain_close_thres,
             )
         )
 
@@ -547,6 +550,7 @@ def run_benchmark(
     SHORT_POS_COUNT=0.4,
     LONG_POS_POW=0.4,
     SHORT_POS_POW=0.4,
+    POS_GAIN_CLOSE_THRES=0.1,
     MODEL_PATH=None,
     data_path=None,
     remove_stocks=5,
@@ -572,6 +576,7 @@ def run_benchmark(
         SHORT_CLOSE_PROB_THRES_B (float, optional): Threshold B for closing short positions. Defaults to 0.37.
         LONG_POS_COUNT (float, optional): Rate to increase positions count.
         SHORT_POS_COUNT (float, optional): Rate to increase positions count.
+        POS_GAIN_CLOSE_THRES (float, optional): Gain threshold to close positions early.
         MODEL_PATH (str, optional): Path to the model directory. Defaults to None.
         data_path (str, optional): Path to the data directory. Defaults to None.
         remove_stocks (int, optional): Number of stocks to remove from the benchmark. Defaults to 5.
@@ -647,6 +652,7 @@ def run_benchmark(
         SHORT_POS_COUNT,
         LONG_POS_POW,
         SHORT_POS_POW,
+        POS_GAIN_CLOSE_THRES,
         attempt,
     )
 
@@ -822,6 +828,7 @@ if __name__ == "__main__":
         if os.path.exists(os.path.join(CMA_DIR, f"top{top}_params.json")):
 
             params = load_cma_params(os.path.join(CMA_DIR, f"top{top}_params.json"))
+            params_extended = params + [0.1, config.TREND_SCORE_THRES]
             (
                 # max_positions,
                 long_open_prob_thres_a,
@@ -836,11 +843,9 @@ if __name__ == "__main__":
                 short_pos_count,
                 long_pos_pow,
                 short_pos_pow,
-            ) = params[:12]
-            if len(params) >= 13:
-                trend_score_thres = params[12]
-            else:
-                trend_score_thres = config.TREND_SCORE_THRES
+                pos_gain_close_thres,
+                trend_score_thres,
+            ) = params_extended[:14]
 
             returns = []
             max_drawdowns = []
@@ -869,6 +874,7 @@ if __name__ == "__main__":
                     SHORT_POS_COUNT=short_pos_count,
                     LONG_POS_POW=long_pos_pow,
                     SHORT_POS_POW=short_pos_pow,
+                    POS_GAIN_CLOSE_THRES=pos_gain_close_thres,
                     TREND_SCORE_THRES=trend_score_thres,
                     MODEL_PATH=TRAIN_DIR,
                     data_path=None,
