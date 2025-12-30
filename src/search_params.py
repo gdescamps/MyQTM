@@ -396,6 +396,46 @@ def sort_perfs(random_states, SEARCH_DIR):
             best_dir / f"top_{rank}.png",
         )
 
+    local_best_dir = Path(SEARCH_DIR)
+    for existing in local_best_dir.glob("top_*"):
+        if existing.is_file():
+            existing.unlink()
+
+    local_perfs = []
+    for perf_path in local_best_dir.glob("perf_*.json"):
+        perf = safe_json_load(perf_path)
+        if perf is None:
+            continue
+        uid = perf_path.stem.replace("perf_", "", 1)
+        local_perfs.append({"perf": perf, "uid": uid})
+
+    local_perfs.sort(key=lambda x: x["perf"], reverse=True)
+    train_log = Path(config.TRAIN_DIR) / "print.log"
+    for i, entry in enumerate(local_perfs):
+        rank = i + 1
+        uid = entry["uid"]
+        copy_if_exists(
+            local_best_dir / f"perf_{uid}.json",
+            local_best_dir / f"top_{rank}_perf.json",
+        )
+        copy_if_exists(
+            local_best_dir / f"params_{uid}.json",
+            local_best_dir / f"top_{rank}_params.json",
+        )
+        copy_if_exists(
+            local_best_dir / f"positions_{uid}.json",
+            local_best_dir / f"top_{rank}_positions.json",
+        )
+        copy_if_exists(
+            train_log,
+            local_best_dir / f"top_{rank}_model.log",
+        )
+        write_code_log(local_best_dir / f"top_{rank}_code.log")
+        copy_if_exists(
+            local_best_dir / f"best_{uid}.png",
+            local_best_dir / f"top_{rank}.png",
+        )
+
 
 if __name__ == "__main__":
     """
