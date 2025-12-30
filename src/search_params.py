@@ -46,6 +46,53 @@ def clamp_x0_to_space(x0, space):
     return clipped
 
 
+def load_thresholds(train_dir):
+    thresholds_paths = [
+        Path(get_project_root()) / train_dir / "best_thresholds.json",
+        Path(get_project_root()) / train_dir / "best_threshold.json",
+    ]
+    for thresholds_path in thresholds_paths:
+        if thresholds_path.exists():
+            with open(thresholds_path, "r") as f:
+                payload = json.load(f)
+            labels = payload.get("labels")
+            thresholds = payload.get("thresholds")
+            if labels and thresholds:
+                return dict(zip(labels, thresholds))
+            if thresholds:
+                default_labels = ("A_long", "B_long", "A_short", "B_short")
+                return dict(zip(default_labels, thresholds))
+    return None
+
+
+def override_open_threshold_bounds(space, thresholds, margin=0.05):
+    if not thresholds:
+        return space
+    label_to_space_name = {
+        "A_long": "long_open_prob_thres_A",
+        "B_long": "long_open_prob_thres_B",
+        "A_short": "short_open_prob_thres_A",
+        "B_short": "short_open_prob_thres_B",
+    }
+    overrides = {
+        label_to_space_name[label]: float(value)
+        for label, value in thresholds.items()
+        if label in label_to_space_name
+    }
+    if not overrides:
+        return space
+    updated_space = []
+    for dim in space:
+        if isinstance(dim, Real) and dim.name in overrides:
+            center = overrides[dim.name]
+            updated_space.append(
+                Real(center - margin, center + margin, name=dim.name)
+            )
+        else:
+            updated_space.append(dim)
+    return updated_space
+
+
 def run_single_random_state(
     random_state,
     output_dir_time,
@@ -375,11 +422,9 @@ if __name__ == "__main__":
     # Generate list of random states for parallel processes
     random_states = list(range(seed, seed + config.CMA_PROCESSES))
 
-    # # Load optimization configuration
-    # init_space = override_open_threshold_bounds(
-    #     config.INIT_SPACE, load_thresholds(config.TRAIN_DIR)
-    # )
-    init_space = config.INIT_SPACE
+    # Load optimization configuration
+    thresholds = load_thresholds(config.TRAIN_DIR)
+    init_space = override_open_threshold_bounds(config.INIT_SPACE, thresholds)
 
     for iter in range(config.CMA_RECURSIVE):
 
@@ -394,7 +439,7 @@ if __name__ == "__main__":
         if iter == 0:
 
             # Load optimization configuration
-            init_x0 = config.INIT_X0
+            init_x0 = clamp_x0_to_space(config.INIT_X0, init_space)
             init_cma_std = config.INIT_CMA_STD
 
             # Start parallel processes for current batch
