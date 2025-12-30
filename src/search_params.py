@@ -29,8 +29,8 @@ import config
 from src.benchmark import compute_nasdaq_data, run_benchmark
 from src.cuda import auto_select_gpu
 from src.finetune import cmaes_grid_search_benchmark
+from src.params import load_cma_params, save_cma_params
 from src.path import get_project_root
-from src.params import save_cma_params, load_cma_params
 from src.plot import plot_portfolio_metrics
 from src.printlog import PrintLog, PrintLogProcess
 
@@ -339,8 +339,10 @@ def sort_perfs(random_states, SEARCH_DIR):
 
     all_dir = Path(config.ALL_DIR)
     best_dir = Path(config.BEST_DIR)
+    last_cma_dir = Path(config.CMA_DIR)
     all_dir.mkdir(parents=True, exist_ok=True)
     best_dir.mkdir(parents=True, exist_ok=True)
+    last_cma_dir.mkdir(parents=True, exist_ok=True)
 
     run_id = Path(SEARCH_DIR).name
     for random_state in random_states:
@@ -395,6 +397,10 @@ def sort_perfs(random_states, SEARCH_DIR):
             best_dir / f"top_{rank}_params.json",
         )
         copy_if_exists(
+            all_dir / f"params_{uid}.json",
+            last_cma_dir / f"top{rank}_params.json",
+        )
+        copy_if_exists(
             all_dir / f"positions_{uid}.json",
             best_dir / f"top_{rank}_positions.json",
         )
@@ -436,6 +442,10 @@ def sort_perfs(random_states, SEARCH_DIR):
         copy_if_exists(
             local_best_dir / f"params_{uid}.json",
             local_best_dir / f"top_{rank}_params.json",
+        )
+        copy_if_exists(
+            local_best_dir / f"params_{uid}.json",
+            local_best_dir / f"top{rank}_params.json",
         )
         copy_if_exists(
             local_best_dir / f"positions_{uid}.json",
@@ -539,6 +549,9 @@ if __name__ == "__main__":
             ):
 
                 top_params_path = os.path.join(config.CMA_DIR, f"top{top}_params.json")
+                if not os.path.exists(top_params_path):
+                    print(f"Missing CMA params: {top_params_path}, skip top{top}.")
+                    continue
                 best_param = load_cma_params(top_params_path)
                 init_x0 = clamp_x0_to_space(best_param, init_space)
                 init_cma_std = config.INIT_CMA_STD / (iter + 1)  # Reduce std for finer
