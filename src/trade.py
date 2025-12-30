@@ -329,29 +329,49 @@ def open_positions(
         current_date (datetime): Current date for opening positions.
         capital (float): Current capital.
         capital_and_position (float): Total capital and position value.
-        pos_type (str): Type of position ('long' or 'short').
+        pos_type (str): Type of position ('long' or 'short'). If None, use item["type"].
+        pos_count (float or dict): Position count factor, or dict by type.
+        pos_pow (float or dict): Position probability exponent, or dict by type.
+        prob_thres (float or dict): Probability threshold, or dict by type.
         callback (function, optional): Callback function for additional processing. Defaults to None.
         log (PrintLog, optional): Logger for printing logs. Defaults to PrintLogNone().
 
     Returns:
         tuple: Updated positions, capital, and cleared positions to open.
     """
+    def resolve_param(param, item_type):
+        if isinstance(param, dict):
+            return param.get(item_type)
+        return param
+
     interval = get_interval_type(current_date)
     if len(positions_to_open):
         for item in positions_to_open:
             if (
                 100 * capital / capital_and_position > 5.0
             ):  # Minimum 5% capital remaining to open new position
+                item_type = pos_type or item.get("type")
+                if item_type is None:
+                    continue
+                pos_count_item = resolve_param(pos_count, item_type)
+                pos_pow_item = resolve_param(pos_pow, item_type)
+                prob_thres_item = resolve_param(prob_thres, item_type)
+                if (
+                    pos_count_item is None
+                    or pos_pow_item is None
+                    or prob_thres_item is None
+                ):
+                    continue
                 yprob = item["yprob"]
-                prob = (yprob - prob_thres) / (1.0 - prob_thres)
-                prob = max(prob, 0.1) ** pos_pow
-                size = prob * (1.0 - pos_count) * capital_and_position
+                prob = (yprob - prob_thres_item) / (1.0 - prob_thres_item)
+                prob = max(prob, 0.1) ** pos_pow_item
+                size = prob * (1.0 - pos_count_item) * capital_and_position
                 size = min(capital, size)
                 ticker = item["ticker"]
                 if ticker not in bench_data[current_date]:
                     continue
                 open_position = {
-                    "type": pos_type,
+                    "type": item_type,
                     "ticker": ticker,
                     "size": size,
                     "capital_and_position": capital_and_position,
@@ -366,6 +386,30 @@ def open_positions(
                 capital -= size
         positions_to_open = []
     return positions, capital, positions_to_open
+
+
+def build_positions_to_open(positions_long_to_open, positions_short_to_open):
+    """
+    Combines long and short candidate positions into one sorted list by yprob.
+
+    Args:
+        positions_long_to_open (list): List of long positions to open.
+        positions_short_to_open (list): List of short positions to open.
+
+    Returns:
+        list: Combined positions to open, sorted by descending yprob.
+    """
+    positions_to_open = []
+    for item in positions_long_to_open:
+        item_copy = item.copy()
+        item_copy["type"] = "long"
+        positions_to_open.append(item_copy)
+    for item in positions_short_to_open:
+        item_copy = item.copy()
+        item_copy["type"] = "short"
+        positions_to_open.append(item_copy)
+    positions_to_open.sort(key=lambda x: x["yprob"], reverse=True)
+    return positions_to_open
 
 
 def select_positions_to_open(

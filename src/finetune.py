@@ -5,6 +5,7 @@ import cma
 import numpy as np
 
 from src.benchmark import run_benchmark
+from src.params import save_cma_params
 from src.plot import plot_portfolio_metrics
 
 best_perf = -np.inf
@@ -91,6 +92,7 @@ def cmaes_grid_search_benchmark(
             short_pos_count,
             long_pos_pow,
             short_pos_pow,
+            trend_score_thres,
         ) = params
         global last_params
         global best_perf
@@ -133,6 +135,7 @@ def cmaes_grid_search_benchmark(
                 SHORT_POS_COUNT=short_pos_count,
                 LONG_POS_POW=long_pos_pow,
                 SHORT_POS_POW=short_pos_pow,
+                TREND_SCORE_THRES=trend_score_thres,
                 MODEL_PATH=model_path,
                 data_path=data_path,
                 remove_stocks=remove_stocks,
@@ -154,10 +157,10 @@ def cmaes_grid_search_benchmark(
                 plot.save(png_path)
 
                 # Save current best parameters
-                with open(
-                    os.path.join(local_log.output_dir_time, "current_params.json"), "w"
-                ) as f:
-                    json.dump(params.tolist(), f, indent=4)
+                save_cma_params(
+                    os.path.join(local_log.output_dir_time, "current_params.json"),
+                    params.tolist(),
+                )
                 # Save current best positions
                 with open(
                     os.path.join(local_log.output_dir_time, "current_positions.json"),

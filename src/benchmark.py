@@ -43,6 +43,7 @@ from src.path import get_project_root
 from src.plot import plot_portfolio_metrics
 from src.printlog import PrintLog
 from src.trade import (
+    build_positions_to_open,
     build_trade_data,
     close_positions,
     compute_position_sizes,
@@ -51,6 +52,51 @@ from src.trade import (
     select_positions_to_close,
     select_positions_to_open,
 )
+from src.params import load_cma_params
+
+
+def compute_item_trend(item, trend_score_thres):
+    """
+    Determine aggregated trend from item list using counts and probability levels.
+
+    Args:
+        item (dict): Mapping of ticker -> prediction data.
+        trend_score_thres (float): Score threshold in [0.5, 0.7] for trend decision.
+
+    Returns:
+        dict: Trend info with counts, scores, and trend label.
+    """
+    long_count = 0
+    short_count = 0
+    long_score = 0.0
+    short_score = 0.0
+
+    for data in item.values():
+        class_val = data.get("class")
+        if class_val == 2:
+            long_count += 1
+            long_score += float(data.get("ybull", 0.0))
+        elif class_val == 0:
+            short_count += 1
+            short_score += float(data.get("ybear", 0.0))
+
+    score_total = long_score + short_score
+    if score_total == 0:
+        trend = "neutral"
+    elif long_score / score_total > trend_score_thres:
+        trend = "long"
+    elif short_score / score_total > trend_score_thres:
+        trend = "short"
+    else:
+        trend = "neutral"
+
+    return {
+        "trend": trend,
+        "long_count": int(long_count),
+        "short_count": int(short_count),
+        "long_score": float(long_score),
+        "short_score": float(short_score),
+    }
 
 
 def compute_bench(
@@ -59,6 +105,7 @@ def compute_bench(
     bench_start_date,
     bench_end_date,
     capital,
+    trend_score_thres,
     long_open_prob_thres_a,
     long_close_prob_thres_a,
     short_open_prob_thres_a,
@@ -82,6 +129,7 @@ def compute_bench(
         bench_start_date (datetime): Start date for the benchmark.
         bench_end_date (datetime): End date for the benchmark.
         capital (float): Initial capital for the benchmark.
+        trend_score_thres (float): Threshold for aggregating long/short trend scores.
         long_open_prob_thres_a (float): Threshold A for opening long positions.
         long_close_prob_thres_a (float): Threshold A for closing long positions.
         short_open_prob_thres_a (float): Threshold A for opening short positions.
@@ -91,7 +139,8 @@ def compute_bench(
         short_open_prob_thres_b (float): Threshold B for opening short positions.
         short_close_prob_thres_b (float): Threshold B for closing short positions.
     Returns:
-        tuple: Portfolio values, capital, positions, position history, total capital, and portfolio counts.
+        tuple: Portfolio values, capital, positions, position history, total capital,
+            portfolio counts, and trend stats.
     """
     # Simulate the benchmark trading strategy and compute portfolio metrics.
     capital_and_position = capital
@@ -100,6 +149,8 @@ def compute_bench(
     values_portfolio = []
     capital_portfolio = []
     count_portfolio = []
+    trend_portfolio = []
+    trend_stats = []
     positions_long_to_open = []
     positions_long_to_close = []
     positions_short_to_open = []
@@ -148,34 +199,37 @@ def compute_bench(
         position_sizes = compute_position_sizes(positions, bench_data, current_date)
         capital_and_position = position_sizes + capital
 
-        if len(positions_long_to_open) > len(positions_short_to_open):
-            # Open new long positions
-            positions, capital, positions_long_to_open = open_positions(
-                positions_long_to_open,
-                positions,
-                bench_data,
-                current_date,
-                capital,
-                capital_and_position,
-                "long",
-                long_pos_count,
-                long_pos_pow,
-                long_open_prob_thres,
-            )
+        # Compute sorted candidate items for this date
+        item = bench_data[current_date]
+
+        count_portfolio.append(len(item))
+        trend_info = compute_item_trend(item, trend_score_thres)
+        trend_portfolio.append(trend_info["trend"])
+        trend_stats.append(trend_info)
+
+        if trend_info["trend"] == "long":
+            positions_to_open = build_positions_to_open(positions_long_to_open, [])
+        elif trend_info["trend"] == "short":
+            positions_to_open = build_positions_to_open([], positions_short_to_open)
         else:
-            # Open new short positions
-            positions, capital, positions_short_to_open = open_positions(
-                positions_short_to_open,
-                positions,
-                bench_data,
-                current_date,
-                capital,
-                capital_and_position,
-                "short",
-                short_pos_count,
-                short_pos_pow,
-                short_open_prob_thres,
+            positions_to_open = build_positions_to_open(
+                positions_long_to_open, positions_short_to_open
             )
+
+        positions, capital, _ = open_positions(
+            positions_to_open,
+            positions,
+            bench_data,
+            current_date,
+            capital,
+            capital_and_position,
+            None,
+            {"long": long_pos_count, "short": short_pos_count},
+            {"long": long_pos_pow, "short": short_pos_pow},
+            {"long": long_open_prob_thres, "short": short_open_prob_thres},
+        )
+        positions_long_to_open = []
+        positions_short_to_open = []
 
         # Recompute the total value of open positions
         position_sizes = compute_position_sizes(positions, bench_data, current_date)
@@ -184,11 +238,6 @@ def compute_bench(
         capital_and_position = position_sizes + capital
         values_portfolio.append(capital_and_position)
         capital_portfolio.append(capital)
-
-        # Compute sorted candidate items for this date
-        item = bench_data[current_date]
-
-        count_portfolio.append(len(item))
 
         long_item = item.copy()
         long_item = dict(
@@ -291,6 +340,8 @@ def compute_bench(
         positions_history,
         capital_and_position,
         count_portfolio,
+        trend_portfolio,
+        trend_stats,
     )
 
 
@@ -483,6 +534,7 @@ def run_benchmark(
     BENCH_START_DATE=None,
     BENCH_END_DATE=None,
     INIT_CAPITAL=None,
+    TREND_SCORE_THRES=None,
     LONG_OPEN_PROB_THRES_A=0.60,
     LONG_CLOSE_PROB_THRES_A=0.37,
     SHORT_OPEN_PROB_THRES_A=0.60,
@@ -509,6 +561,7 @@ def run_benchmark(
         BENCH_START_DATE (str, optional): Start date for the benchmark. Defaults to None.
         BENCH_END_DATE (str, optional): End date for the benchmark. Defaults to None.
         INIT_CAPITAL (float, optional): Initial capital for the benchmark. Defaults to None.
+        TREND_SCORE_THRES (float, optional): Threshold for long/short trend score. Defaults to None.
         LONG_OPEN_PROB_THRES_A (float, optional): Threshold A for opening long positions. Defaults to 0.60.
         LONG_CLOSE_PROB_THRES_A (float, optional): Threshold A for closing long positions. Defaults to 0.37.
         SHORT_OPEN_PROB_THRES_A (float, optional): Threshold A for opening short positions. Defaults to 0.60.
@@ -569,12 +622,19 @@ def run_benchmark(
         positions_history,
         capital_and_position,
         count_portfolio,
+        trend_portfolio,
+        trend_stats,
     ) = compute_bench(
         trade_data,
         remove_stocks,
         bench_start_date,
         bench_end_date,
         INIT_CAPITAL,
+        (
+            config.TREND_SCORE_THRES
+            if TREND_SCORE_THRES is None
+            else TREND_SCORE_THRES
+        ),
         LONG_OPEN_PROB_THRES_A,
         LONG_CLOSE_PROB_THRES_A,
         SHORT_OPEN_PROB_THRES_A,
@@ -688,9 +748,7 @@ def run_benchmark(
             * LONG_POS_COUNT
             * SHORT_POS_COUNT
             * gaussian_penalty_weight(long_rate, center=0.5, sigma=0.3)
-            * gaussian_penalty_weight(short_rate, center=0.5, sigma=0.3)
             * gaussian_penalty_weight(AB_rate, center=0.5, sigma=0.3)
-            * gaussian_penalty_weight(long_short_rate, center=0.7, sigma=0.15)
             * portfolio_ret**5
             / (
                 0.01
@@ -708,6 +766,8 @@ def run_benchmark(
             "values_portfolio": values_portfolio,
             "count_portfolio": count_portfolio,
             "capital_portfolio": capital_portfolio,
+            "trend_portfolio": trend_portfolio,
+            "trend_stats": trend_stats,
             "return": float(portfolio_ret),
             "max_drawdown": float(100 * portfolio_max_drawdown),
             "ulcer_index": float(ulcer_index),
@@ -761,9 +821,7 @@ if __name__ == "__main__":
 
         if os.path.exists(os.path.join(CMA_DIR, f"top{top}_params.json")):
 
-            with open(os.path.join(CMA_DIR, f"top{top}_params.json"), "r") as f:
-                XBEST = json.load(f)
-
+            params = load_cma_params(os.path.join(CMA_DIR, f"top{top}_params.json"))
             (
                 # max_positions,
                 long_open_prob_thres_a,
@@ -778,7 +836,11 @@ if __name__ == "__main__":
                 short_pos_count,
                 long_pos_pow,
                 short_pos_pow,
-            ) = list(XBEST)
+            ) = params[:12]
+            if len(params) >= 13:
+                trend_score_thres = params[12]
+            else:
+                trend_score_thres = config.TREND_SCORE_THRES
 
             returns = []
             max_drawdowns = []
@@ -807,6 +869,7 @@ if __name__ == "__main__":
                     SHORT_POS_COUNT=short_pos_count,
                     LONG_POS_POW=long_pos_pow,
                     SHORT_POS_POW=short_pos_pow,
+                    TREND_SCORE_THRES=trend_score_thres,
                     MODEL_PATH=TRAIN_DIR,
                     data_path=None,
                     remove_stocks=remove_stocks,

@@ -24,6 +24,7 @@ from src.ib import (
     ib_disconnect,
 )
 from src.path import get_project_root
+from src.params import load_cma_params
 from src.printlog import PrintLog
 from src.trade import (
     close_positions,
@@ -102,8 +103,7 @@ def daily_trade_positions():
     with local_log:
         print(f"current_date: {current_date}")
 
-    with open(os.path.join(config.CMA_DIR, "top1_params.json"), "r") as f:
-        XBEST = json.load(f)
+    params = load_cma_params(os.path.join(config.CMA_DIR, "top1_params.json"))
     (
         # max_positions,
         long_open_prob_thresa,
@@ -114,8 +114,15 @@ def daily_trade_positions():
         long_close_prob_thresb,
         short_open_prob_thresb,
         short_close_prob_thresb,
-        increase_positions_count,
-    ) = list(XBEST)
+    ) = params[:8]
+    if len(params) >= 10:
+        long_pos_count = params[8]
+        short_pos_count = params[9]
+        increase_positions_count = (long_pos_count + short_pos_count) / 2
+    elif len(params) >= 9:
+        increase_positions_count = params[8]
+    else:
+        increase_positions_count = 0.0
 
     bench_start_date = pd.to_datetime(config.BENCHMARK_START_DATE, format="%Y-%m-%d")
     bench_end_date = pd.to_datetime(current_date, format="%Y-%m-%d")

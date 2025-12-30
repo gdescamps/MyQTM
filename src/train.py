@@ -105,8 +105,9 @@ def compute_gain(trade_data, threshold):
                     gain_min_norm = gain / gain_max
                 if item[stock]["gain"] < 0:
                     loss_count += 1
+                else:
+                    days_indexes.append(index)
                 count += 1
-                days_indexes.append(index)
     return gain, gain_min_norm, count, days_indexes, loss_count
 
 

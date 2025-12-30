@@ -30,6 +30,7 @@ from src.benchmark import compute_nasdaq_data, run_benchmark
 from src.cuda import auto_select_gpu
 from src.finetune import cmaes_grid_search_benchmark
 from src.path import get_project_root
+from src.params import save_cma_params, load_cma_params
 from src.plot import plot_portfolio_metrics
 from src.printlog import PrintLog, PrintLogProcess
 
@@ -37,12 +38,21 @@ from src.printlog import PrintLog, PrintLogProcess
 def clamp_x0_to_space(x0, space):
     if not x0:
         return x0
+    if isinstance(x0, dict):
+        x0 = [x0.get(dim.name) for dim in space if isinstance(dim, Real)]
     clipped = []
     for value, dim in zip(x0, space):
         if isinstance(dim, Real):
             low = dim.low
             high = dim.high
-            clipped.append(min(max(float(value), low), high))
+            if value is None:
+                clipped.append((low + high) / 2)
+            else:
+                clipped.append(min(max(float(value), low), high))
+    if len(clipped) < len(space):
+        for dim in space[len(clipped) :]:
+            if isinstance(dim, Real):
+                clipped.append((dim.low + dim.high) / 2)
     return clipped
 
 
@@ -65,7 +75,7 @@ def load_thresholds(train_dir):
     return None
 
 
-def override_open_threshold_bounds(space, thresholds, margin=0.05):
+def override_open_threshold_bounds(space, thresholds, margin=0.1):
     if not thresholds:
         return space
     label_to_space_name = {
@@ -143,6 +153,7 @@ def run_single_random_state(
         local_log=None,
     )
     # Extract optimized trading parameters
+    params = list(xbest)
     (
         long_open_prob_thresa,
         long_close_prob_thresa,
@@ -156,7 +167,11 @@ def run_single_random_state(
         short_pos_count,
         long_pos_pow,
         short_pos_pow,
-    ) = list(xbest)
+    ) = params[:12]
+    if len(params) >= 13:
+        trend_score_thres = params[12]
+    else:
+        trend_score_thres = config.TREND_SCORE_THRES
 
     # Initialize performance tracking lists
     performances = []
@@ -183,6 +198,7 @@ def run_single_random_state(
             SHORT_POS_COUNT=short_pos_count,
             LONG_POS_POW=long_pos_pow,
             SHORT_POS_POW=short_pos_pow,
+            TREND_SCORE_THRES=trend_score_thres,
             MODEL_PATH=config.TRAIN_DIR,
             data_path=None,
             remove_stocks=remove_stocks,
@@ -211,6 +227,7 @@ def run_single_random_state(
             SHORT_POS_COUNT=short_pos_count,
             LONG_POS_POW=long_pos_pow,
             SHORT_POS_POW=short_pos_pow,
+            TREND_SCORE_THRES=trend_score_thres,
             MODEL_PATH=config.TRAIN_DIR,
             data_path=None,
             remove_stocks=remove_stocks,
@@ -247,8 +264,7 @@ def run_single_random_state(
     # Save optimized parameters to JSON file
     best_param = list(xbest)
     params_path = os.path.join(local_log.output_dir_time, f"params_{random_state}.json")
-    with open(params_path, "w") as f:
-        json.dump(best_param, f, indent=2)
+    save_cma_params(params_path, best_param)
 
     # Save global performance metric to JSON file
     perf_path = os.path.join(local_log.output_dir_time, f"perf_{random_state}.json")
@@ -522,8 +538,7 @@ if __name__ == "__main__":
             ):
 
                 top_params_path = os.path.join(config.CMA_DIR, f"top{top}_params.json")
-                with open(top_params_path, "r") as f:
-                    best_param = json.load(f)
+                best_param = load_cma_params(top_params_path)
                 init_x0 = clamp_x0_to_space(best_param, init_space)
                 init_cma_std = config.INIT_CMA_STD / (iter + 1)  # Reduce std for finer
 
