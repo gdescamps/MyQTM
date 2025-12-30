@@ -809,7 +809,7 @@ if __name__ == "__main__":
                 range(
                     int(config.FEATURES_2ND_RATIO_SEARCH * len(importance)),
                     len(importance),
-                    1,
+                    config.FEATURES_2ND_STEP_SEARCH,
                 )
             ),
         )

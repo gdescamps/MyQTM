@@ -380,10 +380,11 @@ PARAM_GRID = {
     "mean_std_power": [1.71],
     "mean_std_power_2nd": [1.1],
     # Top features search range
-    "top_features": list(range(150, 200, 3)),
+    "top_features": list(range(150, 200, 5)),
 }
 
 FEATURES_2ND_RATIO_SEARCH = 0.6
+FEATURES_2ND_STEP_SEARCH = 3
 F1_THRESHOLD_STEP = 0.0002
 OPEN_INDEX_DELAY = 2
 NEW_OPEN = True
