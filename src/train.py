@@ -307,6 +307,16 @@ def format_threshold_details(
     return "\n".join(lines)
 
 
+def save_best_thresholds(output_dir, labels, thresholds):
+    thresholds_payload = {
+        "labels": list(labels),
+        "thresholds": [float(threshold) for threshold in thresholds],
+    }
+    latest_path = os.path.join(output_dir, "best_thresholds.json")
+    with open(latest_path, "w") as f:
+        json.dump(thresholds_payload, f, indent=2)
+
+
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description="Train XGBoost models.")
@@ -681,6 +691,11 @@ if __name__ == "__main__":
             best_selected_features = selected_features.copy()
             best_f1_callbacka_best_iter = f1_callbacka.best_iter
             best_f1_callbackb_best_iter = f1_callbackb.best_iter
+            save_best_thresholds(
+                local_log.output_dir_time,
+                THRESHOLD_SEGMENT_LABELS,
+                thresholds,
+            )
 
             with local_log:
                 print("\n")
@@ -791,7 +806,7 @@ if __name__ == "__main__":
             param_grid["mean_std_power_2nd"],
             list(
                 range(
-                    int(0.6 * len(importance)),
+                    int(config.FEATURES_2ND_RATIO_SEARCH * len(importance)),
                     len(importance),
                     1,
                 )
@@ -929,6 +944,11 @@ if __name__ == "__main__":
             best_selected_features = selected_features.copy()
             best_f1_callbacka_best_iter = f1_callbacka.best_iter
             best_f1_callbackb_best_iter = f1_callbackb.best_iter
+            save_best_thresholds(
+                local_log.output_dir_time,
+                THRESHOLD_SEGMENT_LABELS,
+                thresholds,
+            )
             with local_log:
                 print("\n")
                 print(f"Best model params: {params_grid}")
