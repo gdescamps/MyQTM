@@ -347,7 +347,7 @@ INIT_SPACE = [  # Important increase params favor better safety
 # XGBoost model training parameter grid
 PARAM_GRID = {
     "patience": [100],
-    "max_depth": [9],
+    "max_depth": [7],
     "learning_rate": [0.01],
     "subsample": [0.6],
     "colsample_bytree": [0.7],
@@ -361,9 +361,10 @@ PARAM_GRID = {
     "mean_std_power": [1.71],
     "mean_std_power_2nd": [1.1],
     # Top features search range
-    "top_features": list(range(70, 200, 3)),
+    "top_features": list(range(70, 90, 3)),
 }
 
+FEATURES_2ND_RATIO_SEARCH = 0.6
 F1_THRESHOLD_STEP = 0.0002
 OPEN_INDEX_DELAY = 2
 NEW_OPEN = True
