@@ -299,15 +299,14 @@ def sort_perfs(random_states, SEARCH_DIR):
         repo_root = str(get_project_root())
         branch = run_git(["rev-parse", "--abbrev-ref", "HEAD"], repo_root)
         last_commit_sha = run_git(["rev-parse", "HEAD"], repo_root)
-        last_commit = run_git(
-            ["log", "-1", "--pretty=format:%H %an %ad %s"], repo_root
-        )
+        last_commit = run_git(["log", "-1", "--pretty=format:%H %an %ad %s"], repo_root)
         last_commits_messages = run_git(
             ["log", "-5", "--pretty=format:%h %s"], repo_root
         )
         status = run_git(["status", "-sb"], repo_root)
         diff_stat = run_git(["diff", "--stat"], repo_root)
         diff_numstat = run_git(["diff", "--numstat"], repo_root)
+        diff_full = run_git(["diff"], repo_root)
         with open(path, "w") as f:
             f.write(f"branch: {branch}\n")
             f.write(f"last_commit_sha1: {last_commit_sha}\n")
@@ -320,6 +319,8 @@ def sort_perfs(random_states, SEARCH_DIR):
             f.write(f"{diff_stat}\n")
             f.write("diff_numstat:\n")
             f.write(f"{diff_numstat}\n")
+            f.write("diff_full:\n")
+            f.write(f"{diff_full}\n")
 
     all_dir = Path(config.ALL_DIR)
     best_dir = Path(config.BEST_DIR)
