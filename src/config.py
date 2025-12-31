@@ -319,12 +319,12 @@ TS_SIZE = 6
 
 
 # CMA-ES optimization parameters
-CMA_RECURSIVE = 1
-CMA_LOOPS = 100
+CMA_RECURSIVE = 2
+CMA_LOOPS = 150
 CMA_EARLY_STOP_ROUNDS = 30
 CMA_STOCKS_DROP_OUT_ROUND = 20
 CMA_STOCKS_DROP_OUT = 10
-CMA_PROCESSES = 32
+CMA_PROCESSES = 64
 CMA_PARALLEL_PROCESSES = 32
 TREND_SCORE_THRES = 0.6
 INIT_X0 = [
@@ -354,8 +354,8 @@ INIT_SPACE = [  # Important increase params favor better safety
     Real(0.1, 0.95, name="long_close_prob_thres_B"),
     Real(0.33, 0.95, name="short_open_prob_thres_B"),
     Real(0.1, 0.95, name="short_close_prob_thres_B"),
-    Real(0.55, 0.95, name="long_pos_count"),
-    Real(0.55, 0.95, name="short_pos_count"),
+    Real(0.75, 0.95, name="long_pos_count"),
+    Real(0.75, 0.95, name="short_pos_count"),
     Real(0.03, 0.2, name="long_pos_pow"),
     Real(0.03, 0.2, name="short_pos_pow"),
     Real(0.05, 0.2, name="pos_gain_close_thres"),
@@ -366,7 +366,7 @@ CMA_PARAM_NAMES = [dim.name for dim in INIT_SPACE]
 # XGBoost model training parameter grid
 PARAM_GRID = {
     "patience": [100],
-    "max_depth": [6],
+    "max_depth": [7],
     "learning_rate": [0.01],
     "subsample": [0.6],
     "colsample_bytree": [0.7],
@@ -378,13 +378,10 @@ PARAM_GRID = {
     # search power value that provides
     # best feature importance rank to maximize F1
     "mean_std_power": [1.71],
-    "mean_std_power_2nd": [1.1],
     # Top features search range
-    "top_features": list(range(150, 200, 5)),
+    "top_features": list(range(165, 175, 1)),
 }
 
-FEATURES_2ND_RATIO_SEARCH = 0.6
-FEATURES_2ND_STEP_SEARCH = 3
 F1_THRESHOLD_STEP = 0.0002
 OPEN_INDEX_DELAY = 2
 NEW_OPEN = True
