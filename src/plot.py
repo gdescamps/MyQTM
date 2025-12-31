@@ -69,10 +69,9 @@ def plot_portfolio_metrics(metrics, nasdaq_metrics=None):
         )
         ratio_portfolio = 1.0 - ratio_portfolio
         trend_portfolio = m["portfolio"].get("trend_portfolio")
-        use_trend_colors = (
-            isinstance(trend_portfolio, (list, tuple, np.ndarray))
-            and len(trend_portfolio) == len(dates_portfolio)
-        )
+        use_trend_colors = isinstance(
+            trend_portfolio, (list, tuple, np.ndarray)
+        ) and len(trend_portfolio) == len(dates_portfolio)
 
         if len(values_portfolio) == 0:
             continue
@@ -161,8 +160,7 @@ def plot_portfolio_metrics(metrics, nasdaq_metrics=None):
                     marker=".",
                     linestyle="None",
                     markersize=3,
-                    alpha=0.6,
-                    zorder=0,
+                    alpha=0.1,
                 )
                 ax1_ratio.plot(
                     dates_portfolio[mask_short],
@@ -171,8 +169,7 @@ def plot_portfolio_metrics(metrics, nasdaq_metrics=None):
                     marker=".",
                     linestyle="None",
                     markersize=3,
-                    alpha=0.6,
-                    zorder=0,
+                    alpha=0.1,
                 )
                 ax1_ratio.plot(
                     dates_portfolio[mask_neutral],
@@ -181,8 +178,7 @@ def plot_portfolio_metrics(metrics, nasdaq_metrics=None):
                     marker=".",
                     linestyle="None",
                     markersize=3,
-                    alpha=0.6,
-                    zorder=0,
+                    alpha=0.1,
                 )
             else:
                 ax1_ratio.plot(
@@ -192,8 +188,7 @@ def plot_portfolio_metrics(metrics, nasdaq_metrics=None):
                     marker=".",
                     linestyle="None",
                     markersize=3,
-                    alpha=0.6,
-                    zorder=0,
+                    alpha=0.1,
                 )
 
         else:
@@ -224,8 +219,7 @@ def plot_portfolio_metrics(metrics, nasdaq_metrics=None):
                     marker=".",
                     linestyle="None",
                     markersize=2,
-                    alpha=0.4,
-                    zorder=0,
+                    alpha=0.1,
                 )
             else:
                 ax1_ratio.plot(
@@ -235,8 +229,7 @@ def plot_portfolio_metrics(metrics, nasdaq_metrics=None):
                     marker=".",
                     linestyle="None",
                     markersize=2,
-                    alpha=0.4,
-                    zorder=0,
+                    alpha=0.1,
                 )
                 ax1_ratio.plot(
                     dates_portfolio[mask_short],
@@ -245,8 +238,7 @@ def plot_portfolio_metrics(metrics, nasdaq_metrics=None):
                     marker=".",
                     linestyle="None",
                     markersize=2,
-                    alpha=0.4,
-                    zorder=0,
+                    alpha=0.1,
                 )
                 ax1_ratio.plot(
                     dates_portfolio[mask_neutral],
@@ -255,8 +247,7 @@ def plot_portfolio_metrics(metrics, nasdaq_metrics=None):
                     marker=".",
                     linestyle="None",
                     markersize=2,
-                    alpha=0.4,
-                    zorder=0,
+                    alpha=0.1,
                 )
     ax1.set_ylim(bottom=ymin, top=ymax)
     ax1.set_ylabel("Portfolio Value ($) / NASDAQ (log scale)", color="tab:blue")
@@ -415,7 +406,7 @@ def plot_portfolio_metrics(metrics, nasdaq_metrics=None):
         transform=ax1.transAxes,
         fontsize=12,
         verticalalignment="top",
-        bbox=dict(boxstyle="round", facecolor="white", alpha=0.7),
+        bbox=dict(boxstyle="round", facecolor="white", alpha=0.8),
     )
 
     custom_lines = []
