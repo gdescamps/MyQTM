@@ -85,10 +85,12 @@ def compute_perf(trade_data, threshold):
     gain_min_norm = 1.0
     count = 0
     loss_count = 0
-    days_indexes = []
+    opportunity_days = []
+    opportunity_gains = []
     sorted_keys = list(sorted(trade_data.keys()))
     for index, current_date in enumerate(sorted_keys):
         item = trade_data[current_date]
+        candidates = []
         for stock in item:
             if "gain" not in item[stock]:
                 continue
@@ -98,16 +100,26 @@ def compute_perf(trade_data, threshold):
             elif item[stock]["index_short"] == 0:
                 yprob = item[stock]["ybear"]
             if yprob >= threshold:
-                gain *= 1.0 + item[stock]["gain"]
-                if gain > gain_max:
-                    gain_max = gain
-                if gain / gain_max < gain_min_norm:
-                    gain_min_norm = gain / gain_max
-                if item[stock]["gain"] < 0:
-                    loss_count += 1
-                else:
-                    days_indexes.append(index)
-                count += 1
+                candidates.append((yprob, item[stock]["gain"]))
+
+        if not candidates:
+            continue
+
+        candidates.sort(key=lambda entry: entry[0], reverse=True)
+        selected = candidates[:3]
+        day_gain = 1.0
+        for _, trade_gain in selected:
+            gain *= 1.0 + trade_gain
+            day_gain *= 1.0 + trade_gain
+            if gain > gain_max:
+                gain_max = gain
+            if gain / gain_max < gain_min_norm:
+                gain_min_norm = gain / gain_max
+            if trade_gain < 0:
+                loss_count += 1
+            count += 1
+        opportunity_days.append(index)
+        opportunity_gains.append(day_gain)
 
     gain_per_trade = 1
     if count:
@@ -116,15 +128,23 @@ def compute_perf(trade_data, threshold):
     if gain_min_norm >= 0.7:
         discount = gain_min_norm
 
-    std_days = 0
-    days_indexes = list(set(days_indexes))
-    if len(days_indexes) > 0 and np.mean(days_indexes):
-        std_days = 0.01 * np.std(days_indexes)
-    score = std_days * (gain_per_trade - 1.0) * len(days_indexes) * discount
+    regularity = 0.0
+    if len(opportunity_days) > 50:
+        intervals = np.diff(opportunity_days)
+        weights = np.sqrt(
+            np.maximum(np.array(opportunity_gains[:-1]), 1e-6)
+            * np.maximum(np.array(opportunity_gains[1:]), 1e-6)
+        )
+        mean_interval = np.average(intervals, weights=weights)
+        variance = np.average((intervals - mean_interval) ** 2, weights=weights)
+        std_interval = np.sqrt(variance)
+        regularity = mean_interval / (1.0 + std_interval)
+
+    score = regularity * (gain_per_trade - 1.0) * len(opportunity_days) * discount
 
     dd = -(1.0 - gain_min_norm)
 
-    return gain_per_trade, dd, count, score
+    return gain_per_trade, dd, len(opportunity_days), score
 
 
 def search_threshold_for_perf(
@@ -965,4 +985,4 @@ if __name__ == "__main__":
         with open(ntree_limit_path, "w") as f:
             json.dump({"ntree_limit": int(best_f1_callbackb_best_iter + 1)}, f)
 
-    local_log.copy_last()
+    # local_log.copy_last()
