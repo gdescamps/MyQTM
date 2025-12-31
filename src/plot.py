@@ -68,11 +68,6 @@ def plot_portfolio_metrics(metrics, nasdaq_metrics=None):
             where=values_portfolio != 0,
         )
         ratio_portfolio = 1.0 - ratio_portfolio
-        trend_portfolio = m["portfolio"].get("trend_portfolio")
-        use_trend_colors = isinstance(
-            trend_portfolio, (list, tuple, np.ndarray)
-        ) and len(trend_portfolio) == len(dates_portfolio)
-
         if len(values_portfolio) == 0:
             continue
 
@@ -148,48 +143,15 @@ def plot_portfolio_metrics(metrics, nasdaq_metrics=None):
                 linestyle="None",
                 markersize=4,
             )
-            if use_trend_colors:
-                trend_portfolio = np.array(trend_portfolio)
-                mask_long = trend_portfolio == "long"
-                mask_short = trend_portfolio == "short"
-                mask_neutral = ~(mask_long | mask_short)
-                ax1_ratio.plot(
-                    dates_portfolio[mask_long],
-                    ratio_portfolio[mask_long],
-                    color="green",
-                    marker=".",
-                    linestyle="None",
-                    markersize=3,
-                    alpha=0.1,
-                )
-                ax1_ratio.plot(
-                    dates_portfolio[mask_short],
-                    ratio_portfolio[mask_short],
-                    color="red",
-                    marker=".",
-                    linestyle="None",
-                    markersize=3,
-                    alpha=0.1,
-                )
-                ax1_ratio.plot(
-                    dates_portfolio[mask_neutral],
-                    ratio_portfolio[mask_neutral],
-                    color="gray",
-                    marker=".",
-                    linestyle="None",
-                    markersize=3,
-                    alpha=0.1,
-                )
-            else:
-                ax1_ratio.plot(
-                    dates_portfolio,
-                    ratio_portfolio,
-                    color="#f28b82",
-                    marker=".",
-                    linestyle="None",
-                    markersize=3,
-                    alpha=0.1,
-                )
+            ax1_ratio.plot(
+                dates_portfolio,
+                ratio_portfolio,
+                color="#f28b82",
+                marker=".",
+                linestyle="None",
+                markersize=2,
+                alpha=0.05
+            )
 
         else:
             # Use a different color for each additional portfolio
@@ -207,48 +169,15 @@ def plot_portfolio_metrics(metrics, nasdaq_metrics=None):
                 linestyle="None",
                 markersize=2,
             )
-            if use_trend_colors:
-                trend_portfolio = np.array(trend_portfolio)
-                mask_long = trend_portfolio == "long"
-                mask_short = trend_portfolio == "short"
-                mask_neutral = ~(mask_long | mask_short)
-                ax1_ratio.plot(
-                    dates_portfolio[mask_long],
-                    ratio_portfolio[mask_long],
-                    color="green",
-                    marker=".",
-                    linestyle="None",
-                    markersize=2,
-                    alpha=0.1,
-                )
-            else:
-                ax1_ratio.plot(
-                    dates_portfolio,
-                    ratio_portfolio,
-                    color="#f28b82",
-                    marker=".",
-                    linestyle="None",
-                    markersize=2,
-                    alpha=0.1,
-                )
-                ax1_ratio.plot(
-                    dates_portfolio[mask_short],
-                    ratio_portfolio[mask_short],
-                    color="red",
-                    marker=".",
-                    linestyle="None",
-                    markersize=2,
-                    alpha=0.1,
-                )
-                ax1_ratio.plot(
-                    dates_portfolio[mask_neutral],
-                    ratio_portfolio[mask_neutral],
-                    color="gray",
-                    marker=".",
-                    linestyle="None",
-                    markersize=2,
-                    alpha=0.1,
-                )
+            ax1_ratio.plot(
+                dates_portfolio,
+                ratio_portfolio,
+                color="#f28b82",
+                marker=".",
+                linestyle="None",
+                markersize=2,
+                alpha=0.05,
+            )
     ax1.set_ylim(bottom=ymin, top=ymax)
     ax1.set_ylabel("Portfolio Value ($) / NASDAQ (log scale)", color="tab:blue")
     ax1.tick_params(axis="y", labelcolor="tab:blue")
