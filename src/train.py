@@ -997,4 +997,4 @@ if __name__ == "__main__":
         with open(ntree_limit_path, "w") as f:
             json.dump({"ntree_limit": int(best_f1_callbackb_best_iter + 1)}, f)
 
-    # local_log.copy_last()
+    local_log.copy_last()
