@@ -39,6 +39,7 @@ from config import (
     INITIAL_CAPITAL,
     TRAIN_DIR,
 )
+from src.params import load_cma_params
 from src.path import get_project_root
 from src.plot import plot_portfolio_metrics
 from src.printlog import PrintLog
@@ -52,7 +53,6 @@ from src.trade import (
     select_positions_to_close,
     select_positions_to_open,
 )
-from src.params import load_cma_params
 
 
 def compute_item_trend(item, trend_score_thres):
@@ -635,11 +635,7 @@ def run_benchmark(
         bench_start_date,
         bench_end_date,
         INIT_CAPITAL,
-        (
-            config.TREND_SCORE_THRES
-            if TREND_SCORE_THRES is None
-            else TREND_SCORE_THRES
-        ),
+        (config.TREND_SCORE_THRES if TREND_SCORE_THRES is None else TREND_SCORE_THRES),
         LONG_OPEN_PROB_THRES_A,
         LONG_CLOSE_PROB_THRES_A,
         SHORT_OPEN_PROB_THRES_A,
