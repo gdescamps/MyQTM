@@ -124,9 +124,9 @@ def compute_perf(trade_data, threshold):
     gain_per_trade = 1
     if count:
         gain_per_trade = gain ** (1 / count)
-    discount = gain_min_norm**6.0
+    dd_discount = gain_min_norm**3.0
     if gain_min_norm >= 0.7:
-        discount = gain_min_norm
+        dd_discount = gain_min_norm
 
     regularity = 0.0
     if len(opportunity_days) > 50:
@@ -140,7 +140,19 @@ def compute_perf(trade_data, threshold):
         std_interval = np.sqrt(variance)
         regularity = mean_interval / (1.0 + std_interval)
 
-    score = regularity * (gain_per_trade - 1.0) * len(opportunity_days) * discount
+    span_factor = 0.0
+    if opportunity_days:
+        span = max(opportunity_days) - min(opportunity_days)
+        total_span = max(len(sorted_keys) - 1, 1)
+        span_factor = span / total_span
+
+    score = (
+        regularity
+        * span_factor
+        * (gain_per_trade - 1.0)
+        * (len(opportunity_days) ** 1.5)
+        * dd_discount
+    )
 
     dd = -(1.0 - gain_min_norm)
 
@@ -667,7 +679,7 @@ if __name__ == "__main__":
             json.dump({"ntree_limit": int(f1_callbackb.best_iter + 1)}, f)
 
         (scores, counts, gain_per_trades, dds, thresholds) = search_perfs_threshold()
-        score = np.mean(scores) - np.std(scores)
+        score = np.mean(scores)
 
         if score > best_score:
             best_score = score
@@ -910,7 +922,7 @@ if __name__ == "__main__":
             json.dump({"ntree_limit": int(f1_callbackb.best_iter + 1)}, f)
 
         (scores, counts, gain_per_trades, dds, thresholds) = search_perfs_threshold()
-        score = np.mean(scores) - np.std(scores)
+        score = np.mean(scores)
 
         # Update best model if positions score improved.
         if score > best_score:
