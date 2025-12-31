@@ -79,7 +79,7 @@ class EvalF1Callback(TrainingCallback):
         return False  # continue training
 
 
-def compute_gain(trade_data, threshold):
+def compute_perf(trade_data, threshold):
     gain = 1.0
     gain_max = 1.0
     gain_min_norm = 1.0
@@ -108,7 +108,23 @@ def compute_gain(trade_data, threshold):
                 else:
                     days_indexes.append(index)
                 count += 1
-    return gain, gain_min_norm, count, days_indexes, loss_count
+
+    gain_per_trade = 1
+    if count:
+        gain_per_trade = gain ** (1 / count)
+    discount = gain_min_norm**6.0
+    if gain_min_norm >= 0.7:
+        discount = gain_min_norm
+
+    std_days = 0
+    days_indexes = list(set(days_indexes))
+    if len(days_indexes) > 0 and np.mean(days_indexes):
+        std_days = 0.01 * np.std(days_indexes)
+    score = std_days * (gain_per_trade - 1.0) * len(days_indexes) * discount
+
+    dd = -(1.0 - gain_min_norm)
+
+    return gain_per_trade, dd, count, score
 
 
 def search_threshold_for_perf(
@@ -119,46 +135,25 @@ def search_threshold_for_perf(
 ):
     best_score = 0
     best_count = 0
-    best_loss_count = 0
-    best_gain_min_norm = 0
     best_gain_per_trade = 0
     best_threshold = 0
-    best_std_days = 0
 
     thresholds = np.arange(threshold_min, threshold_max, threshold_step)
     for threshold in tqdm(thresholds, leave=False):
-        gain, gain_min_norm, count, days_indexes, loss_count = compute_gain(
-            trade_data, threshold
-        )
-        gain_per_trade = 1
-        if count:
-            gain_per_trade = gain ** (1 / count)
-        discount = gain_min_norm**6.0
-        if gain_min_norm >= 0.7:
-            discount = gain_min_norm
-
-        std_days = 0
-        days_indexes = list(set(days_indexes))
-        if len(days_indexes) > 0 and np.mean(days_indexes):
-            std_days = 0.01 * np.std(days_indexes)
-        score = std_days * (gain_per_trade - 1.0) * len(days_indexes) * discount
+        gain_per_trade, dd, count, score = compute_perf(trade_data, threshold)
         if score > best_score:
             best_score = score
             best_count = count
-            best_loss_count = loss_count
-            best_gain_min_norm = gain_min_norm
+            best_dd = dd
             best_threshold = threshold
             best_gain_per_trade = gain_per_trade
-            best_std_days = std_days
 
     return (
         best_score,
         best_threshold,
         best_gain_per_trade,
-        best_gain_min_norm,
+        best_dd,
         best_count,
-        best_loss_count,
-        best_std_days,
     )
 
 
@@ -236,38 +231,30 @@ def search_perfs_threshold():
 
     thresholds = []
     counts = []
-    loss_counts = []
     gain_per_trades = []
-    gain_min_norms = []
+    dds = []
     scores = []
-    std_days = []
 
     for trade_data_segment in segments:
         (
             score,
             threshold,
             gain_per_trade,
-            gain_min_norm,
+            dd,
             count,
-            loss_count,
-            std_day,
         ) = search_threshold_for_perf(trade_data_segment)
         counts.append(int(count))
-        loss_counts.append(int(loss_count))
         gain_per_trades.append(float(gain_per_trade))
-        gain_min_norms.append(float(gain_min_norm))
+        dds.append(float(dd))
         thresholds.append(float(threshold))
         scores.append(score)
-        std_days.append(std_day)
 
     return (
         scores,
         counts,
-        loss_counts,
         gain_per_trades,
-        gain_min_norms,
+        dds,
         thresholds,
-        std_days,
     )
 
 
@@ -278,32 +265,20 @@ def format_threshold_details(
     labels,
     thresholds,
     counts,
-    loss_counts,
     gain_per_trades,
-    gain_min_norms,
-    std_days,
+    dds,
 ):
     lines = []
-    for (
-        label,
-        threshold,
-        count,
-        loss_count,
-        gain_per_trade,
-        gain_min_norm,
-        std_day,
-    ) in zip(
+    for label, threshold, count, gain_per_trade, dd in zip(
         labels,
         thresholds,
         counts,
-        loss_counts,
         gain_per_trades,
-        gain_min_norms,
-        std_days,
+        dds,
     ):
         lines.append(
             f"{label}: thres={threshold:.3f}, count={int(count)}, "
-            f"gain={gain_per_trade:.3f}, dd={-(1.0-gain_min_norm):.3f}, std_days={std_day:.2f}"
+            f"gain={gain_per_trade:.3f}, dd={dd:.3f}"
         )
     return "\n".join(lines)
 
@@ -671,15 +646,7 @@ if __name__ == "__main__":
         with open(ntree_limit_path, "w") as f:
             json.dump({"ntree_limit": int(f1_callbackb.best_iter + 1)}, f)
 
-        (
-            scores,
-            counts,
-            loss_counts,
-            gain_per_trades,
-            gain_min_norms,
-            thresholds,
-            std_days,
-        ) = search_perfs_threshold()
+        (scores, counts, gain_per_trades, dds, thresholds) = search_perfs_threshold()
         score = np.mean(scores) - np.std(scores)
 
         if score > best_score:
@@ -713,10 +680,8 @@ if __name__ == "__main__":
                         THRESHOLD_SEGMENT_LABELS,
                         thresholds,
                         counts,
-                        loss_counts,
                         gain_per_trades,
-                        gain_min_norms,
-                        std_days,
+                        dds,
                     )
                 )
         else:
@@ -727,10 +692,8 @@ if __name__ == "__main__":
                     THRESHOLD_SEGMENT_LABELS,
                     thresholds,
                     counts,
-                    loss_counts,
                     gain_per_trades,
-                    gain_min_norms,
-                    std_days,
+                    dds,
                 )
             )
             pass
@@ -926,15 +889,7 @@ if __name__ == "__main__":
         with open(ntree_limit_path, "w") as f:
             json.dump({"ntree_limit": int(f1_callbackb.best_iter + 1)}, f)
 
-        (
-            scores,
-            counts,
-            loss_counts,
-            gain_per_trades,
-            gain_min_norms,
-            thresholds,
-            std_days,
-        ) = search_perfs_threshold()
+        (scores, counts, gain_per_trades, dds, thresholds) = search_perfs_threshold()
         score = np.mean(scores) - np.std(scores)
 
         # Update best model if positions score improved.
@@ -962,10 +917,8 @@ if __name__ == "__main__":
                         THRESHOLD_SEGMENT_LABELS,
                         thresholds,
                         counts,
-                        loss_counts,
                         gain_per_trades,
-                        gain_min_norms,
-                        std_days,
+                        dds,
                     )
                 )
         else:
@@ -976,10 +929,8 @@ if __name__ == "__main__":
                     THRESHOLD_SEGMENT_LABELS,
                     thresholds,
                     counts,
-                    loss_counts,
                     gain_per_trades,
-                    gain_min_norms,
-                    std_days,
+                    dds,
                 )
             )
             pass
