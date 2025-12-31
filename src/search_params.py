@@ -243,7 +243,7 @@ def run_single_random_state(
         return
 
     # Save combined metrics plot
-    png_path = os.path.join(local_log.output_dir_time, f"best_{random_state}.png")
+    png_path = os.path.join(local_log.output_dir_time, f"results_{random_state}.png")
 
     nasdaq_metrics = compute_nasdaq_data(
         BENCH_START_DATE=config.BENCHMARK_START_DATE,
@@ -362,8 +362,8 @@ def sort_perfs(random_states, SEARCH_DIR):
             all_dir / f"positions_{uid}.json",
         )
         copy_if_exists(
-            Path(SEARCH_DIR) / f"best_{random_state}.png",
-            all_dir / f"best_{uid}.png",
+            Path(SEARCH_DIR) / f"results_{random_state}.png",
+            all_dir / f"results_{uid}.png",
         )
 
         train_log = Path(config.TRAIN_DIR) / "print.log"
@@ -371,10 +371,6 @@ def sort_perfs(random_states, SEARCH_DIR):
 
         code_log_path = all_dir / f"code_{uid}.log"
         write_code_log(code_log_path)
-
-    for existing in best_dir.glob("top_*"):
-        if existing.is_file():
-            existing.unlink()
 
     all_perfs = []
     for perf_path in all_dir.glob("perf_*.json"):
@@ -390,38 +386,34 @@ def sort_perfs(random_states, SEARCH_DIR):
         uid = entry["uid"]
         copy_if_exists(
             all_dir / f"perf_{uid}.json",
-            best_dir / f"top_{rank}_perf.json",
+            best_dir / f"best_{rank}_perf.json",
         )
         copy_if_exists(
             all_dir / f"params_{uid}.json",
-            best_dir / f"top_{rank}_params.json",
+            best_dir / f"best_{rank}_params.json",
         )
         copy_if_exists(
             all_dir / f"params_{uid}.json",
-            last_cma_dir / f"top{rank}_params.json",
+            last_cma_dir / f"best{rank}_params.json",
         )
         copy_if_exists(
             all_dir / f"positions_{uid}.json",
-            best_dir / f"top_{rank}_positions.json",
+            best_dir / f"best_{rank}_positions.json",
         )
         copy_if_exists(
             all_dir / f"model_{uid}.log",
-            best_dir / f"top_{rank}_model.log",
+            best_dir / f"best_{rank}_model.log",
         )
         copy_if_exists(
             all_dir / f"code_{uid}.log",
-            best_dir / f"top_{rank}_code.log",
+            best_dir / f"best_{rank}_code.log",
         )
         copy_if_exists(
-            all_dir / f"best_{uid}.png",
-            best_dir / f"top_{rank}.png",
+            all_dir / f"results_{uid}.png",
+            best_dir / f"best_{rank}.png",
         )
 
     local_best_dir = Path(SEARCH_DIR)
-    for existing in local_best_dir.glob("top_*"):
-        if existing.is_file():
-            existing.unlink()
-
     local_perfs = []
     for perf_path in local_best_dir.glob("perf_*.json"):
         perf = safe_json_load(perf_path)
@@ -437,28 +429,28 @@ def sort_perfs(random_states, SEARCH_DIR):
         uid = entry["uid"]
         copy_if_exists(
             local_best_dir / f"perf_{uid}.json",
-            local_best_dir / f"top_{rank}_perf.json",
+            local_best_dir / f"best_{rank}_perf.json",
         )
         copy_if_exists(
             local_best_dir / f"params_{uid}.json",
-            local_best_dir / f"top_{rank}_params.json",
+            local_best_dir / f"best_{rank}_params.json",
         )
         copy_if_exists(
             local_best_dir / f"params_{uid}.json",
-            local_best_dir / f"top{rank}_params.json",
+            local_best_dir / f"best{rank}_params.json",
         )
         copy_if_exists(
             local_best_dir / f"positions_{uid}.json",
-            local_best_dir / f"top_{rank}_positions.json",
+            local_best_dir / f"best_{rank}_positions.json",
         )
         copy_if_exists(
             train_log,
-            local_best_dir / f"top_{rank}_model.log",
+            local_best_dir / f"best_{rank}_model.log",
         )
-        write_code_log(local_best_dir / f"top_{rank}_code.log")
+        write_code_log(local_best_dir / f"best_{rank}_code.log")
         copy_if_exists(
-            local_best_dir / f"best_{uid}.png",
-            local_best_dir / f"top_{rank}.png",
+            local_best_dir / f"results_{uid}.png",
+            local_best_dir / f"best_{rank}.png",
         )
 
 
@@ -548,11 +540,13 @@ if __name__ == "__main__":
                 ),
             ):
 
-                top_params_path = os.path.join(config.CMA_DIR, f"top{top}_params.json")
-                if not os.path.exists(top_params_path):
-                    print(f"Missing CMA params: {top_params_path}, skip top{top}.")
+                best_params_path = os.path.join(
+                    config.CMA_DIR, f"best{top}_params.json"
+                )
+                if not os.path.exists(best_params_path):
+                    print(f"Missing CMA params: {best_params_path}, skip best{top}.")
                     continue
-                best_param = load_cma_params(top_params_path)
+                best_param = load_cma_params(best_params_path)
                 init_x0 = clamp_x0_to_space(best_param, init_space)
                 init_cma_std = config.INIT_CMA_STD / (iter + 1)  # Reduce std for finer
 
