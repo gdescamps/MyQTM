@@ -390,16 +390,20 @@ def open_positions(
     return positions, capital, positions_to_open
 
 
-def build_positions_to_open(positions_long_to_open, positions_short_to_open):
+def build_positions_to_open(
+    positions_long_to_open, positions_short_to_open, long_short_score, trend_score_rate
+):
     """
-    Combines long and short candidate positions into one sorted list by yprob.
+    Combines long and short candidate positions into one sorted list by weighted yprob.
 
     Args:
         positions_long_to_open (list): List of long positions to open.
         positions_short_to_open (list): List of short positions to open.
+        long_short_score (float): Score in [0, 1] favoring long vs short trend.
+        trend_score_rate (float): Amplification rate applied to trend weighting.
 
     Returns:
-        list: Combined positions to open, sorted by descending yprob.
+        list: Combined positions to open, sorted by descending weighted yprob.
     """
     positions_to_open = []
     for item in positions_long_to_open:
@@ -410,7 +414,18 @@ def build_positions_to_open(positions_long_to_open, positions_short_to_open):
         item_copy = item.copy()
         item_copy["type"] = "short"
         positions_to_open.append(item_copy)
-    positions_to_open.sort(key=lambda x: x["yprob"], reverse=True)
+
+    trend_bias = min(max(long_short_score, 0.0), 1.0)
+    trend_bias = trend_bias - 0.5
+
+    def weighted_yprob(position):
+        if position["type"] == "long":
+            weight = 1.0 + trend_score_rate * trend_bias
+        else:
+            weight = 1.0 - trend_score_rate * trend_bias
+        return position["yprob"] * weight
+
+    positions_to_open.sort(key=weighted_yprob, reverse=True)
     return positions_to_open
 
 
@@ -481,8 +496,7 @@ def select_positions_to_close(
     item,
     long_close_prob_thres,
     short_close_prob_thres,
-    positions_long_to_open,
-    positions_short_to_open,
+    positions_to_open,
     capital,
     capital_and_position,
     pos_gain_close_thres=0.1,
@@ -526,10 +540,13 @@ def select_positions_to_close(
     if (
         config.NEW_OPEN
         and capital_percent < 5.0
-        and (len(positions_long_to_open) > 0 or len(positions_short_to_open) > 0)
+        and (len(positions_to_open) > 0)
         and len(positions_long_to_close) == 0
         and len(positions_short_to_close) == 0
     ):
+        best_pos = None
+        best_pos_index = None
+        best_pos_gain = None
         for pos_index, pos in enumerate(positions):
             open_price = pos["open_price"]
             close_price = item[pos["ticker"]]["open"]
@@ -537,15 +554,19 @@ def select_positions_to_close(
                 pos_gain = (close_price - open_price) / open_price
             else:
                 pos_gain = (open_price - close_price) / open_price
-            if pos_gain > pos_gain_close_thres:
-                if pos["type"] == "long":
-                    pos["close_reason"] = "new_open"
-                    positions_long_to_close.append(pos)
-                    remove_pos_indexes.append(pos_index)
-                elif pos["type"] == "short":
-                    pos["close_reason"] = "new_open"
-                    positions_short_to_close.append(pos)
-                    remove_pos_indexes.append(pos_index)
+            if pos_gain > pos_gain_close_thres and (
+                best_pos_gain is None or pos_gain > best_pos_gain
+            ):
+                best_pos = pos
+                best_pos_index = pos_index
+                best_pos_gain = pos_gain
+        if best_pos is not None:
+            best_pos["close_reason"] = "new_open"
+            if best_pos["type"] == "long":
+                positions_long_to_close.append(best_pos)
+            elif best_pos["type"] == "short":
+                positions_short_to_close.append(best_pos)
+            remove_pos_indexes.append(best_pos_index)
 
     return positions_long_to_close, positions_short_to_close, remove_pos_indexes
 

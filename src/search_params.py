@@ -154,7 +154,7 @@ def run_single_random_state(
     )
     # Extract optimized trading parameters
     params = list(xbest)
-    params_extended = params + [0.1, config.TREND_SCORE_THRES]
+    params_extended = params + [0.1, config.TREND_SCORE_RATE]
     (
         long_open_prob_thresa,
         long_close_prob_thresa,

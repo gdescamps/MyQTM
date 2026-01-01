@@ -55,17 +55,7 @@ from src.trade import (
 )
 
 
-def compute_item_trend(item, trend_score_thres):
-    """
-    Determine aggregated trend from item list using counts and probability levels.
-
-    Args:
-        item (dict): Mapping of ticker -> prediction data.
-        trend_score_thres (float): Score threshold in [0.5, 0.7] for trend decision.
-
-    Returns:
-        dict: Trend info with counts, scores, and trend label.
-    """
+def compute_item_trend(item):
     long_count = 0
     short_count = 0
     long_score = 0.0
@@ -81,22 +71,7 @@ def compute_item_trend(item, trend_score_thres):
             short_score += float(data.get("ybear", 0.0))
 
     score_total = long_score + short_score
-    if score_total == 0:
-        trend = "neutral"
-    elif long_score / score_total > trend_score_thres:
-        trend = "long"
-    elif short_score / score_total > trend_score_thres:
-        trend = "short"
-    else:
-        trend = "neutral"
-
-    return {
-        "trend": trend,
-        "long_count": int(long_count),
-        "short_count": int(short_count),
-        "long_score": float(long_score),
-        "short_score": float(short_score),
-    }
+    return long_score / score_total
 
 
 def compute_bench(
@@ -105,7 +80,7 @@ def compute_bench(
     bench_start_date,
     bench_end_date,
     capital,
-    trend_score_thres,
+    trend_score_rate,
     long_open_prob_thres_a,
     long_close_prob_thres_a,
     short_open_prob_thres_a,
@@ -157,6 +132,7 @@ def compute_bench(
     positions_long_to_close = []
     positions_short_to_open = []
     positions_short_to_close = []
+    positions_to_open = []
     positions = []
     positions_history = []
     prev_date = None
@@ -205,18 +181,6 @@ def compute_bench(
         item = bench_data[current_date]
 
         count_portfolio.append(len(item))
-        trend_info = compute_item_trend(item, trend_score_thres)
-        trend_portfolio.append(trend_info["trend"])
-        trend_stats.append(trend_info)
-
-        if trend_info["trend"] == "long":
-            positions_to_open = build_positions_to_open(positions_long_to_open, [])
-        elif trend_info["trend"] == "short":
-            positions_to_open = build_positions_to_open([], positions_short_to_open)
-        else:
-            positions_to_open = build_positions_to_open(
-                positions_long_to_open, positions_short_to_open
-            )
 
         positions, capital, _ = open_positions(
             positions_to_open,
@@ -300,6 +264,15 @@ def compute_bench(
             close_prob_thres=short_close_prob_thres,
         )
 
+        long_short_score = compute_item_trend(item)
+
+        positions_to_open = build_positions_to_open(
+            positions_long_to_open,
+            positions_short_to_open,
+            long_short_score,
+            trend_score_rate,
+        )
+
         # Compute positions to close
         positions_long_to_close, positions_short_to_close, remove_pos_indexes = (
             select_positions_to_close(
@@ -307,8 +280,7 @@ def compute_bench(
                 item,
                 long_close_prob_thres,
                 short_close_prob_thres,
-                positions_long_to_open,
-                positions_short_to_open,
+                positions_to_open,
                 capital,
                 capital_and_position,
                 pos_gain_close_thres,
@@ -635,7 +607,7 @@ def run_benchmark(
         bench_start_date,
         bench_end_date,
         INIT_CAPITAL,
-        (config.TREND_SCORE_THRES if TREND_SCORE_THRES is None else TREND_SCORE_THRES),
+        (config.TREND_SCORE_RATE if TREND_SCORE_THRES is None else TREND_SCORE_THRES),
         LONG_OPEN_PROB_THRES_A,
         LONG_CLOSE_PROB_THRES_A,
         SHORT_OPEN_PROB_THRES_A,
@@ -738,6 +710,10 @@ def run_benchmark(
         return max(0.0, weight)
 
     if float(annual_roi_mean) > 5.0 and longest_portfolio_drawdown > 5:
+        annual_roi_list = list(annual_roi.values())
+        n = 5  # number of values to multiply
+        mean_roi = np.mean(annual_roi_list[:n])
+        std_roi = np.std(annual_roi_list[:n])
         perf = (
             LONG_OPEN_PROB_THRES_A
             * SHORT_OPEN_PROB_THRES_A
@@ -751,11 +727,12 @@ def run_benchmark(
             * SHORT_POS_COUNT
             * gaussian_penalty_weight(long_rate, center=0.5, sigma=0.3)
             * gaussian_penalty_weight(AB_rate, center=0.5, sigma=0.3)
-            * portfolio_ret**5
+            * gaussian_penalty_weight(long_short_rate, center=0.7, sigma=0.15)
+            * mean_roi**7
             / (
                 0.01
                 * float(longest_portfolio_drawdown)
-                * (0.1 * float(annual_roi_std) + 0.5)
+                * (0.1 * float(std_roi) + 0.5)
                 * 10
                 * abs(float(portfolio_max_drawdown))
             )
@@ -824,7 +801,7 @@ if __name__ == "__main__":
         if os.path.exists(os.path.join(CMA_DIR, f"top{top}_params.json")):
 
             params = load_cma_params(os.path.join(CMA_DIR, f"top{top}_params.json"))
-            params_extended = params + [0.1, config.TREND_SCORE_THRES]
+            params_extended = params + [0.1, config.TREND_SCORE_RATE]
             (
                 # max_positions,
                 long_open_prob_thres_a,

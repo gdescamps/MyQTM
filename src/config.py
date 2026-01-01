@@ -42,7 +42,7 @@ from skopt.space import Real
 BASE_END_DATE_FILE = "2025-09-05"
 BASE_END_DATE = "2025-09-05"
 
-BENCHMARK_START_DATE = "2020-01-03"
+BENCHMARK_START_DATE = "2020-12-14"
 # BENCHMARK_END_DATE = "2025-09-05"
 BENCHMARK_END_DATE = "2025-12-19"
 
@@ -59,7 +59,7 @@ TRAIN_END_DATE = "2024-10-05"
 CMAES_END_DATE = BENCHMARK_END_DATE
 
 INITIAL_CAPITAL = (
-    8800  # Manual capital init to sync portforlio and nasdaq at BENCHMARK_START_DATE
+    12714  # Manual capital init to sync portforlio and nasdaq at BENCHMARK_START_DATE
 )
 
 DATA_DIR = "./data/"
@@ -324,9 +324,9 @@ CMA_LOOPS = 150
 CMA_EARLY_STOP_ROUNDS = 30
 CMA_STOCKS_DROP_OUT_ROUND = 20
 CMA_STOCKS_DROP_OUT = 10
-CMA_PROCESSES = 64
+CMA_PROCESSES = 128
 CMA_PARALLEL_PROCESSES = 32
-TREND_SCORE_THRES = 0.6
+TREND_SCORE_RATE = 0.6
 INIT_X0 = [
     0.8,
     0.33,
@@ -341,7 +341,7 @@ INIT_X0 = [
     0.1,
     0.1,
     0.1,
-    TREND_SCORE_THRES,
+    TREND_SCORE_RATE,
 ]
 INIT_CMA_STD = 0.2
 # CMA-ES optimization parameter space
@@ -354,12 +354,12 @@ INIT_SPACE = [  # Important increase params favor better safety
     Real(0.1, 0.95, name="long_close_prob_thres_B"),
     Real(0.33, 0.95, name="short_open_prob_thres_B"),
     Real(0.1, 0.95, name="short_close_prob_thres_B"),
-    Real(0.7, 0.95, name="long_pos_count"),
-    Real(0.7, 0.95, name="short_pos_count"),
+    Real(0.65, 0.95, name="long_pos_count"),
+    Real(0.65, 0.95, name="short_pos_count"),
     Real(0.03, 0.2, name="long_pos_pow"),
     Real(0.03, 0.2, name="short_pos_pow"),
     Real(0.05, 0.2, name="pos_gain_close_thres"),
-    Real(0.5, 0.7, name="trend_score_thres"),
+    Real(0.0, 0.99, name="trend_score_rate"),
 ]
 CMA_PARAM_NAMES = [dim.name for dim in INIT_SPACE]
 
