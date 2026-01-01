@@ -711,7 +711,7 @@ def run_benchmark(
 
     if float(annual_roi_mean) > 5.0 and longest_portfolio_drawdown > 5:
         annual_roi_list = list(annual_roi.values())
-        n = 5  # number of values to multiply
+        n = 5  # number of years to optimize
         mean_roi = np.mean(annual_roi_list[:n])
         std_roi = np.std(annual_roi_list[:n])
         perf = (
