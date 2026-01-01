@@ -33,10 +33,16 @@ from src.params import load_cma_params
 from src.path import get_project_root
 from src.plot import plot_portfolio_metrics
 from src.printlog import PrintLog
-from src.trade import (build_positions_to_open, build_trade_data,
-                       close_positions, compute_position_sizes, get_param,
-                       open_positions, select_positions_to_close,
-                       select_positions_to_open)
+from src.trade import (
+    build_positions_to_open,
+    build_trade_data,
+    close_positions,
+    compute_position_sizes,
+    get_param,
+    open_positions,
+    select_positions_to_close,
+    select_positions_to_open,
+)
 
 
 def compute_item_trend(item):
@@ -869,23 +875,7 @@ if __name__ == "__main__":
             )
             plot.save(png_path)
 
-            os.makedirs(config.BENCH_DIR, exist_ok=True)
-            if 5 >= top >= 1:  # Copy best top 5 overall in same place
-                shutil.copy(
-                    png_path,
-                    os.path.join(config.BENCH_DIR, f"best_{top}_best.png"),
-                )
-                shutil.copy(
-                    json_path,
-                    os.path.join(config.BENCH_DIR, f"best_{top}_positions.json"),
-                )
-                shutil.copy(
-                    os.path.join(config.CMA_DIR, f"best_{top}_params.json"),
-                    os.path.join(config.BENCH_DIR, f"best_{top}_params.json"),
-                )
-
             with local_log:
-                print(f"Benchmark results for best_{top}_best:")
                 print(metrics_text)
-                
+
     local_log.copy_last()

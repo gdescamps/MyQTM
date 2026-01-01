@@ -64,7 +64,6 @@ INITIAL_CAPITAL = (
 DATA_DIR = "./data/"
 TRAIN_DIR = "./outputs/last_train"
 CMA_DIR = "./outputs/last_cma"
-BENCH_DIR = "./outputs/last_benchmark"
 
 INDICES = ["^IXIC", "^VIX"]
 
