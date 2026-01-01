@@ -75,7 +75,7 @@ def load_thresholds(train_dir):
     return None
 
 
-def override_open_threshold_bounds(space, thresholds, margin=0.1):
+def override_open_threshold_bounds(space, thresholds, margin=0.15):
     if not thresholds:
         return space
     label_to_space_name = {
@@ -169,7 +169,7 @@ def run_single_random_state(
         long_pos_pow,
         short_pos_pow,
         pos_gain_close_thres,
-        trend_score_thres,
+        trend_score_rate,
     ) = params_extended[:14]
 
     # Initialize performance tracking lists
@@ -198,7 +198,7 @@ def run_single_random_state(
             LONG_POS_POW=long_pos_pow,
             SHORT_POS_POW=short_pos_pow,
             POS_GAIN_CLOSE_THRES=pos_gain_close_thres,
-            TREND_SCORE_THRES=trend_score_thres,
+            TREND_SCORE_RATE=trend_score_rate,
             MODEL_PATH=config.TRAIN_DIR,
             data_path=None,
             remove_stocks=remove_stocks,
@@ -228,7 +228,7 @@ def run_single_random_state(
             LONG_POS_POW=long_pos_pow,
             SHORT_POS_POW=short_pos_pow,
             POS_GAIN_CLOSE_THRES=pos_gain_close_thres,
-            TREND_SCORE_THRES=trend_score_thres,
+            TREND_SCORE_RATE=trend_score_rate,
             MODEL_PATH=config.TRAIN_DIR,
             data_path=None,
             remove_stocks=remove_stocks,
@@ -337,82 +337,6 @@ def sort_perfs(random_states, SEARCH_DIR):
             f.write("diff_full:\n")
             f.write(f"{diff_full}\n")
 
-    all_dir = Path(config.ALL_DIR)
-    best_dir = Path(config.BEST_DIR)
-    last_cma_dir = Path(config.CMA_DIR)
-    all_dir.mkdir(parents=True, exist_ok=True)
-    best_dir.mkdir(parents=True, exist_ok=True)
-    last_cma_dir.mkdir(parents=True, exist_ok=True)
-
-    run_id = Path(SEARCH_DIR).name
-    for random_state in random_states:
-        perf_path = Path(SEARCH_DIR) / f"perf_{random_state}.json"
-        perf = safe_json_load(perf_path)
-        if perf is None:
-            continue
-
-        uid = f"{run_id}_{random_state}"
-        copy_if_exists(perf_path, all_dir / f"perf_{uid}.json")
-        copy_if_exists(
-            Path(SEARCH_DIR) / f"params_{random_state}.json",
-            all_dir / f"params_{uid}.json",
-        )
-        copy_if_exists(
-            Path(SEARCH_DIR) / f"positions_{random_state}.json",
-            all_dir / f"positions_{uid}.json",
-        )
-        copy_if_exists(
-            Path(SEARCH_DIR) / f"results_{random_state}.png",
-            all_dir / f"results_{uid}.png",
-        )
-
-        train_log = Path(config.TRAIN_DIR) / "print.log"
-        copy_if_exists(train_log, all_dir / f"model_{uid}.log")
-
-        code_log_path = all_dir / f"code_{uid}.log"
-        write_code_log(code_log_path)
-
-    all_perfs = []
-    for perf_path in all_dir.glob("perf_*.json"):
-        perf = safe_json_load(perf_path)
-        if perf is None:
-            continue
-        uid = perf_path.stem.replace("perf_", "", 1)
-        all_perfs.append({"perf": perf, "uid": uid})
-
-    all_perfs.sort(key=lambda x: x["perf"], reverse=True)
-    for i, entry in enumerate(all_perfs):
-        rank = i + 1
-        uid = entry["uid"]
-        copy_if_exists(
-            all_dir / f"perf_{uid}.json",
-            best_dir / f"best_{rank}_perf.json",
-        )
-        copy_if_exists(
-            all_dir / f"params_{uid}.json",
-            best_dir / f"best_{rank}_params.json",
-        )
-        copy_if_exists(
-            all_dir / f"params_{uid}.json",
-            last_cma_dir / f"best{rank}_params.json",
-        )
-        copy_if_exists(
-            all_dir / f"positions_{uid}.json",
-            best_dir / f"best_{rank}_positions.json",
-        )
-        copy_if_exists(
-            all_dir / f"model_{uid}.log",
-            best_dir / f"best_{rank}_model.log",
-        )
-        copy_if_exists(
-            all_dir / f"code_{uid}.log",
-            best_dir / f"best_{rank}_code.log",
-        )
-        copy_if_exists(
-            all_dir / f"results_{uid}.png",
-            best_dir / f"best_{rank}.png",
-        )
-
     local_best_dir = Path(SEARCH_DIR)
     local_perfs = []
     for perf_path in local_best_dir.glob("perf_*.json"):
@@ -424,6 +348,7 @@ def sort_perfs(random_states, SEARCH_DIR):
 
     local_perfs.sort(key=lambda x: x["perf"], reverse=True)
     train_log = Path(config.TRAIN_DIR) / "print.log"
+
     for i, entry in enumerate(local_perfs):
         rank = i + 1
         uid = entry["uid"]
@@ -541,7 +466,7 @@ if __name__ == "__main__":
             ):
 
                 best_params_path = os.path.join(
-                    config.CMA_DIR, f"best{top}_params.json"
+                    config.CMA_DIR, f"best_{top}_params.json"
                 )
                 if not os.path.exists(best_params_path):
                     print(f"Missing CMA params: {best_params_path}, skip best{top}.")

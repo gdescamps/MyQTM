@@ -93,7 +93,7 @@ def cmaes_grid_search_benchmark(
             long_pos_pow,
             short_pos_pow,
             pos_gain_close_thres,
-            trend_score_thres,
+            trend_score_rate,
         ) = params
         global last_params
         global best_perf
@@ -137,7 +137,7 @@ def cmaes_grid_search_benchmark(
                 LONG_POS_POW=long_pos_pow,
                 SHORT_POS_POW=short_pos_pow,
                 POS_GAIN_CLOSE_THRES=pos_gain_close_thres,
-                TREND_SCORE_THRES=trend_score_thres,
+                TREND_SCORE_RATE=trend_score_rate,
                 MODEL_PATH=model_path,
                 data_path=data_path,
                 remove_stocks=remove_stocks,

@@ -28,31 +28,15 @@ import numpy as np
 import pandas as pd
 from dotenv import load_dotenv
 
-import src.config as config
-from config import (
-    BENCHMARK_END_DATE,
-    BENCHMARK_START_DATE,
-    CMA_DIR,
-    CMA_PARALLEL_PROCESSES,
-    CMA_STOCKS_DROP_OUT,
-    CMA_STOCKS_DROP_OUT_ROUND,
-    INITIAL_CAPITAL,
-    TRAIN_DIR,
-)
+import config
 from src.params import load_cma_params
 from src.path import get_project_root
 from src.plot import plot_portfolio_metrics
 from src.printlog import PrintLog
-from src.trade import (
-    build_positions_to_open,
-    build_trade_data,
-    close_positions,
-    compute_position_sizes,
-    get_param,
-    open_positions,
-    select_positions_to_close,
-    select_positions_to_open,
-)
+from src.trade import (build_positions_to_open, build_trade_data,
+                       close_positions, compute_position_sizes, get_param,
+                       open_positions, select_positions_to_close,
+                       select_positions_to_open)
 
 
 def compute_item_trend(item):
@@ -509,7 +493,7 @@ def run_benchmark(
     BENCH_START_DATE=None,
     BENCH_END_DATE=None,
     INIT_CAPITAL=None,
-    TREND_SCORE_THRES=None,
+    TREND_SCORE_RATE=None,
     LONG_OPEN_PROB_THRES_A=0.60,
     LONG_CLOSE_PROB_THRES_A=0.37,
     SHORT_OPEN_PROB_THRES_A=0.60,
@@ -537,7 +521,7 @@ def run_benchmark(
         BENCH_START_DATE (str, optional): Start date for the benchmark. Defaults to None.
         BENCH_END_DATE (str, optional): End date for the benchmark. Defaults to None.
         INIT_CAPITAL (float, optional): Initial capital for the benchmark. Defaults to None.
-        TREND_SCORE_THRES (float, optional): Threshold for long/short trend score. Defaults to None.
+        TREND_SCORE_RATE (float, optional): Threshold for long/short trend score. Defaults to None.
         LONG_OPEN_PROB_THRES_A (float, optional): Threshold A for opening long positions. Defaults to 0.60.
         LONG_CLOSE_PROB_THRES_A (float, optional): Threshold A for closing long positions. Defaults to 0.37.
         SHORT_OPEN_PROB_THRES_A (float, optional): Threshold A for opening short positions. Defaults to 0.60.
@@ -607,7 +591,7 @@ def run_benchmark(
         bench_start_date,
         bench_end_date,
         INIT_CAPITAL,
-        (config.TREND_SCORE_RATE if TREND_SCORE_THRES is None else TREND_SCORE_THRES),
+        TREND_SCORE_RATE,
         LONG_OPEN_PROB_THRES_A,
         LONG_CLOSE_PROB_THRES_A,
         SHORT_OPEN_PROB_THRES_A,
@@ -725,6 +709,9 @@ def run_benchmark(
             * SHORT_CLOSE_PROB_THRES_B
             * LONG_POS_COUNT
             * SHORT_POS_COUNT
+            * POS_GAIN_CLOSE_THRES
+            * TREND_SCORE_RATE
+            * gaussian_penalty_weight(positions_count_rate, center=0.3, sigma=0.15)
             * gaussian_penalty_weight(long_rate, center=0.5, sigma=0.3)
             * gaussian_penalty_weight(AB_rate, center=0.5, sigma=0.3)
             * gaussian_penalty_weight(long_short_rate, center=0.7, sigma=0.15)
@@ -788,7 +775,7 @@ if __name__ == "__main__":
 
     local_log = PrintLog(extra_name="_benchmark", enable=False)
 
-    benchmark_end_date = BENCHMARK_END_DATE
+    benchmark_end_date = config.BENCHMARK_END_DATE
     current_date = datetime.now(ZoneInfo("Europe/Paris")).strftime("%Y-%m-%d")
     if os.path.exists(os.path.join(data_path, f"{current_date}_benchmark_XY.csv")):
         benchmark_end_date = current_date
@@ -798,9 +785,11 @@ if __name__ == "__main__":
 
     for top in range(1, config.CMA_PARALLEL_PROCESSES):
 
-        if os.path.exists(os.path.join(CMA_DIR, f"top{top}_params.json")):
+        if os.path.exists(os.path.join(config.CMA_DIR, f"best_{top}_params.json")):
 
-            params = load_cma_params(os.path.join(CMA_DIR, f"top{top}_params.json"))
+            params = load_cma_params(
+                os.path.join(config.CMA_DIR, f"best_{top}_params.json")
+            )
             params_extended = params + [0.1, config.TREND_SCORE_RATE]
             (
                 # max_positions,
@@ -817,7 +806,7 @@ if __name__ == "__main__":
                 long_pos_pow,
                 short_pos_pow,
                 pos_gain_close_thres,
-                trend_score_thres,
+                trend_score_rate,
             ) = params_extended[:14]
 
             returns = []
@@ -828,13 +817,13 @@ if __name__ == "__main__":
 
             random.seed(42)
             positions = None
-            for index in range(CMA_STOCKS_DROP_OUT_ROUND):
-                remove_stocks = 0 if index == 0 else CMA_STOCKS_DROP_OUT
-                metrics, pos, remove_stocks_list = run_benchmark(
-                    FILE_BENCH_END_DATE=benchmark_end_date,
-                    BENCH_START_DATE=BENCHMARK_START_DATE,
-                    BENCH_END_DATE=benchmark_end_date,
-                    INIT_CAPITAL=INITIAL_CAPITAL,
+            for attempt in range(config.CMA_STOCKS_DROP_OUT_ROUND):
+                remove_stocks = 0 if attempt == 0 else config.CMA_STOCKS_DROP_OUT
+                metrics, pos, _ = run_benchmark(
+                    FILE_BENCH_END_DATE=config.BENCHMARK_END_DATE,
+                    BENCH_START_DATE=config.BENCHMARK_START_DATE,
+                    BENCH_END_DATE=config.BENCHMARK_END_DATE,
+                    INIT_CAPITAL=config.INITIAL_CAPITAL,
                     LONG_OPEN_PROB_THRES_A=long_open_prob_thres_a,
                     LONG_CLOSE_PROB_THRES_A=long_close_prob_thres_a,
                     SHORT_OPEN_PROB_THRES_A=short_open_prob_thres_a,
@@ -848,25 +837,27 @@ if __name__ == "__main__":
                     LONG_POS_POW=long_pos_pow,
                     SHORT_POS_POW=short_pos_pow,
                     POS_GAIN_CLOSE_THRES=pos_gain_close_thres,
-                    TREND_SCORE_THRES=trend_score_thres,
-                    MODEL_PATH=TRAIN_DIR,
+                    TREND_SCORE_RATE=trend_score_rate,
+                    MODEL_PATH=config.TRAIN_DIR,
                     data_path=None,
                     remove_stocks=remove_stocks,
+                    attempt=attempt,
+                    force_reload=True,
                 )
                 metrics_list.append(metrics)
                 if remove_stocks == 0:
                     positions = pos
 
             nasdaq_metrics = compute_nasdaq_data(
-                BENCH_START_DATE=BENCHMARK_START_DATE,
+                BENCH_START_DATE=config.BENCHMARK_START_DATE,
                 BENCH_END_DATE=benchmark_end_date,
-                MODEL_PATH=TRAIN_DIR,
+                MODEL_PATH=config.TRAIN_DIR,
                 data_path=None,
             )
 
             json_path = os.path.join(
                 local_log.output_dir_time,
-                f"top{top}_positions.json",
+                f"best_{top}_positions.json",
             )
             with open(json_path, "w") as f:
                 json.dump(positions, f, indent=2)
@@ -874,25 +865,27 @@ if __name__ == "__main__":
             plot, metrics_text = plot_portfolio_metrics(metrics_list, nasdaq_metrics)
             png_path = os.path.join(
                 local_log.output_dir_time,
-                f"top{top}_bench.png",
+                f"best_{top}_bench.png",
             )
             plot.save(png_path)
 
+            os.makedirs(config.BENCH_DIR, exist_ok=True)
             if 5 >= top >= 1:  # Copy best top 5 overall in same place
                 shutil.copy(
                     png_path,
-                    os.path.join("./outputs", f"top{top}_best.png"),
+                    os.path.join(config.BENCH_DIR, f"best_{top}_best.png"),
                 )
                 shutil.copy(
                     json_path,
-                    os.path.join("./outputs", f"top{top}_positions.json"),
+                    os.path.join(config.BENCH_DIR, f"best_{top}_positions.json"),
                 )
                 shutil.copy(
-                    os.path.join(CMA_DIR, f"top{top}_params.json"),
-                    os.path.join("./outputs", f"top{top}_params.json"),
+                    os.path.join(config.CMA_DIR, f"best_{top}_params.json"),
+                    os.path.join(config.BENCH_DIR, f"best_{top}_params.json"),
                 )
 
             with local_log:
-                print(f"Benchmark results for top{top}_best:")
+                print(f"Benchmark results for best_{top}_best:")
                 print(metrics_text)
+                
     local_log.copy_last()

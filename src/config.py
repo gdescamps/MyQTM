@@ -55,7 +55,6 @@ TRAIN_START_DATE = "2019-08-01"
 TRAIN_END_DATE = "2024-10-05"
 
 # CMAES_END_DATE = "2025-04-05"  # CMA-ES finetune end date
-# CMAES_END_DATE = "2024-10-05"  # CMA-ES finetune end date
 CMAES_END_DATE = BENCHMARK_END_DATE
 
 INITIAL_CAPITAL = (
@@ -65,9 +64,7 @@ INITIAL_CAPITAL = (
 DATA_DIR = "./data/"
 TRAIN_DIR = "./outputs/last_train"
 CMA_DIR = "./outputs/last_cma"
-BEST_DIR = "./outputs/best"
-ALL_DIR = "./outputs/all"
-
+BENCH_DIR = "./outputs/last_benchmark"
 
 INDICES = ["^IXIC", "^VIX"]
 
@@ -320,7 +317,7 @@ TS_SIZE = 6
 
 # CMA-ES optimization parameters
 CMA_RECURSIVE = 2
-CMA_LOOPS = 150
+CMA_LOOPS = 50
 CMA_EARLY_STOP_ROUNDS = 30
 CMA_STOCKS_DROP_OUT_ROUND = 20
 CMA_STOCKS_DROP_OUT = 10
@@ -384,7 +381,7 @@ PARAM_GRID = {
 
 F1_THRESHOLD_STEP = 0.0002
 OPEN_INDEX_DELAY = 2
-NEW_OPEN = True
+NEW_OPEN = False
 TRADE_DATA_LOAD = None
 DATES_PORTFOLIO = []
 
