@@ -158,7 +158,11 @@ def build_trade_data(
         current_date = start_date
         pc = None
         index_long = -1
+        index_long_zero_prob = 0.0
         index_short = -1
+        index_short_zero_prob = 0.0
+        open_price = None
+        zero_item = None
         while current_date <= end_date:
             current_date_str = current_date.strftime("%Y-%m-%d")
             if current_date_str not in trade_data:
@@ -172,13 +176,38 @@ def build_trade_data(
             c = today_stock["class"]
             class_long = 2
             class_short = 0
+            # Build long/short opportunity indices: 0 marks a new opportunity, then increments daily.
+            # When the class flips away, compute gain using a close price that is the next day's open,
+            # then stamp the gain on both the exit day and the entry day.
             if pc is not None and c == class_long and pc != class_long:
                 index_long = 0
+                zero_item = today_stock
+                open_price = today_stock["open"]
+                index_long_zero_prob = today_stock["ybull"]
             elif pc is not None and c == class_short and pc != class_short:
                 index_short = 0
+                zero_item = today_stock
+                open_price = today_stock["open"]
+                index_short_zero_prob = today_stock["ybear"]
+            elif open_price is not None and c != class_long and pc == class_long:
+                # Close price here is the next trading day's open already set in trade_data.
+                close_price = today_stock["close"]
+                gain = (close_price - open_price) / open_price
+                today_stock["gain"] = gain
+                zero_item["gain"] = gain
+                open_price = None
+            elif open_price is not None and c != class_short and pc == class_short:
+                # Close price here is the next trading day's open already set in trade_data.
+                close_price = today_stock["close"]
+                gain = (open_price - close_price) / open_price
+                today_stock["gain"] = gain
+                zero_item["gain"] = gain
+                open_price = None
 
             today_stock["index_long"] = index_long
+            today_stock["index_long_zero_prob"] = index_long_zero_prob
             today_stock["index_short"] = index_short
+            today_stock["index_short_zero_prob"] = index_short_zero_prob
 
             pc = c
             if index_long >= 0:
