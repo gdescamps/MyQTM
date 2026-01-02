@@ -78,215 +78,8 @@ class EvalF1Callback(TrainingCallback):
         return False  # continue training
 
 
-def compute_f1(
-    trade_data, threshold, count, label="_A_Long", close_class=None, do_plot=False
-):
-    """
-    Compute F1 score on trade data filtered by probability threshold.
-
-    Args:
-        trade_data (dict): Trade data containing predictions and ground truth labels.
-        threshold (float): Probability threshold for filtering predictions.
-        count (int): Target sample count for F1 computation.
-        label (str): Label suffix for output files.
-        close_class (int): Class label to be considered as close (for binary classification).
-        do_plot (bool): Whether to plot the F1 scores.
-
-    Returns:
-        float: Mean F1 score across the evaluated time periods.
-    """
-    dates_f1 = []
-    values_f1 = []
-    mask_blue = []
-    mask_red = []
-    mask_green = []
-    mask_orange = []
-
-    sorted_keys = list(sorted(trade_data.keys()))
-
-    for index, current_date in enumerate(sorted_keys):
-        item = trade_data[current_date]
-        y_pred = []
-        y_truth = []
-        y_prob = []
-        y_index = []
-        for stock in item:
-            y_pred.append(item[stock]["class"])
-            y_truth.append(item[stock]["Y"])
-            y_prob.append(max(item[stock]["ybull"], item[stock]["ybear"]))
-
-        y_index = np.array(y_index)
-        y_pred = np.array(y_pred)
-        y_prob = np.array(y_prob)
-        y_truth = np.array(y_truth)
-
-        # Filter predictions by probability threshold
-        mask = y_prob >= threshold
-
-        y_pred_filtered = y_pred[mask]
-        y_truth_filtered = y_truth[mask]
-
-        if close_class is not None:
-            y_pred_filtered = (y_pred_filtered != close_class).astype(int)
-            y_truth_filtered = (y_truth_filtered != close_class).astype(int)
-
-        if len(y_truth_filtered) > 0:
-            f1 = f1_score(y_truth_filtered, y_pred_filtered, average="macro")
-            values_f1.append(f1)
-            period = get_interval_type(current_date)
-            dates_f1.append(pd.to_datetime(current_date, format="%Y-%m-%d"))
-            # Color code based on interval type (A, B, C, D)
-            if "A" in period:
-                mask_red.append(False)
-                mask_blue.append(True)
-                mask_green.append(False)
-                mask_orange.append(False)
-            elif "B" in period:
-                mask_red.append(True)
-                mask_blue.append(False)
-                mask_green.append(False)
-                mask_orange.append(False)
-            elif "C" in period:
-                mask_red.append(False)
-                mask_green.append(True)
-                mask_blue.append(False)
-                mask_orange.append(False)
-            elif "D" in period:
-                mask_red.append(False)
-                mask_green.append(True)
-                mask_blue.append(False)
-                mask_orange.append(True)
-
-    values_f1 = np.array(values_f1)
-    dates_f1 = np.array(dates_f1)
-
-    # Plot F1 scores with color coding if requested
-    if do_plot:
-        fig, ax1 = plt.subplots(figsize=(12, 6))
-        ax1.set_yscale("log")
-
-        ax1.plot(
-            dates_f1[mask_blue],
-            values_f1[mask_blue],
-            color="blue",
-            marker=".",
-            linestyle="None",
-            markersize=4,
-        )
-        ax1.plot(
-            dates_f1[mask_red],
-            values_f1[mask_red],
-            color="red",
-            marker=".",
-            linestyle="None",
-            markersize=4,
-        )
-        ax1.plot(
-            dates_f1[mask_green],
-            values_f1[mask_green],
-            color="green",
-            marker=".",
-            linestyle="None",
-            markersize=4,
-        )
-        ax1.plot(
-            dates_f1[mask_orange],
-            values_f1[mask_orange],
-            color="orange",
-            marker=".",
-            linestyle="None",
-            markersize=4,
-        )
-
-        ymin = np.min(values_f1) * 0.9
-        ymax = np.max(values_f1) * 1.1
-
-        ax1.set_ylim(bottom=ymin, top=ymax)
-        ax1.set_ylabel("F1 Value", color="tab:blue")
-        ax1.tick_params(axis="y", labelcolor="tab:blue")
-
-        metrics_text = (
-            f"F1 on best 500 transitions:\n"
-            f"  best transitions count: {count}\n"
-            f"  mean f1: {np.mean(values_f1):.3f}\n"
-            f"  std f1: {np.std(values_f1):.3f}\n"
-            f"  max f1: {np.max(values_f1):.3f}\n"
-            f"  min f1: {np.min(values_f1):.3f}\n"
-        )
-        ax1.text(
-            0.01,
-            0.99,
-            metrics_text,
-            transform=ax1.transAxes,
-            fontsize=12,
-            verticalalignment="top",
-            bbox=dict(boxstyle="round", facecolor="white", alpha=0.7),
-        )
-
-        plt.tight_layout()
-        buf = io.BytesIO()
-        plt.savefig(buf, format="png")
-        plt.close(fig)
-        buf.seek(0)
-        image = Image.open(buf)
-        image.save(
-            os.path.join(
-                local_log.output_dir_time, f"f1_500_best_transitions_{label}.png"
-            )
-        )
-        buf.close()
-    return np.mean(values_f1)
-
-
-def search_threshold_for_topN(trade_data, target_sample_count=125):
-    """
-    Search for probability threshold that produces approximately target_sample_count predictions.
-
-    Args:
-        trade_data (dict): Trade data containing predictions.
-        target_sample_count (int): Target number of samples for the threshold search.
-
-    Returns:
-        tuple: Optimal threshold and the corresponding sample count.
-    """
-    sorted_keys = list(sorted(trade_data.keys()))
-    final_sample_count = 0
-    final_threshold = 0
-    for threshold in np.arange(0.33, 0.90, 0.0005):
-        count = 0
-        for index, current_date in enumerate(sorted_keys):
-            item = trade_data[current_date]
-            y_prob = []
-            for stock in item:
-                y_prob.append(max(item[stock]["ybull"], item[stock]["ybear"]))
-
-            y_prob = np.array(y_prob)
-
-            mask = y_prob >= threshold
-            y_prob_filtered = y_prob[mask]
-            count += len(y_prob_filtered)
-
-        # Find threshold closest to target count
-        if abs(target_sample_count - count) <= abs(
-            target_sample_count - final_sample_count
-        ):
-            final_threshold = threshold
-            final_sample_count = count
-            if final_sample_count == target_sample_count:
-                break
-    return final_threshold, final_sample_count
-
-
 def split_trade_data(trade_data):
-    """
-    Split trade data into long and short positions by interval type (A/B).
-
-    Args:
-        trade_data (dict): Trade data containing predictions and ground truth labels.
-
-    Returns:
-        tuple: Dictionaries containing split trade data (long/short, A/B).
-    """
+    # Split trade_data into datasets for long/short entries across interval types A and B.
     sorted_keys = list(sorted(trade_data.keys()))
     trade_dataA_long = {}
     trade_dataA_short = {}
@@ -327,17 +120,132 @@ def split_trade_data(trade_data):
     )
 
 
-def plot_top_f1(do_plot=False):
-    """
-    Evaluate F1 score on 500 best transitions across all interval types.
+def compute_perf(trade_data, threshold):
+    # Evaluate pseudo-benchmark performance for the given probability threshold.
+    gain = 1.0
+    gain_max = 1.0
+    gain_min_norm = 1.0
+    count = 0
+    loss_count = 0
+    opportunity_days = []
+    opportunity_gains = []
+    sorted_keys = list(sorted(trade_data.keys()))
+    for index, current_date in enumerate(sorted_keys):
+        item = trade_data[current_date]
+        candidates = []
+        for stock in item:
+            if "gain" not in item[stock]:
+                continue
+            yprob = 0.0
+            if item[stock]["index_long"] == 0:
+                yprob = item[stock]["ybull"]
+            elif item[stock]["index_short"] == 0:
+                yprob = item[stock]["ybear"]
+            # Keep only new opportunities with probability above the threshold.
+            if yprob >= threshold:
+                candidates.append((yprob, item[stock]["gain"]))
 
-    Args:
-        do_plot (bool): Whether to plot the F1 scores.
+        if not candidates:
+            continue
 
-    Returns:
-        tuple: F1 scores for intervals A and B (long and short positions).
-    """
-    # Evaluate F1 on 500 best transitions
+        candidates.sort(key=lambda entry: entry[0], reverse=True)
+        selected = candidates[:3]
+        day_gain = 1.0
+        for _, trade_gain in selected:
+            # Compound gains for the pseudo-benchmark and per-day opportunity set.
+            gain *= 1.0 + trade_gain
+            day_gain *= 1.0 + trade_gain
+            if gain > gain_max:
+                gain_max = gain
+            if gain / gain_max < gain_min_norm:
+                gain_min_norm = gain / gain_max
+            if trade_gain < 0:
+                loss_count += 1
+            count += 1
+        # Track when opportunities occur and how much they contribute that day.
+        opportunity_days.append(index)
+        opportunity_gains.append(day_gain)
+
+    gain_per_trade = 1
+    if count:
+        # Convert cumulative gain to per-trade geometric average.
+        gain_per_trade = gain ** (1 / count)
+    dd_discount = gain_min_norm**3.0
+    if gain_min_norm >= 0.7:
+        # Softer drawdown penalty when normalized drawdown is acceptable.
+        dd_discount = gain_min_norm
+
+    regularity = 0.0
+    if len(opportunity_days) > 50:
+        # Measure temporal spacing regularity of opportunities (weighted by gains).
+        intervals = np.diff(opportunity_days)
+        weights = np.sqrt(
+            np.maximum(np.array(opportunity_gains[:-1]), 1e-6)
+            * np.maximum(np.array(opportunity_gains[1:]), 1e-6)
+        )
+        mean_interval = np.average(intervals, weights=weights)
+        variance = np.average((intervals - mean_interval) ** 2, weights=weights)
+        std_interval = np.sqrt(variance)
+        regularity = mean_interval / (1.0 + std_interval)
+
+    span_factor = 0.0
+    if opportunity_days:
+        # Reward coverage across the full time span of available data.
+        span = max(opportunity_days) - min(opportunity_days)
+        total_span = max(len(sorted_keys) - 1, 1)
+        span_factor = span / total_span
+
+    # Final pseudo-benchmark score favors performance, opportunity count, and spacing.
+    score = (
+        regularity
+        * span_factor
+        * (gain_per_trade - 1.0)
+        * (len(opportunity_days) ** 1.5)
+        * dd_discount
+    )
+
+    # Normalized drawdown is returned as a negative value.
+    dd = -(1.0 - gain_min_norm)
+
+    return gain_per_trade, dd, len(opportunity_days), score
+
+
+def search_threshold_for_perf(
+    trade_data,
+    threshold_min=0.33,
+    threshold_max=0.95,
+    threshold_step=config.F1_THRESHOLD_STEP,
+):
+    # Sweep probability thresholds to find the best overall performance score.
+    best_score = 0
+    best_count = 0
+    best_gain_per_trade = 0
+    best_threshold = 0
+
+    thresholds = np.arange(threshold_min, threshold_max, threshold_step)
+    for threshold in tqdm(thresholds, leave=False):
+        # Evaluate pseudo-benchmark performance at the current threshold.
+        gain_per_trade, dd, count, score = compute_perf(trade_data, threshold)
+        if score > best_score:
+            # Keep the threshold that maximizes the global performance score.
+            best_score = score
+            best_count = count
+            best_dd = dd
+            best_threshold = threshold
+            best_gain_per_trade = gain_per_trade
+
+    return (
+        best_score,
+        best_threshold,
+        best_gain_per_trade,
+        best_dd,
+        best_count,
+    )
+
+
+def search_perfs_threshold():
+    # For each dataset (A vs B, long vs short), find the threshold that maximizes pseudo-benchmark performance.
+    # Build trade data for the benchmark period.
     trade_data = build_trade_data(
         model_path=Path(get_project_root()) / local_log.output_dir_time,
         data_path=data_path,
@@ -345,6 +253,7 @@ def plot_top_f1(do_plot=False):
         start_date=pd.to_datetime(config.BENCHMARK_START_DATE, format="%Y-%m-%d"),
         end_date=pd.to_datetime(config.TRAIN_END_DATE, format="%Y-%m-%d"),
     )
+    # Split into interval/direction datasets for threshold search.
     (
         trade_dataA_long,
         trade_dataA_short,
@@ -352,55 +261,82 @@ def plot_top_f1(do_plot=False):
         trade_dataB_short,
     ) = split_trade_data(trade_data)
 
-    final_threshold_Along, final_sample_count_Along = search_threshold_for_topN(
-        trade_dataA_long
-    )
-    final_threshold_Blong, final_sample_count_Blong = search_threshold_for_topN(
-        trade_dataB_long
-    )
-    final_threshold_Ashort, final_sample_count_Ashort = search_threshold_for_topN(
-        trade_dataA_short
-    )
-    final_threshold_Bshort, final_sample_count_Bshort = search_threshold_for_topN(
-        trade_dataB_short
-    )
-
-    f1_A_long = compute_f1(
+    # Order of segments: A long, B long, A short, B short.
+    segments = [
         trade_dataA_long,
-        final_threshold_Along,
-        final_sample_count_Along,
-        label="_A_Long",
-        do_plot=do_plot,
-    )
-    f1_B_long = compute_f1(
         trade_dataB_long,
-        final_threshold_Blong,
-        final_sample_count_Blong,
-        label="_B_Long",
-        do_plot=do_plot,
-    )
-    f1_A_short = compute_f1(
         trade_dataA_short,
-        final_threshold_Ashort,
-        final_sample_count_Ashort,
-        label="_A_Short",
-        do_plot=do_plot,
-    )
-    f1_B_short = compute_f1(
         trade_dataB_short,
-        final_threshold_Bshort,
-        final_sample_count_Bshort,
-        label="_B_Short",
-        do_plot=do_plot,
-    )
-    f1s = [
-        float(f1_A_long),
-        float(f1_B_long),
-        float(f1_A_short),
-        float(f1_B_short),
     ]
 
-    return f1s
+    # Accumulators for best metrics per segment.
+    thresholds = []
+    counts = []
+    gain_per_trades = []
+    dds = []
+    scores = []
+
+    for trade_data_segment in segments:
+        # Find the best threshold and record its metrics.
+        (
+            score,
+            threshold,
+            gain_per_trade,
+            dd,
+            count,
+        ) = search_threshold_for_perf(trade_data_segment)
+        counts.append(int(count))
+        gain_per_trades.append(float(gain_per_trade))
+        dds.append(float(dd))
+        thresholds.append(float(threshold))
+        scores.append(score)
+
+    return (
+        scores,
+        counts,
+        gain_per_trades,
+        dds,
+        thresholds,
+    )
+
+
+THRESHOLD_SEGMENT_LABELS = ("A_long", "B_long", "A_short", "B_short")
+
+
+def format_threshold_details(
+    labels,
+    thresholds,
+    counts,
+    gain_per_trades,
+    dds,
+):
+    # Summarize pseudo-benchmark performance metrics into readable lines.
+    lines = []
+    for label, threshold, count, gain_per_trade, dd in zip(
+        labels,
+        thresholds,
+        counts,
+        gain_per_trades,
+        dds,
+    ):
+        # Format one line per segment with its key performance values.
+        lines.append(
+            f"{label}: thres={threshold:.3f}, count={int(count)}, "
+            f"gain={gain_per_trade:.3f}, dd={dd:.3f}"
+        )
+    # Join all lines for display/logging.
+    return "\n".join(lines)
+
+
+def save_best_thresholds(output_dir, labels, thresholds):
+    # Persist thresholds that yield the best pseudo-benchmark results.
+    thresholds_payload = {
+        "labels": list(labels),
+        "thresholds": [float(threshold) for threshold in thresholds],
+    }
+    latest_path = os.path.join(output_dir, "best_thresholds.json")
+    with open(latest_path, "w") as f:
+        json.dump(thresholds_payload, f, indent=2)
 
 
 if __name__ == "__main__":
@@ -507,7 +443,7 @@ if __name__ == "__main__":
 
     local_log = PrintLog(extra_name="_train", enable=False)
 
-    best_f1 = 0
+    best_score = -np.inf
     best_importance_df_sorted_by_std_mean = None
     best_modela = None
     best_modelb = None
@@ -742,17 +678,11 @@ if __name__ == "__main__":
         with open(ntree_limit_path, "w") as f:
             json.dump({"ntree_limit": int(f1_callbackb.best_iter + 1)}, f)
 
-        # Evaluate on full test set with top transitions
-        f1s = plot_top_f1(do_plot=False)
-        f1 = np.mean(f1s) - np.std(f1s)
-        f1_str = [f"{f1:.2f}" for f1 in f1s]
+        (scores, counts, gain_per_trades, dds, thresholds) = search_perfs_threshold()
+        score = np.mean(scores)
 
-        # Update best model if F1 score improved
-        if f1 > best_f1:
-            plot_top_f1(do_plot=True)
-
-            # Save best variables
-            best_f1 = f1
+        if score > best_score:
+            best_score = score
             best_importance_df_sorted_by_std_mean = (
                 importance_df_sorted_by_std_mean.copy()
             )
@@ -761,6 +691,11 @@ if __name__ == "__main__":
             best_selected_features = selected_features.copy()
             best_f1_callbacka_best_iter = f1_callbacka.best_iter
             best_f1_callbackb_best_iter = f1_callbackb.best_iter
+            save_best_thresholds(
+                local_log.output_dir_time,
+                THRESHOLD_SEGMENT_LABELS,
+                thresholds,
+            )
 
             with local_log:
                 print("\n")
@@ -770,11 +705,30 @@ if __name__ == "__main__":
                 )
                 print(f"max_depth: {max_depth}")
                 print(f"mean_std_power: {mean_std_power}")
-                print(f"F1 scores on best 500 transitions: {f1_str}")
-                print(f"best F1 score on best 1000 transitions: {f1:.4f}")
+                print(f"Best score: {best_score:.3f}")
+                print("Threshold details:")
+                print(
+                    format_threshold_details(
+                        THRESHOLD_SEGMENT_LABELS,
+                        thresholds,
+                        counts,
+                        gain_per_trades,
+                        dds,
+                    )
+                )
         else:
-            print(f"F1 scores on best 500 transitions: {f1_str}")
-            print(f"F1 score on best 1000 transitions: {f1:.4f}")
+            print(f"Score: {score:.3f}")
+            print("Threshold details:")
+            print(
+                format_threshold_details(
+                    THRESHOLD_SEGMENT_LABELS,
+                    thresholds,
+                    counts,
+                    gain_per_trades,
+                    dds,
+                )
+            )
+            pass
 
     # Save best final model
     if best_importance_df_sorted_by_std_mean is not None:
@@ -831,14 +785,6 @@ if __name__ == "__main__":
             "feature": key,
         }
 
-    sorted_importance = sorted(
-        importance.items(),
-        key=lambda x: x[1]["mean"] / (x[1]["std"]),
-        reverse=True,
-    )
-
-    sorted_selected_features = [item[0] for item in sorted_importance]
-
     # Define hyperparameter search grid
     param_grid = config.PARAM_GRID.copy()
 
@@ -853,12 +799,12 @@ if __name__ == "__main__":
             param_grid["min_child_weight"],
             param_grid["reg_alpha"],
             param_grid["reg_lambda"],
-            param_grid["mean_std_power"],
+            param_grid["mean_std_power_2nd"],
             list(
                 range(
-                    int(0.6 * len(sorted_selected_features)),
-                    len(sorted_selected_features),
-                    1,
+                    int(config.FEATURES_2ND_RATIO_SEARCH * len(importance)),
+                    len(importance),
+                    config.FEATURES_2ND_STEP_SEARCH,
                 )
             ),
         )
@@ -875,7 +821,7 @@ if __name__ == "__main__":
         min_child_weight,
         reg_alpha,
         reg_lambda,
-        mean_std_power,
+        mean_std_power_2nd,
         top_features,
     ) in tqdm(grid):
 
@@ -888,6 +834,14 @@ if __name__ == "__main__":
         params_grid["min_child_weight"] = min_child_weight
         params_grid["reg_alpha"] = reg_alpha
         params_grid["reg_lambda"] = reg_lambda
+
+        sorted_importance = sorted(
+            importance.items(),
+            key=lambda x: x[1]["mean"] / ((0.01 + x[1]["std"]) ** mean_std_power_2nd),
+            reverse=True,
+        )
+
+        sorted_selected_features = [item[0] for item in sorted_importance]
 
         selected_features = sorted_selected_features[:top_features]
 
@@ -967,33 +921,57 @@ if __name__ == "__main__":
         with open(ntree_limit_path, "w") as f:
             json.dump({"ntree_limit": int(f1_callbackb.best_iter + 1)}, f)
 
-        # Evaluate on full test set with top transitions
-        f1s = plot_top_f1(do_plot=False)
-        f1 = np.mean(f1s) - np.std(f1s)
-        f1_str = [f"{f1:.2f}" for f1 in f1s]
+        (
+            scores,
+            counts,
+            gain_per_trades,
+            dds,
+            thresholds,
+        ) = search_perfs_threshold()
+        score = np.mean(scores) - np.std(scores)
 
-        # Update best model if F1 score improved
-        if f1 > best_f1:
-            plot_top_f1(do_plot=True)
-
-            best_f1 = f1
+        # Update best model if positions score improved.
+        if score > best_score:
+            best_score = score
             best_modela = modela.copy()
             best_modelb = modelb.copy()
-
             best_selected_features = selected_features.copy()
             best_f1_callbacka_best_iter = f1_callbacka.best_iter
             best_f1_callbackb_best_iter = f1_callbackb.best_iter
-
+            save_best_thresholds(
+                local_log.output_dir_time,
+                THRESHOLD_SEGMENT_LABELS,
+                thresholds,
+            )
             with local_log:
                 print("\n")
                 print(f"Best model params: {params_grid}")
                 print(f"Selected features: {len(selected_features)}")
                 print(f"max_depth: {max_depth}")
-                print(f"F1 scores on best 500 transitions: {f1_str}")
-                print(f"best F1 score on best 1000 transitions: {f1:.4f}")
+                print(f"Best score: {best_score:.3f}")
+                print("Threshold details:")
+                print(
+                    format_threshold_details(
+                        THRESHOLD_SEGMENT_LABELS,
+                        thresholds,
+                        counts,
+                        gain_per_trades,
+                        dds,
+                    )
+                )
         else:
-            print(f"F1 scores on best 500 transitions: {f1_str}")
-            print(f"F1 score on best 1000 transitions: {f1:.4f}")
+            print(f"Score: {score:.3f}")
+            print("Threshold details:")
+            print(
+                format_threshold_details(
+                    THRESHOLD_SEGMENT_LABELS,
+                    thresholds,
+                    counts,
+                    gain_per_trades,
+                    dds,
+                )
+            )
+            pass
 
     # Save best final model
     if best_modela is not None:

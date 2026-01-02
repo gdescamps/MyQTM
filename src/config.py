@@ -352,10 +352,14 @@ PARAM_GRID = {
     # search power value that provides
     # best feature importance rank to maximize F1
     "mean_std_power": [1.71],
+    "mean_std_power_2nd": [1.1],
     # Top features search range
     "top_features": list(range(55, 85, 5)),
 }
 
+FEATURES_2ND_RATIO_SEARCH = 0.6
+FEATURES_2ND_STEP_SEARCH = 3
+F1_THRESHOLD_STEP = 0.0002
 TRADE_DATA_LOAD = None
 DATES_PORTFOLIO = []
 
