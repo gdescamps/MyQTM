@@ -745,9 +745,9 @@ if __name__ == "__main__":
 
     for top in range(1, CMA_PARALLEL_PROCESSES):
 
-        if os.path.exists(os.path.join(CMA_DIR, f"top{top}_params.json")):
+        if os.path.exists(os.path.join(CMA_DIR, f"best{top}_params.json")):
 
-            with open(os.path.join(CMA_DIR, f"top{top}_params.json"), "r") as f:
+            with open(os.path.join(CMA_DIR, f"best{top}_params.json"), "r") as f:
                 XBEST = json.load(f)
 
             (
@@ -804,7 +804,7 @@ if __name__ == "__main__":
 
             json_path = os.path.join(
                 local_log.output_dir_time,
-                f"top{top}_positions.json",
+                f"best{top}_positions.json",
             )
             with open(json_path, "w") as f:
                 json.dump(positions, f, indent=2)
@@ -812,23 +812,9 @@ if __name__ == "__main__":
             plot, metrics_text = plot_portfolio_metrics(metrics_list, nasdaq_metrics)
             png_path = os.path.join(
                 local_log.output_dir_time,
-                f"top{top}_bench.png",
+                f"best{top}_bench.png",
             )
             plot.save(png_path)
-
-            if 5 >= top >= 1:  # Copy best top 5 overall in same place
-                shutil.copy(
-                    png_path,
-                    os.path.join("./outputs", f"top{top}_best.png"),
-                )
-                shutil.copy(
-                    json_path,
-                    os.path.join("./outputs", f"top{top}_positions.json"),
-                )
-                shutil.copy(
-                    os.path.join(CMA_DIR, f"top{top}_params.json"),
-                    os.path.join("./outputs", f"top{top}_params.json"),
-                )
 
             with local_log:
                 print(f"Benchmark results for top{top}_best:")

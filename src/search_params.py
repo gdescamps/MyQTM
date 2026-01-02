@@ -152,7 +152,7 @@ def run_single_random_state(
         return
 
     # Save combined metrics plot
-    png_path = os.path.join(local_log.output_dir_time, f"best_{random_state}.png")
+    png_path = os.path.join(local_log.output_dir_time, f"result_{random_state}.png")
 
     nasdaq_metrics = compute_nasdaq_data(
         BENCH_START_DATE=config.BENCHMARK_START_DATE,
@@ -214,20 +214,20 @@ def sort_perfs(random_states, SEARCH_DIR):
         random_state = entry["random_state"]
         shutil.copy(
             os.path.join(SEARCH_DIR, f"params_{random_state}.json"),
-            os.path.join(SEARCH_DIR, f"top{i+1}_params.json"),
+            os.path.join(SEARCH_DIR, f"best{i+1}_params.json"),
         )
         shutil.copy(
-            os.path.join(SEARCH_DIR, f"best_{random_state}.png"),
-            os.path.join(SEARCH_DIR, f"top{i+1}_best.png"),
+            os.path.join(SEARCH_DIR, f"result_{random_state}.png"),
+            os.path.join(SEARCH_DIR, f"best{i+1}_best.png"),
         )
         if 4 >= i >= 0:  # Copy best top 5 overall in same place
             shutil.copy(
-                os.path.join(SEARCH_DIR, f"best_{random_state}.png"),
-                os.path.join("./outputs", f"top{i+1}_best.png"),
+                os.path.join(SEARCH_DIR, f"result_{random_state}.png"),
+                os.path.join("./outputs", f"best{i+1}_best.png"),
             )
             shutil.copy(
                 os.path.join(SEARCH_DIR, f"params_{random_state}.json"),
-                os.path.join("./outputs", f"top{i+1}_params.json"),
+                os.path.join("./outputs", f"best{i+1}_params.json"),
             )
 
 
@@ -316,7 +316,7 @@ if __name__ == "__main__":
                 ),
             ):
 
-                top_params_path = os.path.join(config.CMA_DIR, f"top{top}_params.json")
+                top_params_path = os.path.join(config.CMA_DIR, f"best{top}_params.json")
                 with open(top_params_path, "r") as f:
                     best_param = json.load(f)
                 init_x0 = best_param
