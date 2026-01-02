@@ -21,6 +21,7 @@ import random
 import shutil
 from datetime import datetime
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 import numpy as np
 import pandas as pd
@@ -316,16 +317,13 @@ def compute_nasdaq_data(
     if data_path is None:
         data_path = Path(get_project_root()) / "data" / "fmp_data"
 
-    out_file = (
-        data_path / f"IXIC_{config.BENCHMARK_END_DATE}_historical_index_price_full.json"
-    )
+    out_file = data_path / f"IXIC_{BENCH_END_DATE}_historical_index_price_full.json"
     with open(out_file, "r") as f:
         nasdaq_history = json.load(f)
 
     if config.BASE_END_DATE_FILE is not None:
         base_historical_price_file = (
-            data_path
-            / f"IXIC_{config.BASE_END_DATE_FILE}_historical_index_price_full.json"
+            data_path / f"IXIC_{config.BASE_END_DATE}_historical_index_price_full.json"
         )
         with open(base_historical_price_file, "r") as f:
             base_nasdaq_history = json.load(f)
@@ -715,6 +713,14 @@ if __name__ == "__main__":
 
     local_log = PrintLog(extra_name="_benchmark", enable=False)
 
+    benchmark_end_date = BENCHMARK_END_DATE
+    current_date = datetime.now(ZoneInfo("Europe/Paris")).strftime("%Y-%m-%d")
+    if os.path.exists(os.path.join(data_path, f"{current_date}_benchmark_XY.csv")):
+        benchmark_end_date = current_date
+
+    with local_log:
+        print(f"Benchmark until {benchmark_end_date} :")
+
     for top in range(1, CMA_PARALLEL_PROCESSES):
 
         if os.path.exists(os.path.join(CMA_DIR, f"top{top}_params.json")):
@@ -746,9 +752,9 @@ if __name__ == "__main__":
             for index in range(CMA_STOCKS_DROP_OUT_ROUND):
                 remove_stocks = 0 if index == 0 else CMA_STOCKS_DROP_OUT
                 metrics, pos, remove_stocks_list = run_benchmark(
-                    FILE_BENCH_END_DATE=BENCHMARK_END_DATE,
+                    FILE_BENCH_END_DATE=benchmark_end_date,
                     BENCH_START_DATE=BENCHMARK_START_DATE,
-                    BENCH_END_DATE=BENCHMARK_END_DATE,
+                    BENCH_END_DATE=benchmark_end_date,
                     INIT_CAPITAL=INITIAL_CAPITAL,
                     LONG_OPEN_PROB_THRES_A=long_open_prob_thres_a,
                     LONG_CLOSE_PROB_THRES_A=long_close_prob_thres_a,
@@ -769,7 +775,7 @@ if __name__ == "__main__":
 
             nasdaq_metrics = compute_nasdaq_data(
                 BENCH_START_DATE=BENCHMARK_START_DATE,
-                BENCH_END_DATE=BENCHMARK_END_DATE,
+                BENCH_END_DATE=benchmark_end_date,
                 MODEL_PATH=TRAIN_DIR,
                 data_path=None,
             )
@@ -805,5 +811,4 @@ if __name__ == "__main__":
             with local_log:
                 print(f"Benchmark results for top{top}_best:")
                 print(metrics_text)
-    local_log.copy_last()
     local_log.copy_last()
