@@ -658,6 +658,12 @@ def run_benchmark(
         return max(0.0, weight)
 
     if float(annual_roi_mean) > 5.0 and longest_portfolio_drawdown > 5:
+
+        annual_roi_list = list(annual_roi.values())
+        n = 5  # number of values to multiply
+        mean_roi = np.mean(annual_roi_list[:n])
+        std_roi = np.std(annual_roi_list[:n])
+
         perf = (
             LONG_OPEN_PROB_THRES_A  # favor higher thresholds for better safety
             * LONG_CLOSE_PROB_THRES_A
@@ -669,14 +675,15 @@ def run_benchmark(
             * SHORT_CLOSE_PROB_THRES_B
             * INCREASE_POSITIONS_COUNT
             * gaussian_penalty_weight(long_rate, center=0.5, sigma=0.2)
-            * gaussian_penalty_weight(short_rate, center=0.5, sigma=0.2)
             * gaussian_penalty_weight(AB_rate, center=0.5, sigma=0.2)
             * gaussian_penalty_weight(long_short_rate, center=0.7, sigma=0.2)
-            * (float(portfolio_ret) ** 3.0)
+            * mean_roi**7
             / (
-                (1 + (float(longest_portfolio_drawdown) / 100))
-                * (0.2 + (float(annual_roi_std) / 10))
-                * (1 + (abs(float(portfolio_max_drawdown)) / 10))
+                0.01
+                * float(longest_portfolio_drawdown)
+                * (0.1 * float(std_roi) + 0.5)
+                * 10
+                * abs(float(portfolio_max_drawdown))
             )
         )
 
