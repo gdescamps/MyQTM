@@ -318,8 +318,8 @@ MAX_POSITIONS = 12
 CMA_RECURSIVE = 2
 CMA_LOOPS = 150
 CMA_EARLY_STOP_ROUNDS = 30
-CMA_STOCKS_DROP_OUT_ROUND = 10
-CMA_STOCKS_DROP_OUT = 5
+CMA_STOCKS_DROP_OUT_ROUND = 20
+CMA_STOCKS_DROP_OUT = 10
 CMA_PROCESSES = 128
 CMA_PARALLEL_PROCESSES = 32
 INIT_X0 = [0.7, 0.7, 0.7, 0.7, 0.7, 0.7, 0.7, 0.7, 0.7]
@@ -354,7 +354,7 @@ PARAM_GRID = {
     "mean_std_power": [1.71],
     "mean_std_power_2nd": [1.1],
     # Top features search range
-    "top_features": list(range(55, 85, 5)),
+    "top_features": list(range(55, 180, 5)),
 }
 
 FEATURES_2ND_RATIO_SEARCH = 0.6
