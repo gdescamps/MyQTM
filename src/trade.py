@@ -127,6 +127,33 @@ def build_trade_data(
         current_date += pd.Timedelta(days=1)
 
     stocks = list(set(stocks))
+
+    # Use the next trading day's open as the previous day's close.
+    for stock in stocks:
+        current_date = start_date
+        yesterday_stock = None
+        while current_date <= end_date:
+            current_date_str = current_date.strftime("%Y-%m-%d")
+            if current_date_str not in trade_data:
+                current_date += pd.Timedelta(days=1)
+                continue
+            today = trade_data[current_date_str]
+            if stock not in today:
+                current_date += pd.Timedelta(days=1)
+                continue
+            today_stock = today[stock]
+            if yesterday_stock:
+                # Use the next trading day's open as the previous day's close.
+                yesterday_stock["close"] = today_stock["open"]
+            yesterday_stock = today_stock
+            current_date += pd.Timedelta(days=1)
+
+        if yesterday_stock and today_stock:
+            if "close" not in yesterday_stock:
+                yesterday_stock["close"] = today_stock["open"]
+
+    # Build long/short opportunity indices: 0 marks a new opportunity, then increments daily.
+    # When the class flips away, compute gain and stamp it on the exit day and the entry day.
     for stock in stocks:
         current_date = start_date
         pc = None
