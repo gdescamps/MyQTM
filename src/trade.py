@@ -142,13 +142,13 @@ def build_trade_data(
                 continue
             today_stock = today[stock]
             if yesterday_stock:
-                yesterday_stock["close"] = today_stock["open"]
+                yesterday_stock["open_tomorrow"] = today_stock["open"]
             yesterday_stock = today_stock
             current_date += pd.Timedelta(days=1)
 
         if yesterday_stock and today_stock:
             if "close" not in yesterday_stock:
-                yesterday_stock["close"] = today_stock["open"]
+                yesterday_stock["open_tomorrow"] = today_stock["open"]
 
     for stock in stocks:
         current_date = start_date
@@ -176,21 +176,21 @@ def build_trade_data(
             if pc is not None and c == class_long and pc != class_long:
                 index_long = 0
                 zero_item = today_stock
-                open_price = today_stock["open"]
+                open_price = today_stock["open_tomorrow"]
                 index_long_zero_prob = today_stock["ybull"]
             elif pc is not None and c == class_short and pc != class_short:
                 index_short = 0
                 zero_item = today_stock
-                open_price = today_stock["open"]
+                open_price = today_stock["open_tomorrow"]
                 index_short_zero_prob = today_stock["ybear"]
             elif open_price is not None and c != class_long and pc == class_long:
-                close_price = today_stock["close"]
+                close_price = today_stock["open_tomorrow"]
                 gain = (close_price - open_price) / open_price
                 today_stock["gain"] = gain
                 zero_item["gain"] = gain
                 open_price = None
             elif open_price is not None and c != class_short and pc == class_short:
-                close_price = today_stock["close"]
+                close_price = today_stock["open_tomorrow"]
                 gain = (open_price - close_price) / open_price
                 today_stock["gain"] = gain
                 zero_item["gain"] = gain
