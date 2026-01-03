@@ -365,7 +365,9 @@ def open_positions(
                 ):
                     continue
                 yprob = item["yprob"]
-                prob = (yprob - prob_thres_item) / (1.0 - prob_thres_item)
+                yprob_thres = item["yprob_thres"]
+                assert yprob >= yprob_thres
+                prob = (yprob - yprob_thres) / (1.0 - yprob_thres)
                 prob = max(prob, 0.1) ** pos_pow_item
                 size = prob * (1.0 - pos_count_item) * capital_and_position
                 size = min(capital, size)
@@ -481,6 +483,7 @@ def select_positions_to_open(
                         {
                             "ticker": ticker,
                             "yprob": open_zero_prob,
+                            "yprob_thres": open_prob_thres,
                             "yprob_open": open_prob,
                             "index": index,
                         }
