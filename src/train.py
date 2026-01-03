@@ -121,12 +121,9 @@ def compute_perf(trade_data, threshold):
     gain_per_trade = 1
     if count:
         gain_per_trade = gain ** (1 / count)
-    dd_discount = gain_min_norm**3.0
-    if gain_min_norm >= 0.7:
-        dd_discount = gain_min_norm
 
     regularity = 0.0
-    if len(opportunity_days) > 50:
+    if len(opportunity_days) > 2:
         intervals = np.diff(opportunity_days)
         weights = np.sqrt(
             np.maximum(np.array(opportunity_gains[:-1]), 1e-6)
@@ -148,7 +145,7 @@ def compute_perf(trade_data, threshold):
         * span_factor
         * (gain_per_trade - 1.0)
         * (len(opportunity_days) ** 1.5)
-        * dd_discount
+        * (gain_min_norm**3.8)
     )
 
     dd = -(1.0 - gain_min_norm)
@@ -165,7 +162,8 @@ def search_threshold_for_perf(
     best_score = 0
     best_count = 0
     best_gain_per_trade = 0
-    best_threshold = 0
+    best_threshold = 1.0
+    best_dd = 0
 
     thresholds = np.arange(threshold_min, threshold_max, threshold_step)
     for threshold in tqdm(thresholds, leave=False):
@@ -236,9 +234,9 @@ def split_trade_data(trade_data):
     )
 
 
-def search_perfs_threshold():
+def search_perfs_threshold(model_path, data_path):
     trade_data = build_trade_data(
-        model_path=Path(get_project_root()) / local_log.output_dir_time,
+        model_path=model_path,
         data_path=data_path,
         file_date_str=config.BENCHMARK_END_DATE,
         start_date=pd.to_datetime(config.BENCHMARK_START_DATE, format="%Y-%m-%d"),
@@ -675,7 +673,10 @@ if __name__ == "__main__":
         with open(ntree_limit_path, "w") as f:
             json.dump({"ntree_limit": int(f1_callbackb.best_iter + 1)}, f)
 
-        (scores, counts, gain_per_trades, dds, thresholds) = search_perfs_threshold()
+        model_path = Path(get_project_root()) / local_log.output_dir_time
+        (scores, counts, gain_per_trades, dds, thresholds) = search_perfs_threshold(
+            model_path, data_path
+        )
         score = np.mean(scores)
 
         if score > best_score:
