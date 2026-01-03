@@ -37,6 +37,8 @@ Variables:
 - ENABLE_PROFILER: Flag to enable or disable profiling.
 """
 
+from datetime import datetime
+
 from skopt.space import Real
 
 BASE_END_DATE_FILE = "2025-09-05"
@@ -44,8 +46,7 @@ BASE_END_DATE = "2025-09-05"
 
 BENCHMARK_START_DATE = "2020-01-03"
 # BENCHMARK_END_DATE = "2025-09-05"
-BENCHMARK_END_DATE = "2025-11-28"
-CMAES_END_DATE = "2025-04-05"  # CMA-ES finetune end date
+BENCHMARK_END_DATE = "2025-12-22"
 
 if BENCHMARK_END_DATE == BASE_END_DATE_FILE:
     BASE_END_DATE_FILE = None
@@ -54,6 +55,32 @@ if BENCHMARK_END_DATE == BASE_END_DATE_FILE:
 DOWNLOAD_START_DATE = "2017-01-01"
 TRAIN_START_DATE = "2019-08-01"
 TRAIN_END_DATE = "2024-10-05"
+
+# CMAES_END_DATE = TRAIN_END_DATE
+# CMAES_END_DATE = BENCHMARK_END_DATE
+CMAES_END_DATE = "2025-06-05"  # CMA-ES finetune end date
+CMAES_MONTHS_HISTORY = 3 * 12
+CMAES_START_DATE = None
+
+if CMAES_END_DATE is not None:
+    cmaes_end_dt = datetime.strptime(CMAES_END_DATE, "%Y-%m-%d")
+    total_months = cmaes_end_dt.year * 12 + (cmaes_end_dt.month - 1)
+    target_months = total_months - CMAES_MONTHS_HISTORY
+    target_year = target_months // 12
+    target_month = (target_months % 12) + 1
+    try:
+        cmaes_start_dt = cmaes_end_dt.replace(
+            year=target_year,
+            month=target_month,
+        )
+    except ValueError:
+        # Handle end-of-month truncation (e.g., 31 -> 30/28).
+        cmaes_start_dt = cmaes_end_dt.replace(
+            year=target_year,
+            month=target_month,
+            day=28,
+        )
+    CMAES_START_DATE = cmaes_start_dt.strftime("%Y-%m-%d")
 
 INITIAL_CAPITAL = (
     8800  # Manual capital init to sync portforlio and nasdaq at BENCHMARK_START_DATE
@@ -315,15 +342,16 @@ TS_SIZE = 6
 MAX_POSITIONS = 12
 
 # CMA-ES optimization parameters
-CMA_RECURSIVE = 1
+CMA_RECURSIVE = 2
 CMA_LOOPS = 150
 CMA_EARLY_STOP_ROUNDS = 30
 CMA_STOCKS_DROP_OUT_ROUND = 20
 CMA_STOCKS_DROP_OUT = 10
-CMA_PROCESSES = 32
+CMA_PROCESSES = 64
 CMA_PARALLEL_PROCESSES = 16
-INIT_X0 = [0.7, 0.7, 0.7, 0.7, 0.7, 0.7, 0.7, 0.7, 0.7]
+INIT_X0 = [0.7, 0.5, 0.7, 0.5, 0.7, 0.5, 0.7, 0.5, 0.7, 0.7]
 INIT_CMA_STD = 0.2
+
 # CMA-ES optimization parameter space
 INIT_SPACE = [  # Important increase params favor better safety
     Real(0.01, 0.999, name="long_open_prob_thres_A"),
@@ -334,13 +362,14 @@ INIT_SPACE = [  # Important increase params favor better safety
     Real(0.01, 0.999, name="long_close_prob_thres_B"),
     Real(0.01, 0.999, name="short_open_prob_thres_B"),
     Real(0.01, 0.999, name="short_close_prob_thres_B"),
-    Real(0.01, 0.999, name="increase_positions_count"),
+    Real(0.4, 0.9, name="long_positions_count"),
+    Real(0.4, 0.9, name="short_positions_count"),
 ]
 
 # XGBoost model training parameter grid
 PARAM_GRID = {
     "patience": [100],
-    "max_depth": [7],
+    "max_depth": [5],
     "learning_rate": [0.01],
     "subsample": [0.6],
     "colsample_bytree": [0.7],
@@ -354,7 +383,7 @@ PARAM_GRID = {
     "mean_std_power": [1.71],
     "mean_std_power_2nd": [1.1],
     # Top features search range
-    "top_features": list(range(55, 180, 5)),
+    "top_features": list(range(55, 80, 5)),
 }
 
 FEATURES_2ND_RATIO_SEARCH = 0.6

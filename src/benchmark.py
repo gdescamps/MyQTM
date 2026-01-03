@@ -6,7 +6,7 @@ This module is responsible for running benchmark simulations and computing portf
 Functions:
 - compute_bench(): Simulates the benchmark trading strategy and computes portfolio metrics.
 - compute_nasdaq_data(): Computes NASDAQ index data for comparison with portfolio performance.
-- compute_annual_roi(): Calculates the ROI for each 1-year period from the end, non-sliding.
+- compute_monthly_roi(): Calculates the ROI for each 1-month period from the end, non-sliding.
 - run_benchmark(): Runs the benchmark simulation and computes all portfolio metrics.
 
 Main Execution:
@@ -42,6 +42,7 @@ from src.path import get_project_root
 from src.plot import plot_portfolio_metrics
 from src.printlog import PrintLog
 from src.trade import (
+    build_positions_to_open,
     build_trade_data,
     close_positions,
     compute_position_sizes,
@@ -50,6 +51,25 @@ from src.trade import (
     select_positions_to_close,
     select_positions_to_open,
 )
+
+
+def compute_item_trend(item):
+    long_count = 0
+    short_count = 0
+    long_score = 0.0
+    short_score = 0.0
+
+    for data in item.values():
+        class_val = data.get("class")
+        if class_val == 2:
+            long_count += 1
+            long_score += float(data.get("ybull", 0.0))
+        elif class_val == 0:
+            short_count += 1
+            short_score += float(data.get("ybear", 0.0))
+
+    score_total = long_score + short_score
+    return long_score / score_total
 
 
 def compute_bench(
@@ -67,7 +87,8 @@ def compute_bench(
     long_close_prob_thres_b,
     short_open_prob_thres_b,
     short_close_prob_thres_b,
-    increase_positions_count,
+    long_positions_count,
+    short_positions_count,
     attempt,
 ):
     """
@@ -88,7 +109,8 @@ def compute_bench(
         long_close_prob_thres_b (float): Threshold B for closing long positions.
         short_open_prob_thres_b (float): Threshold B for opening short positions.
         short_close_prob_thres_b (float): Threshold B for closing short positions.
-        increase_positions_count (float): Rate for adjusting position sizes.
+        long_positions_count (float): Long-side position size scaling factor (0-1).
+        short_positions_count (float): Short-side position size scaling factor (0-1).
 
     Returns:
         tuple: Portfolio values, capital, positions, position history, total capital, and portfolio counts.
@@ -151,8 +173,8 @@ def compute_bench(
         position_size = capital_and_position / max_positions
 
         # Open new long positions
-        positions, capital, positions_long_to_open = open_positions(
-            positions_long_to_open,
+        positions, capital = open_positions(
+            positions_to_open,
             positions,
             bench_data,
             current_date,
@@ -161,7 +183,7 @@ def compute_bench(
             position_size,
             max_positions,
             "long",
-            increase_positions_count,
+            long_positions_count,
         )
 
         # Open new short positions
@@ -175,7 +197,7 @@ def compute_bench(
             position_size,
             max_positions,
             "short",
-            increase_positions_count,
+            short_positions_count,
         )
 
         # Recompute the total value of open positions
@@ -248,6 +270,12 @@ def compute_bench(
             class_val=0,
             open_prob_thres=short_open_prob_thres,
             close_prob_thres=short_close_prob_thres,
+        )
+
+        long_short_score = compute_item_trend(item)
+
+        positions_to_open = build_positions_to_open(
+            positions_long_to_open, positions_short_to_open, long_short_score, 0.6
         )
 
         # Compute positions to close
@@ -463,14 +491,55 @@ def compute_annual_roi(dates_portfolio, values_portfolio):
         float(np.max(list(annual_roi.values()))) if annual_roi else float("nan")
     )
 
-    return (
-        annual_roi,
-        annual_roi_mean,
-        annual_roi_std,
-        annual_roi_min,
-        annual_roi_max,
-        list(annual_roi.values())[0],
+    return (annual_roi, annual_roi_mean, annual_roi_std, annual_roi_min, annual_roi_max)
+
+
+def compute_cmaes_period_monthly_roi(dates_portfolio, values_portfolio):
+    """
+    Calculates the ROI for each 1-month period from the end, non-sliding.
+
+    Args:
+        dates_portfolio (list): List of portfolio dates.
+        values_portfolio (list): List of portfolio values.
+
+    Returns:
+        tuple: Monthly ROI metrics including mean, standard deviation, min, and max ROI.
+    """
+    df = pd.DataFrame(
+        {
+            "date": dates_portfolio,
+            "value": values_portfolio,
+        }
     )
+    df = df.sort_values("date").reset_index(drop=True)
+    monthly_roi = {}
+    i = len(df) - 1
+    while i > 0:
+        end_row = df.iloc[i]
+        end_date = end_row["date"]
+        end_value = end_row["value"]
+        # Search for the first date <= end_date - 1 month
+        target_date = end_date - pd.DateOffset(months=1)
+        prev_year_idx = df[df["date"] <= target_date].index
+        if len(prev_year_idx) == 0:
+            break  # Not enough history for a full period
+        start_idx = prev_year_idx[-1]
+        start_row = df.loc[start_idx]
+        start_value = start_row["value"]
+        roi = 100 * (end_value - start_value) / start_value
+        monthly_roi[str(end_row["date"].date())] = float(roi)  # key = end_date
+        i = start_idx  # Move to the previous 1-month period
+    monthly_roi_std = (
+        float(np.std(list(monthly_roi.values()))) if monthly_roi else float("nan")
+    )
+    monthly_roi_mean = (
+        float(np.mean(list(monthly_roi.values()))) if monthly_roi else float("nan")
+    )
+    monthly_roi_max = (
+        float(np.max(list(monthly_roi.values()))) if monthly_roi else float("nan")
+    )
+
+    return (monthly_roi_mean, monthly_roi_std, monthly_roi_max)
 
 
 def run_benchmark(
@@ -487,7 +556,8 @@ def run_benchmark(
     LONG_CLOSE_PROB_THRES_B=0.37,
     SHORT_OPEN_PROB_THRES_B=0.60,
     SHORT_CLOSE_PROB_THRES_B=0.37,
-    INCREASE_POSITIONS_COUNT=0.4,
+    LONG_POSITIONS_COUNT=0.4,
+    SHORT_POSITIONS_COUNT=0.4,
     MODEL_PATH=None,
     data_path=None,
     remove_stocks=5,
@@ -511,7 +581,8 @@ def run_benchmark(
         LONG_CLOSE_PROB_THRES_B (float, optional): Threshold B for closing long positions. Defaults to 0.37.
         SHORT_OPEN_PROB_THRES_B (float, optional): Threshold B for opening short positions. Defaults to 0.60.
         SHORT_CLOSE_PROB_THRES_B (float, optional): Threshold B for closing short positions. Defaults to 0.37.
-        INCREASE_POSITIONS_COUNT (float, optional): Rate to increase positions count.
+        LONG_POSITIONS_COUNT (float, optional): Long-side position size scaling factor (0-1).
+        SHORT_POSITIONS_COUNT (float, optional): Short-side position size scaling factor (0-1).
         MODEL_PATH (str, optional): Path to the model directory. Defaults to None.
         data_path (str, optional): Path to the data directory. Defaults to None.
         remove_stocks (int, optional): Number of stocks to remove from the benchmark. Defaults to 5.
@@ -577,7 +648,8 @@ def run_benchmark(
         LONG_CLOSE_PROB_THRES_B,
         SHORT_OPEN_PROB_THRES_B,
         SHORT_CLOSE_PROB_THRES_B,
-        INCREASE_POSITIONS_COUNT,
+        LONG_POSITIONS_COUNT,
+        SHORT_POSITIONS_COUNT,
         attempt,
     )
 
@@ -606,16 +678,70 @@ def run_benchmark(
     else:
         ulcer_index = float("nan")
 
-    (
-        annual_roi,
-        annual_roi_mean,
-        annual_roi_std,
-        annual_roi_min,
-        annual_roi_max,
-        annual_roi_last,
-    ) = compute_annual_roi(dates_portfolio, values_portfolio)
+    cmaes_start_dt = None
+    cmaes_end_dt = None
+    if config.CMAES_START_DATE is not None:
+        cmaes_start_dt = pd.to_datetime(config.CMAES_START_DATE, format="%Y-%m-%d")
+    if config.CMAES_END_DATE is not None:
+        cmaes_end_dt = pd.to_datetime(config.CMAES_END_DATE, format="%Y-%m-%d")
+
+    dates_cmaes_period = []
+    values_cmaes_period = []
+    if cmaes_start_dt is not None and cmaes_end_dt is not None:
+        for current_date, current_value in zip(dates_portfolio, values_portfolio):
+            if cmaes_start_dt <= current_date <= cmaes_end_dt:
+                dates_cmaes_period.append(current_date)
+                values_cmaes_period.append(current_value)
+
+    if len(values_cmaes_period) > 0:
+        cmaes_values_arr = np.array(values_cmaes_period)
+        cmaes_cummax = np.maximum.accumulate(cmaes_values_arr)
+        cmaes_drawdowns = (cmaes_values_arr - cmaes_cummax) / cmaes_cummax
+        portfolio_max_drawdown_cmaes_period = cmaes_drawdowns.min()
+
+        longest_portfolio_drawdown_cmaes_period = 0
+        current_dd = 0
+        for v, m in zip(cmaes_values_arr, cmaes_cummax):
+            if v < m:
+                current_dd += 1
+                if current_dd > longest_portfolio_drawdown_cmaes_period:
+                    longest_portfolio_drawdown_cmaes_period = current_dd
+            else:
+                current_dd = 0
+
+        longest_portfolio_drawdown_cmaes_period_norm = (
+            longest_portfolio_drawdown_cmaes_period / len(cmaes_values_arr)
+            if len(cmaes_values_arr) > 0
+            else 0.0
+        )
+
+        (
+            monthly_cmaes_period_roi_mean,
+            monthly_cmaes_period_roi_std,
+            monthly_cmaes_period_roi_max,
+        ) = compute_cmaes_period_monthly_roi(dates_cmaes_period, values_cmaes_period)
 
     perf = 0
+    if monthly_cmaes_period_roi_mean > 0:
+        hyper_params_mul = (
+            LONG_CLOSE_PROB_THRES_A
+            * SHORT_CLOSE_PROB_THRES_A
+            * LONG_CLOSE_PROB_THRES_B
+            * SHORT_CLOSE_PROB_THRES_B
+            * LONG_POSITIONS_COUNT
+            * SHORT_POSITIONS_COUNT
+        )
+        perf = (
+            hyper_params_mul
+            * monthly_cmaes_period_roi_mean
+            * (1.0 - longest_portfolio_drawdown_cmaes_period_norm)
+            * max(
+                0.0,
+                (1.0 - (monthly_cmaes_period_roi_std / monthly_cmaes_period_roi_max)),
+            )
+            * (1.0 + portfolio_max_drawdown_cmaes_period)
+        )
+
     positions_count = len(positions_history) + len(positions)
 
     long_A_positions = len(
@@ -659,42 +785,13 @@ def run_benchmark(
     AB_rate = (long_A_positions + short_A_positions) / (positions_count + 1)
     long_short_rate = (long_A_positions + long_B_positions) / (positions_count + 1)
 
-    def gaussian_penalty_weight(x, center=0.5, sigma=0.2):
-        # Gaussian penalty weight function for CMA-ES optimization
-        # Returns a weight in [0, 1] that penalizes deviations from center
-        # sigma controls the width of the Gaussian (smaller = narrower)
-        weight = np.exp(-((x - center) ** 2) / (2 * sigma**2))
-        return max(0.0, weight)
-
-    if float(annual_roi_mean) > 5.0 and longest_portfolio_drawdown > 5:
-
-        annual_roi_list = list(annual_roi.values())
-        n = 5  # number of values to multiply
-        mean_roi = np.mean(annual_roi_list[:n])
-        std_roi = np.std(annual_roi_list[:n])
-
-        perf = (
-            LONG_OPEN_PROB_THRES_A  # favor higher thresholds for better safety
-            * LONG_CLOSE_PROB_THRES_A
-            * SHORT_OPEN_PROB_THRES_A
-            * SHORT_CLOSE_PROB_THRES_A
-            * LONG_OPEN_PROB_THRES_B
-            * LONG_CLOSE_PROB_THRES_B
-            * SHORT_OPEN_PROB_THRES_B
-            * SHORT_CLOSE_PROB_THRES_B
-            * INCREASE_POSITIONS_COUNT
-            * gaussian_penalty_weight(long_rate, center=0.5, sigma=0.2)
-            * gaussian_penalty_weight(AB_rate, center=0.5, sigma=0.2)
-            * gaussian_penalty_weight(long_short_rate, center=0.7, sigma=0.2)
-            * mean_roi**7
-            / (
-                0.01
-                * float(longest_portfolio_drawdown)
-                * (0.1 * float(std_roi) + 0.5)
-                * 10
-                * abs(float(portfolio_max_drawdown))
-            )
-        )
+    (
+        annual_roi,
+        annual_roi_mean,
+        annual_roi_std,
+        annual_roi_min,
+        annual_roi_max,
+    ) = compute_annual_roi(dates_portfolio, values_portfolio)
 
     metrics = {
         "portfolio": {
@@ -773,7 +870,8 @@ if __name__ == "__main__":
                 long_close_prob_thres_b,
                 short_open_prob_thres_b,
                 short_close_prob_thres_b,
-                increase_position_count,
+                long_position_count,
+                short_position_count,
             ) = list(XBEST)
 
             returns = []
@@ -799,7 +897,8 @@ if __name__ == "__main__":
                     LONG_CLOSE_PROB_THRES_B=long_close_prob_thres_b,
                     SHORT_OPEN_PROB_THRES_B=short_open_prob_thres_b,
                     SHORT_CLOSE_PROB_THRES_B=short_close_prob_thres_b,
-                    INCREASE_POSITIONS_COUNT=increase_position_count,
+                    LONG_POSITIONS_COUNT=long_position_count,
+                    SHORT_POSITIONS_COUNT=short_position_count,
                     MODEL_PATH=TRAIN_DIR,
                     data_path=None,
                     remove_stocks=remove_stocks,

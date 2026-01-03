@@ -23,6 +23,7 @@ from pathlib import Path
 
 import numpy as np
 from dotenv import load_dotenv
+from skopt.space import Real
 
 import config
 from src.benchmark import compute_nasdaq_data, run_benchmark
@@ -31,6 +32,63 @@ from src.finetune import cmaes_grid_search_benchmark
 from src.path import get_project_root
 from src.plot import plot_portfolio_metrics
 from src.printlog import PrintLog, PrintLogProcess
+
+
+def clamp_x0_to_space(x0, space):
+    if not x0:
+        return x0
+    clipped = []
+    for value, dim in zip(x0, space):
+        if isinstance(dim, Real):
+            low = dim.low
+            high = dim.high
+            clipped.append(min(max(float(value), low), high))
+    return clipped
+
+
+def load_thresholds(train_dir):
+    thresholds_paths = [
+        Path(get_project_root()) / train_dir / "best_thresholds.json",
+        Path(get_project_root()) / train_dir / "best_threshold.json",
+    ]
+    for thresholds_path in thresholds_paths:
+        if thresholds_path.exists():
+            with open(thresholds_path, "r") as f:
+                payload = json.load(f)
+            labels = payload.get("labels")
+            thresholds = payload.get("thresholds")
+            if labels and thresholds:
+                return dict(zip(labels, thresholds))
+            if thresholds:
+                default_labels = ("A_long", "B_long", "A_short", "B_short")
+                return dict(zip(default_labels, thresholds))
+    return None
+
+
+def override_open_threshold_bounds(space, thresholds, margin=0.2):
+    if not thresholds:
+        return space
+    label_to_space_name = {
+        "A_long": "long_open_prob_thres_A",
+        "B_long": "long_open_prob_thres_B",
+        "A_short": "short_open_prob_thres_A",
+        "B_short": "short_open_prob_thres_B",
+    }
+    overrides = {
+        label_to_space_name[label]: float(value)
+        for label, value in thresholds.items()
+        if label in label_to_space_name
+    }
+    if not overrides:
+        return space
+    updated_space = []
+    for dim in space:
+        if isinstance(dim, Real) and dim.name in overrides:
+            center = overrides[dim.name]
+            updated_space.append(Real(center - margin, center + margin, name=dim.name))
+        else:
+            updated_space.append(dim)
+    return updated_space
 
 
 def run_single_random_state(
@@ -67,7 +125,7 @@ def run_single_random_state(
     )
 
     # Run CMA-ES grid search optimization
-    xbest, fbest, _, positions = cmaes_grid_search_benchmark(
+    xbest, fbest, _, _ = cmaes_grid_search_benchmark(
         n_calls=cma_loops,
         early_stop_rounds=early_stop_rounds,
         cma_dropout_round=cma_dropout_round,
@@ -93,7 +151,8 @@ def run_single_random_state(
         long_close_prob_thresb,
         short_open_prob_thresb,
         short_close_prob_thresb,
-        increase_positions_count,
+        long_positions_count,
+        short_positions_count,
     ) = list(xbest)
 
     # Initialize performance tracking lists
@@ -117,7 +176,8 @@ def run_single_random_state(
             LONG_CLOSE_PROB_THRES_B=long_close_prob_thresb,
             SHORT_OPEN_PROB_THRES_B=short_open_prob_thresb,
             SHORT_CLOSE_PROB_THRES_B=short_close_prob_thresb,
-            INCREASE_POSITIONS_COUNT=increase_positions_count,
+            LONG_POSITIONS_COUNT=long_positions_count,
+            SHORT_POSITIONS_COUNT=short_positions_count,
             MODEL_PATH=config.TRAIN_DIR,
             data_path=None,
             remove_stocks=remove_stocks,
@@ -142,7 +202,8 @@ def run_single_random_state(
             LONG_CLOSE_PROB_THRES_B=long_close_prob_thresb,
             SHORT_OPEN_PROB_THRES_B=short_open_prob_thresb,
             SHORT_CLOSE_PROB_THRES_B=short_close_prob_thresb,
-            INCREASE_POSITIONS_COUNT=increase_positions_count,
+            LONG_POSITIONS_COUNT=long_positions_count,
+            SHORT_POSITIONS_COUNT=short_positions_count,
             MODEL_PATH=config.TRAIN_DIR,
             data_path=None,
             remove_stocks=remove_stocks,
@@ -321,7 +382,8 @@ if __name__ == "__main__":
     random_states = list(range(seed, seed + config.CMA_PROCESSES))
 
     # Load optimization configuration
-    init_space = config.INIT_SPACE
+    thresholds = load_thresholds(config.TRAIN_DIR)
+    init_space = override_open_threshold_bounds(config.INIT_SPACE, thresholds)
 
     for iter in range(config.CMA_RECURSIVE):
 
@@ -336,7 +398,7 @@ if __name__ == "__main__":
         if iter == 0:
 
             # Load optimization configuration
-            init_x0 = config.INIT_X0
+            init_x0 = clamp_x0_to_space(config.INIT_X0, init_space)
             init_cma_std = config.INIT_CMA_STD
 
             # Start parallel processes for current batch
@@ -427,4 +489,5 @@ if __name__ == "__main__":
         sort_perfs(random_states, SEARCH_DIR)
 
         # Archive final results
+        local_log.copy_last()
         local_log.copy_last()

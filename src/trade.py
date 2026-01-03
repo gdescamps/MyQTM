@@ -376,6 +376,45 @@ def open_positions(
     return positions, capital, positions_to_open
 
 
+def build_positions_to_open(
+    positions_long_to_open, positions_short_to_open, long_short_score, trend_score_rate
+):
+    """
+    Combines long and short candidate positions into one sorted list by weighted yprob.
+
+    Args:
+        positions_long_to_open (list): List of long positions to open.
+        positions_short_to_open (list): List of short positions to open.
+        long_short_score (float): Score in [0, 1] favoring long vs short trend.
+        trend_score_rate (float): Amplification rate applied to trend weighting.
+
+    Returns:
+        list: Combined positions to open, sorted by descending weighted yprob.
+    """
+    positions_to_open = []
+    for item in positions_long_to_open:
+        item_copy = item.copy()
+        item_copy["type"] = "long"
+        positions_to_open.append(item_copy)
+    for item in positions_short_to_open:
+        item_copy = item.copy()
+        item_copy["type"] = "short"
+        positions_to_open.append(item_copy)
+
+    trend_bias = min(max(long_short_score, 0.0), 1.0)
+    trend_bias = trend_bias - 0.5
+
+    def weighted_yprob(position):
+        if position["type"] == "long":
+            weight = 1.0 + trend_score_rate * trend_bias
+        else:
+            weight = 1.0 - trend_score_rate * trend_bias
+        return position["yprob"] * weight
+
+    positions_to_open.sort(key=weighted_yprob, reverse=True)
+    return positions_to_open
+
+
 def select_positions_to_open(
     item_dict,
     prev_item,
