@@ -18,6 +18,7 @@ import multiprocessing
 import os
 import random
 import shutil
+import subprocess
 from pathlib import Path
 
 import numpy as np
@@ -197,41 +198,89 @@ def sort_perfs(random_states, SEARCH_DIR):
     Returns:
         None
     """
-    # Collect and sort results by performance
-    perfs = []
-    for random_state in random_states:
-        perf_path = os.path.join(SEARCH_DIR, f"perf_{random_state}.json")
-        if os.path.exists(perf_path):
-            with open(perf_path, "r") as f:
-                try:
-                    perf = json.load(f)
-                    perfs.append({"perf": perf, "random_state": random_state})
-                except json.JSONDecodeError:
-                    # Fichier vide ou corrompu, on ignore
-                    continue
-    # Sort performance list in descending order by performance score
-    perfs.sort(key=lambda x: x["perf"], reverse=True)
 
-    # Copy top results with ranking labels
-    for i, entry in enumerate(perfs):
-        random_state = entry["random_state"]
-        shutil.copy(
-            os.path.join(SEARCH_DIR, f"params_{random_state}.json"),
-            os.path.join(SEARCH_DIR, f"best{i+1}_params.json"),
+    def safe_json_load(path):
+        try:
+            with open(path, "r") as f:
+                return json.load(f)
+        except (json.JSONDecodeError, OSError):
+            return None
+
+    def copy_if_exists(src, dst):
+        if src.exists():
+            shutil.copy2(src, dst)
+
+    def run_git(args, cwd):
+        try:
+            return subprocess.check_output(
+                ["git"] + args, cwd=cwd, stderr=subprocess.STDOUT, text=True
+            ).strip()
+        except (OSError, subprocess.CalledProcessError) as exc:
+            return f"unavailable: {exc}"
+
+    def write_code_log(path):
+        repo_root = str(get_project_root())
+        branch = run_git(["rev-parse", "--abbrev-ref", "HEAD"], repo_root)
+        last_commit_sha = run_git(["rev-parse", "HEAD"], repo_root)
+        last_commit = run_git(["log", "-1", "--pretty=format:%H %an %ad %s"], repo_root)
+        last_commits_messages = run_git(
+            ["log", "-5", "--pretty=format:%h %s"], repo_root
         )
-        shutil.copy(
-            os.path.join(SEARCH_DIR, f"result_{random_state}.png"),
-            os.path.join(SEARCH_DIR, f"best{i+1}_best.png"),
+        status = run_git(["status", "-sb"], repo_root)
+        diff_stat = run_git(["diff", "--stat"], repo_root)
+        diff_numstat = run_git(["diff", "--numstat"], repo_root)
+        diff_full = run_git(["diff"], repo_root)
+        with open(path, "w") as f:
+            f.write(f"branch: {branch}\n")
+            f.write(f"last_commit_sha1: {last_commit_sha}\n")
+            f.write(f"last_commit: {last_commit}\n")
+            f.write("last_5_commit_messages:\n")
+            f.write(f"{last_commits_messages}\n")
+            f.write("status:\n")
+            f.write(f"{status}\n")
+            f.write("diff_stat:\n")
+            f.write(f"{diff_stat}\n")
+            f.write("diff_numstat:\n")
+            f.write(f"{diff_numstat}\n")
+            f.write("diff_full:\n")
+            f.write(f"{diff_full}\n")
+
+    local_best_dir = Path(SEARCH_DIR)
+    local_perfs = []
+    for perf_path in local_best_dir.glob("perf_*.json"):
+        perf = safe_json_load(perf_path)
+        if perf is None:
+            continue
+        uid = perf_path.stem.replace("perf_", "", 1)
+        local_perfs.append({"perf": perf, "uid": uid})
+
+    local_perfs.sort(key=lambda x: x["perf"], reverse=True)
+    train_log = Path(config.TRAIN_DIR) / "print.log"
+
+    for i, entry in enumerate(local_perfs):
+        rank = i + 1
+        uid = entry["uid"]
+        copy_if_exists(
+            local_best_dir / f"perf_{uid}.json",
+            local_best_dir / f"best{rank}_perf.json",
         )
-        if 4 >= i >= 0:  # Copy best top 5 overall in same place
-            shutil.copy(
-                os.path.join(SEARCH_DIR, f"result_{random_state}.png"),
-                os.path.join("./outputs", f"best{i+1}_best.png"),
-            )
-            shutil.copy(
-                os.path.join(SEARCH_DIR, f"params_{random_state}.json"),
-                os.path.join("./outputs", f"best{i+1}_params.json"),
-            )
+        copy_if_exists(
+            local_best_dir / f"params_{uid}.json",
+            local_best_dir / f"best{rank}_params.json",
+        )
+        copy_if_exists(
+            local_best_dir / f"positions_{uid}.json",
+            local_best_dir / f"best{rank}_positions.json",
+        )
+        copy_if_exists(
+            train_log,
+            local_best_dir / f"best{rank}_model.log",
+        )
+        write_code_log(local_best_dir / f"best{rank}_code.log")
+        copy_if_exists(
+            local_best_dir / f"result_{uid}.png",
+            local_best_dir / f"best{rank}.png",
+        )
 
 
 if __name__ == "__main__":
