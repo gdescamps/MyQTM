@@ -81,7 +81,6 @@ def run_single_random_state(
         random_state=random_state,
         x0=init_x0,
         cma_std=init_cma_std,
-        local_log=None,
     )
     # Extract optimized trading parameters
     (
