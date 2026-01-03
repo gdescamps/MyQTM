@@ -15,10 +15,10 @@ Main Execution:
 - Saves benchmark results and generates performance plots.
 """
 
+import hashlib
 import json
 import os
 import random
-import shutil
 from datetime import datetime
 from pathlib import Path
 from zoneinfo import ZoneInfo
@@ -68,6 +68,7 @@ def compute_bench(
     short_open_prob_thres_b,
     short_close_prob_thres_b,
     increase_positions_count,
+    attempt,
 ):
     """
     Simulates the benchmark trading strategy and computes portfolio metrics.
@@ -212,7 +213,13 @@ def compute_bench(
         stock_filter = config.TRADE_STOCKS.copy()
 
         if remove_stocks > 0:
-            random.shuffle(stock_filter)
+            stock_filter = sorted(stock_filter)
+            seed_source = f"{current_date}_{attempt}"
+            seed_value = int.from_bytes(
+                hashlib.sha256(seed_source.encode("utf-8")).digest()[:8],
+                byteorder="big",
+            )
+            random.Random(seed_value).shuffle(stock_filter)
             stock_filter = stock_filter[:-remove_stocks]
             # Ensure stocks with current positions remain in the filter
             for pos in positions:
@@ -484,6 +491,7 @@ def run_benchmark(
     MODEL_PATH=None,
     data_path=None,
     remove_stocks=5,
+    attempt=0,
     force_reload=False,
 ):
     """
@@ -570,6 +578,7 @@ def run_benchmark(
         SHORT_OPEN_PROB_THRES_B,
         SHORT_CLOSE_PROB_THRES_B,
         INCREASE_POSITIONS_COUNT,
+        attempt,
     )
 
     # Portfolio metrics
@@ -771,8 +780,8 @@ if __name__ == "__main__":
 
             random.seed(42)
             positions = None
-            for index in range(CMA_STOCKS_DROP_OUT_ROUND):
-                remove_stocks = 0 if index == 0 else CMA_STOCKS_DROP_OUT
+            for attempt in range(CMA_STOCKS_DROP_OUT_ROUND):
+                remove_stocks = 0 if attempt == 0 else CMA_STOCKS_DROP_OUT
                 metrics, pos, remove_stocks_list = run_benchmark(
                     FILE_BENCH_END_DATE=benchmark_end_date,
                     BENCH_START_DATE=BENCHMARK_START_DATE,
@@ -790,6 +799,7 @@ if __name__ == "__main__":
                     MODEL_PATH=TRAIN_DIR,
                     data_path=None,
                     remove_stocks=remove_stocks,
+                    attempt=attempt,
                 )
                 metrics_list.append(metrics)
                 if remove_stocks == 0:

@@ -110,8 +110,8 @@ def cmaes_grid_search_benchmark(
         # Run multiple evaluations with optional dropout for robustness
         perfs = []
         metrics_list = []
-        for i in range(cma_dropout_round):
-            remove_stocks = 0 if i == 0 else cma_dropout
+        for attempt in range(cma_dropout_round):
+            remove_stocks = 0 if attempt == 0 else cma_dropout
             # Run benchmark with current parameters
             metrics, positions, _ = run_benchmark(
                 FILE_BENCH_END_DATE=file_bench_end_date,
@@ -130,6 +130,7 @@ def cmaes_grid_search_benchmark(
                 MODEL_PATH=model_path,
                 data_path=data_path,
                 remove_stocks=remove_stocks,
+                attempt=attempt,
             )
             perf = metrics["portfolio"]["perf"]
             perfs.append(perf)
