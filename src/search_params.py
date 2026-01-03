@@ -126,9 +126,10 @@ def run_single_random_state(
         perf = metrics["portfolio"]["perf"]
         performances.append(perf)
 
+    positions = None
     for attempt in range(config.CMA_STOCKS_DROP_OUT_ROUND):
         remove_stocks = 0 if attempt == 0 else config.CMA_STOCKS_DROP_OUT
-        metrics, _, _ = run_benchmark(
+        metrics, pos, _ = run_benchmark(
             FILE_BENCH_END_DATE=config.BENCHMARK_END_DATE,
             BENCH_START_DATE=config.BENCHMARK_START_DATE,
             BENCH_END_DATE=config.BENCHMARK_END_DATE,
@@ -149,6 +150,8 @@ def run_single_random_state(
             attempt=attempt,
         )
         metrics_list.append(metrics)
+        if remove_stocks == 0:
+            positions = pos
 
     if not metrics_list:
         return
@@ -185,6 +188,14 @@ def run_single_random_state(
     perf_path = os.path.join(local_log.output_dir_time, f"perf_{random_state}.json")
     with open(perf_path, "w") as f:
         json.dump(global_perf, f, indent=2)
+
+    # Save positions list of the benchmark for remove_stocks = 0
+    json_path = os.path.join(
+        local_log.output_dir_time,
+        f"positions_{random_state}.json",
+    )
+    with open(json_path, "w") as f:
+        json.dump(positions, f, indent=2)
 
 
 def sort_perfs(random_states, SEARCH_DIR):
