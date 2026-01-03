@@ -759,6 +759,10 @@ if __name__ == "__main__":
             with open(os.path.join(CMA_DIR, f"best{top}_params.json"), "r") as f:
                 XBEST = json.load(f)
 
+            if isinstance(XBEST, dict):
+                param_names = [dim.name for dim in config.INIT_SPACE]
+                XBEST = [XBEST[name] for name in param_names]
+
             (
                 # max_positions,
                 long_open_prob_thres_a,

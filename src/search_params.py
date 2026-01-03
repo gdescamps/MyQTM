@@ -175,9 +175,11 @@ def run_single_random_state(
 
     # Save optimized parameters to JSON file
     best_param = list(xbest)
+    param_names = [dim.name for dim in init_space]
+    best_param_payload = dict(zip(param_names, best_param))
     params_path = os.path.join(local_log.output_dir_time, f"params_{random_state}.json")
     with open(params_path, "w") as f:
-        json.dump(best_param, f, indent=2)
+        json.dump(best_param_payload, f, indent=2)
 
     # Save global performance metric to JSON file
     perf_path = os.path.join(local_log.output_dir_time, f"perf_{random_state}.json")
@@ -321,7 +323,11 @@ if __name__ == "__main__":
                 top_params_path = os.path.join(config.CMA_DIR, f"best{top}_params.json")
                 with open(top_params_path, "r") as f:
                     best_param = json.load(f)
-                init_x0 = best_param
+                if isinstance(best_param, dict):
+                    param_names = [dim.name for dim in init_space]
+                    init_x0 = [best_param[name] for name in param_names]
+                else:
+                    init_x0 = best_param
                 init_cma_std = config.INIT_CMA_STD / (iter + 1)  # Reduce std for finer
 
                 p = multiprocessing.Process(

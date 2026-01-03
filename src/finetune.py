@@ -25,7 +25,6 @@ def cmaes_grid_search_benchmark(
     random_state=42,
     x0=None,
     cma_std=0.2,
-    local_log=None,
 ):
     """
     Hyperparameter optimization using CMA-ES (Covariance Matrix Adaptation Evolution Strategy).
@@ -143,22 +142,6 @@ def cmaes_grid_search_benchmark(
         if perf > best_perf:
             best_perf = perf
             best_positions = positions
-            if local_log is not None:
-                plot, _ = plot_portfolio_metrics(metrics_list)
-                png_path = os.path.join(local_log.output_dir_time, "current.png")
-                plot.save(png_path)
-
-                # Save current best parameters
-                with open(
-                    os.path.join(local_log.output_dir_time, "current_params.json"), "w"
-                ) as f:
-                    json.dump(params.tolist(), f, indent=4)
-                # Save current best positions
-                with open(
-                    os.path.join(local_log.output_dir_time, "current_positions.json"),
-                    "w",
-                ) as f:
-                    json.dump(positions, f, indent=4)
 
         return -perf  # CMA-ES minimizes
 

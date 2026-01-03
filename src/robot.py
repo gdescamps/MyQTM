@@ -102,8 +102,11 @@ def daily_trade_positions():
     with local_log:
         print(f"current_date: {current_date}")
 
-    with open(os.path.join(config.CMA_DIR, "top1_params.json"), "r") as f:
+    with open(os.path.join(config.CMA_DIR, "best1_params.json"), "r") as f:
         XBEST = json.load(f)
+    if isinstance(XBEST, dict):
+        param_names = [dim.name for dim in config.INIT_SPACE]
+        XBEST = [XBEST[name] for name in param_names]
     (
         # max_positions,
         long_open_prob_thresa,
