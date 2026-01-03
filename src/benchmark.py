@@ -494,6 +494,54 @@ def compute_annual_roi(dates_portfolio, values_portfolio):
     )
 
 
+def compute_cmaes_period_monthly_roi(dates_portfolio, values_portfolio):
+    """
+    Calculates the ROI for each 1-month period from the end, non-sliding.
+
+    Args:
+        dates_portfolio (list): List of portfolio dates.
+        values_portfolio (list): List of portfolio values.
+
+    Returns:
+        tuple: Monthly ROI metrics including mean, standard deviation, min, and max ROI.
+    """
+    df = pd.DataFrame(
+        {
+            "date": dates_portfolio,
+            "value": values_portfolio,
+        }
+    )
+    df = df.sort_values("date").reset_index(drop=True)
+    monthly_roi = {}
+    i = len(df) - 1
+    while i > 0:
+        end_row = df.iloc[i]
+        end_date = end_row["date"]
+        end_value = end_row["value"]
+        # Search for the first date <= end_date - 1 month
+        target_date = end_date - pd.DateOffset(months=1)
+        prev_year_idx = df[df["date"] <= target_date].index
+        if len(prev_year_idx) == 0:
+            break  # Not enough history for a full period
+        start_idx = prev_year_idx[-1]
+        start_row = df.loc[start_idx]
+        start_value = start_row["value"]
+        roi = 100 * (end_value - start_value) / start_value
+        monthly_roi[str(end_row["date"].date())] = float(roi)  # key = end_date
+        i = start_idx  # Move to the previous 1-month period
+    monthly_roi_std = (
+        float(np.std(list(monthly_roi.values()))) if monthly_roi else float("nan")
+    )
+    monthly_roi_mean = (
+        float(np.mean(list(monthly_roi.values()))) if monthly_roi else float("nan")
+    )
+    monthly_roi_max = (
+        float(np.max(list(monthly_roi.values()))) if monthly_roi else float("nan")
+    )
+
+    return (monthly_roi_mean, monthly_roi_std, monthly_roi_max)
+
+
 def run_benchmark(
     FILE_BENCH_END_DATE=None,
     BENCH_START_DATE=None,
@@ -647,7 +695,73 @@ def run_benchmark(
         annual_roi_max,
     ) = compute_annual_roi(dates_portfolio, values_portfolio)
 
+    cmaes_start_dt = None
+    cmaes_end_dt = None
+    if config.CMAES_START_DATE is not None:
+        cmaes_start_dt = pd.to_datetime(config.CMAES_START_DATE, format="%Y-%m-%d")
+    if config.CMAES_END_DATE is not None:
+        cmaes_end_dt = pd.to_datetime(config.CMAES_END_DATE, format="%Y-%m-%d")
+
+    dates_cmaes_period = []
+    values_cmaes_period = []
+    if cmaes_start_dt is not None and cmaes_end_dt is not None:
+        for current_date, current_value in zip(dates_portfolio, values_portfolio):
+            if cmaes_start_dt <= current_date <= cmaes_end_dt:
+                dates_cmaes_period.append(current_date)
+                values_cmaes_period.append(current_value)
+
+    if len(values_cmaes_period) > 0:
+        cmaes_values_arr = np.array(values_cmaes_period)
+        cmaes_cummax = np.maximum.accumulate(cmaes_values_arr)
+        cmaes_drawdowns = (cmaes_values_arr - cmaes_cummax) / cmaes_cummax
+        portfolio_max_drawdown_cmaes_period = cmaes_drawdowns.min()
+        portfolio_ret_cmaes_period = (
+            100 * (cmaes_values_arr[-1] - cmaes_values_arr[0]) / cmaes_values_arr[0]
+        )
+
+        longest_portfolio_drawdown_cmaes_period = 0
+        current_dd = 0
+        for v, m in zip(cmaes_values_arr, cmaes_cummax):
+            if v < m:
+                current_dd += 1
+                if current_dd > longest_portfolio_drawdown_cmaes_period:
+                    longest_portfolio_drawdown_cmaes_period = current_dd
+            else:
+                current_dd = 0
+
+        longest_portfolio_drawdown_cmaes_period_norm = (
+            longest_portfolio_drawdown_cmaes_period / len(cmaes_values_arr)
+            if len(cmaes_values_arr) > 0
+            else 0.0
+        )
+
+        (
+            monthly_cmaes_period_roi_mean,
+            monthly_cmaes_period_roi_std,
+            monthly_cmaes_period_roi_max,
+        ) = compute_cmaes_period_monthly_roi(dates_cmaes_period, values_cmaes_period)
+
     perf = 0
+    if monthly_cmaes_period_roi_mean > 0:
+        hyper_params_mul = (
+            LONG_CLOSE_PROB_THRES_A
+            * SHORT_CLOSE_PROB_THRES_A
+            * LONG_CLOSE_PROB_THRES_B
+            * SHORT_CLOSE_PROB_THRES_B
+            * LONG_POS_COUNT
+            * SHORT_POS_COUNT
+        )
+        perf = (
+            hyper_params_mul
+            * (portfolio_ret_cmaes_period**5)
+            * (1.0 - longest_portfolio_drawdown_cmaes_period_norm)
+            * max(
+                0.0,
+                (1.0 - (monthly_cmaes_period_roi_std / monthly_cmaes_period_roi_max)),
+            )
+            * (1.0 + portfolio_max_drawdown_cmaes_period)
+        )
+
     positions_count = len(positions_history) + len(positions)
     positions_count_rate = positions_count / (len(dates_portfolio) + 1)
 
@@ -691,45 +805,6 @@ def run_benchmark(
     short_rate = short_A_positions / (short_A_positions + short_B_positions + 1)
     AB_rate = (long_A_positions + short_A_positions) / (positions_count + 1)
     long_short_rate = (long_A_positions + long_B_positions) / (positions_count + 1)
-
-    def gaussian_penalty_weight(x, center=0.5, sigma=0.2):
-        # Gaussian penalty weight function for CMA-ES optimization
-        # Returns a weight in [0, 1] that penalizes deviations from center
-        # sigma controls the width of the Gaussian (smaller = narrower)
-        weight = np.exp(-((x - center) ** 2) / (2 * sigma**2))
-        return max(0.0, weight)
-
-    if float(annual_roi_mean) > 5.0 and longest_portfolio_drawdown > 5:
-        annual_roi_list = list(annual_roi.values())
-        n = 5  # number of years to optimize
-        mean_roi = np.mean(annual_roi_list[:n])
-        std_roi = np.std(annual_roi_list[:n])
-        perf = (
-            LONG_OPEN_PROB_THRES_A
-            * SHORT_OPEN_PROB_THRES_A
-            * LONG_OPEN_PROB_THRES_B
-            * SHORT_OPEN_PROB_THRES_B
-            * LONG_CLOSE_PROB_THRES_A
-            * SHORT_CLOSE_PROB_THRES_A
-            * LONG_CLOSE_PROB_THRES_B
-            * SHORT_CLOSE_PROB_THRES_B
-            * LONG_POS_COUNT
-            * SHORT_POS_COUNT
-            * POS_GAIN_CLOSE_THRES
-            * TREND_SCORE_RATE
-            * gaussian_penalty_weight(positions_count_rate, center=0.3, sigma=0.15)
-            * gaussian_penalty_weight(long_rate, center=0.5, sigma=0.3)
-            * gaussian_penalty_weight(AB_rate, center=0.5, sigma=0.3)
-            * gaussian_penalty_weight(long_short_rate, center=0.7, sigma=0.15)
-            * mean_roi**7
-            / (
-                0.01
-                * float(longest_portfolio_drawdown)
-                * (0.1 * float(std_roi) + 0.5)
-                * 10
-                * abs(float(portfolio_max_drawdown))
-            )
-        )
 
     metrics = {
         "portfolio": {

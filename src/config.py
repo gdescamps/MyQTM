@@ -37,14 +37,16 @@ Variables:
 - ENABLE_PROFILER: Flag to enable or disable profiling.
 """
 
+from datetime import datetime
+
 from skopt.space import Real
 
 BASE_END_DATE_FILE = "2025-09-05"
 BASE_END_DATE = "2025-09-05"
 
-BENCHMARK_START_DATE = "2020-12-14"
+BENCHMARK_START_DATE = "2020-01-03"
 # BENCHMARK_END_DATE = "2025-09-05"
-BENCHMARK_END_DATE = "2025-12-19"
+BENCHMARK_END_DATE = "2025-12-22"
 
 if BENCHMARK_END_DATE == BASE_END_DATE_FILE:
     BASE_END_DATE_FILE = None
@@ -54,11 +56,35 @@ DOWNLOAD_START_DATE = "2017-01-01"
 TRAIN_START_DATE = "2019-08-01"
 TRAIN_END_DATE = "2024-10-05"
 
-# CMAES_END_DATE = "2025-04-05"  # CMA-ES finetune end date
-CMAES_END_DATE = BENCHMARK_END_DATE
+# CMAES_END_DATE = TRAIN_END_DATE
+# CMAES_END_DATE = BENCHMARK_END_DATE
+CMAES_END_DATE = "2025-03-05"  # CMA-ES finetune end date
+CMAES_MONTHS_HISTORY = 3 * 12
+# CMAES_START_DATE = None
+CMAES_START_DATE = BENCHMARK_START_DATE
+
+if CMAES_END_DATE is not None and CMAES_START_DATE is None:
+    cmaes_end_dt = datetime.strptime(CMAES_END_DATE, "%Y-%m-%d")
+    total_months = cmaes_end_dt.year * 12 + (cmaes_end_dt.month - 1)
+    target_months = total_months - CMAES_MONTHS_HISTORY
+    target_year = target_months // 12
+    target_month = (target_months % 12) + 1
+    try:
+        cmaes_start_dt = cmaes_end_dt.replace(
+            year=target_year,
+            month=target_month,
+        )
+    except ValueError:
+        # Handle end-of-month truncation (e.g., 31 -> 30/28).
+        cmaes_start_dt = cmaes_end_dt.replace(
+            year=target_year,
+            month=target_month,
+            day=28,
+        )
+    CMAES_START_DATE = cmaes_start_dt.strftime("%Y-%m-%d")
 
 INITIAL_CAPITAL = (
-    12714  # Manual capital init to sync portforlio and nasdaq at BENCHMARK_START_DATE
+    8800  # Manual capital init to sync portforlio and nasdaq at BENCHMARK_START_DATE
 )
 
 DATA_DIR = "./data/"
@@ -315,7 +341,7 @@ TS_SIZE = 6
 
 
 # CMA-ES optimization parameters
-CMA_RECURSIVE = 2
+CMA_RECURSIVE = 1
 CMA_LOOPS = 50
 CMA_EARLY_STOP_ROUNDS = 30
 CMA_STOCKS_DROP_OUT_ROUND = 20
@@ -350,8 +376,8 @@ INIT_SPACE = [  # Important increase params favor better safety
     Real(0.1, 0.95, name="long_close_prob_thres_B"),
     Real(0.33, 0.95, name="short_open_prob_thres_B"),
     Real(0.1, 0.95, name="short_close_prob_thres_B"),
-    Real(0.68, 0.95, name="long_pos_count"),
-    Real(0.68, 0.95, name="short_pos_count"),
+    Real(0.6, 0.95, name="long_pos_count"),
+    Real(0.6, 0.95, name="short_pos_count"),
     Real(0.03, 0.2, name="long_pos_pow"),
     Real(0.03, 0.2, name="short_pos_pow"),
     Real(0.05, 0.2, name="pos_gain_close_thres"),
@@ -379,7 +405,7 @@ PARAM_GRID = {
 }
 
 F1_THRESHOLD_STEP = 0.0002
-OPEN_INDEX_DELAY = 2
+OPEN_INDEX_DELAY = 0
 NEW_OPEN = False
 TRADE_DATA_LOAD = None
 DATES_PORTFOLIO = []

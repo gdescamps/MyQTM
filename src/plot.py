@@ -150,7 +150,7 @@ def plot_portfolio_metrics(metrics, nasdaq_metrics=None):
                 marker=".",
                 linestyle="None",
                 markersize=2,
-                alpha=0.05
+                alpha=0.05,
             )
 
         else:
@@ -210,6 +210,17 @@ def plot_portfolio_metrics(metrics, nasdaq_metrics=None):
             linewidth=2,
             alpha=0.7,
             label="CMA-ES finetuning cut-off date",
+        )
+
+    if config.CMAES_START_DATE is not None:
+        finetune_end_date = pd.to_datetime(config.CMAES_START_DATE, format="%Y-%m-%d")
+        ax1.axvline(
+            x=finetune_end_date,
+            color="green",
+            linestyle="--",
+            linewidth=2,
+            alpha=0.7,
+            label="CMA-ES finetuning start date",
         )
 
     # Display metrics for the first portfolio only
@@ -349,6 +360,11 @@ def plot_portfolio_metrics(metrics, nasdaq_metrics=None):
             Line2D([0], [0], color="orange", linestyle="--", linewidth=2)
         )
         custom_labels.append("CMA-ES finetuning cut-off date")
+    if config.CMAES_START_DATE is not None:
+        custom_lines.append(
+            Line2D([0], [0], color="green", linestyle="--", linewidth=2)
+        )
+        custom_labels.append("CMA-ES finetuning start date")
 
     if custom_lines:
         ax1.legend(custom_lines, custom_labels, loc="lower right", fontsize=10)
