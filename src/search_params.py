@@ -75,14 +75,14 @@ def load_thresholds(train_dir):
     return None
 
 
-def override_open_threshold_bounds(space, thresholds, margin=0.15):
+def override_open_threshold_bounds(space, thresholds, margin=0.05):
     if not thresholds:
         return space
     label_to_space_name = {
-        "A_long": "long_open_prob_thres_A",
-        "B_long": "long_open_prob_thres_B",
-        "A_short": "short_open_prob_thres_A",
-        "B_short": "short_open_prob_thres_B",
+        "A_long": "long_open_prob_thres_B",
+        "B_long": "long_open_prob_thres_A",
+        "A_short": "short_open_prob_thres_B",
+        "B_short": "short_open_prob_thres_A",
     }
     overrides = {
         label_to_space_name[label]: float(value)
@@ -95,7 +95,9 @@ def override_open_threshold_bounds(space, thresholds, margin=0.15):
     for dim in space:
         if isinstance(dim, Real) and dim.name in overrides:
             center = overrides[dim.name]
-            updated_space.append(Real(center - margin, center + margin, name=dim.name))
+            low_range = max(0, center - margin)
+            high_range = min(1.0, center + margin)
+            updated_space.append(Real(low_range, high_range, name=dim.name))
         else:
             updated_space.append(dim)
     return updated_space
