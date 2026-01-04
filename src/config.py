@@ -401,7 +401,7 @@ PARAM_GRID = {
     # best feature importance rank to maximize F1
     "mean_std_power": [1.71],
     # Top features search range
-    "top_features": list(range(50, 170, 5)),
+    "top_features": list(range(55, 65, 1)),
 }
 
 F1_THRESHOLD_STEP = 0.0001
