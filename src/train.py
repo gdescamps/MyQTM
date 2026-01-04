@@ -122,9 +122,16 @@ def compute_perf(trade_data, threshold):
     if count:
         gain_per_trade = gain ** (1 / count)
 
+    span_factor = 0.0
+    if opportunity_days:
+        span = max(opportunity_days) - min(opportunity_days)
+        total_span = max(len(sorted_keys) - 1, 1)
+        span_factor = span / total_span
+
     regularity = 0.0
     if len(opportunity_days) > 2:
-        intervals = np.diff(opportunity_days)
+        # Normalize intervals with opportunity_days and total_span
+        intervals = len(opportunity_days) * np.diff(opportunity_days) / total_span
         weights = np.sqrt(
             np.maximum(np.array(opportunity_gains[:-1]), 1e-6)
             * np.maximum(np.array(opportunity_gains[1:]), 1e-6)
@@ -134,19 +141,14 @@ def compute_perf(trade_data, threshold):
         std_interval = np.sqrt(variance)
         regularity = mean_interval / (1.0 + std_interval)
 
-    span_factor = 0.0
-    if opportunity_days:
-        span = max(opportunity_days) - min(opportunity_days)
-        total_span = max(len(sorted_keys) - 1, 1)
-        span_factor = span / total_span
-
-    score = (
-        regularity
-        * span_factor
-        * (gain_per_trade - 1.0)
-        * (len(opportunity_days) ** 1.5)
-        * (gain_min_norm**3.8)
-    )
+    score = 0
+    if gain_per_trade > 1.0:
+        score = (
+            regularity
+            * span_factor
+            * (gain_per_trade ** len(opportunity_days))
+            * (gain_min_norm**2.0)
+        )
 
     dd = -(1.0 - gain_min_norm)
 
