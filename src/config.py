@@ -342,12 +342,12 @@ TS_SIZE = 6
 
 # CMA-ES optimization parameters
 CMA_RECURSIVE = 1
-CMA_LOOPS = 50
+CMA_LOOPS = 150
 CMA_EARLY_STOP_ROUNDS = 30
 CMA_STOCKS_DROP_OUT_ROUND = 20
 CMA_STOCKS_DROP_OUT = 10
-CMA_PROCESSES = 128
-CMA_PARALLEL_PROCESSES = 32
+CMA_PROCESSES = 32
+CMA_PARALLEL_PROCESSES = 16
 TREND_SCORE_RATE = 0.6
 INIT_X0 = [
     0.8,
@@ -401,10 +401,10 @@ PARAM_GRID = {
     # best feature importance rank to maximize F1
     "mean_std_power": [1.71],
     # Top features search range
-    "top_features": list(range(145, 165, 3)),
+    "top_features": list(range(50, 170, 5)),
 }
 
-F1_THRESHOLD_STEP = 0.0002
+F1_THRESHOLD_STEP = 0.0001
 OPEN_INDEX_DELAY = 0
 NEW_OPEN = False
 TRADE_DATA_LOAD = None
