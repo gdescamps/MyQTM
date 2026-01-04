@@ -25,6 +25,7 @@ import xgboost as xgb
 from dotenv import load_dotenv
 from sklearn.metrics import f1_score
 from sklearn.utils import shuffle
+from sklearn.utils.class_weight import compute_sample_weight
 from tqdm import tqdm
 from xgboost.callback import TrainingCallback
 
@@ -369,6 +370,25 @@ if __name__ == "__main__":
     df_part3A_X.drop(columns=["index", "open", "stock_name"], inplace=True)
     df_part3B_X.drop(columns=["index", "open", "stock_name"], inplace=True)
 
+    df_part1A_weights = compute_sample_weight(
+        class_weight="balanced", y=df_part1A_Y.astype(int)
+    )
+    df_part1B_weights = compute_sample_weight(
+        class_weight="balanced", y=df_part1B_Y.astype(int)
+    )
+    df_part2A_weights = compute_sample_weight(
+        class_weight="balanced", y=df_part2A_Y.astype(int)
+    )
+    df_part2B_weights = compute_sample_weight(
+        class_weight="balanced", y=df_part2B_Y.astype(int)
+    )
+    df_part3A_weights = compute_sample_weight(
+        class_weight="balanced", y=df_part3A_Y.astype(int)
+    )
+    df_part3B_weights = compute_sample_weight(
+        class_weight="balanced", y=df_part3B_Y.astype(int)
+    )
+
     # Number of iterations for XGBoost model training
     n_estimators = 1000
 
@@ -386,19 +406,38 @@ if __name__ == "__main__":
     df_partB_X = pd.concat([df_part1B_X, df_part2B_X, df_part3B_X])
     df_partB_Y = pd.concat([df_part1B_Y, df_part2B_Y, df_part3B_Y])
 
+    df_partA_weights = compute_sample_weight(class_weight="balanced", y=df_partA_Y)
+    df_partB_weights = compute_sample_weight(class_weight="balanced", y=df_partB_Y)
+
     # Create XGBoost DMatrix objects for training and validation
     dtestA = xgb.DMatrix(df_partA_X, label=df_partA_Y.values.ravel())
     dtestB = xgb.DMatrix(df_partB_X, label=df_partB_Y.values.ravel())
 
-    dtrain1A = xgb.DMatrix(df_part1A_X, label=df_part1A_Y.values.ravel())
-    dtrain2A = xgb.DMatrix(df_part2A_X, label=df_part2A_Y.values.ravel())
-    dtrain3A = xgb.DMatrix(df_part3A_X, label=df_part3A_Y.values.ravel())
-    dtrain1B = xgb.DMatrix(df_part1B_X, label=df_part1B_Y.values.ravel())
-    dtrain2B = xgb.DMatrix(df_part2B_X, label=df_part2B_Y.values.ravel())
-    dtrain3B = xgb.DMatrix(df_part3B_X, label=df_part3B_Y.values.ravel())
+    dtrain1A = xgb.DMatrix(
+        df_part1A_X, label=df_part1A_Y.values.ravel(), weight=df_part1A_weights
+    )
+    dtrain2A = xgb.DMatrix(
+        df_part2A_X, label=df_part2A_Y.values.ravel(), weight=df_part2A_weights
+    )
+    dtrain3A = xgb.DMatrix(
+        df_part3A_X, label=df_part3A_Y.values.ravel(), weight=df_part3A_weights
+    )
+    dtrain1B = xgb.DMatrix(
+        df_part1B_X, label=df_part1B_Y.values.ravel(), weight=df_part1B_weights
+    )
+    dtrain2B = xgb.DMatrix(
+        df_part2B_X, label=df_part2B_Y.values.ravel(), weight=df_part2B_weights
+    )
+    dtrain3B = xgb.DMatrix(
+        df_part3B_X, label=df_part3B_Y.values.ravel(), weight=df_part3B_weights
+    )
 
-    dtrainA = xgb.DMatrix(df_partA_X, label=df_partA_Y.values.ravel())
-    dtrainB = xgb.DMatrix(df_partB_X, label=df_partB_Y.values.ravel())
+    dtrainA = xgb.DMatrix(
+        df_partA_X, label=df_partA_Y.values.ravel(), weight=df_partA_weights
+    )
+    dtrainB = xgb.DMatrix(
+        df_partB_X, label=df_partB_Y.values.ravel(), weight=df_partB_weights
+    )
 
     # XGBoost hyperparameters
     params = {
@@ -598,7 +637,11 @@ if __name__ == "__main__":
         df_partB_test_X_selected = df_partB_X[selected_features]
         df_partA_test_X_selected = df_partA_X[selected_features]
 
-        dtrain = xgb.DMatrix(df_partA_X_selected, label=df_partA_Y.values.ravel())
+        dtrain = xgb.DMatrix(
+            df_partA_X_selected,
+            label=df_partA_Y.values.ravel(),
+            weight=df_partA_weights,
+        )
         dtest = xgb.DMatrix(df_partB_test_X_selected, label=df_partB_Y.values.ravel())
 
         f1_callbacka = EvalF1Callback(dtest, df_partB_Y, patience=patience)
@@ -623,7 +666,11 @@ if __name__ == "__main__":
         df_partB_test_X_selected = df_partB_X[selected_features]
         df_partA_test_X_selected = df_partA_X[selected_features]
 
-        dtrain = xgb.DMatrix(df_partB_X_selected, label=df_partB_Y.values.ravel())
+        dtrain = xgb.DMatrix(
+            df_partB_X_selected,
+            label=df_partB_Y.values.ravel(),
+            weight=df_partB_weights,
+        )
         dtest = xgb.DMatrix(df_partA_test_X_selected, label=df_partA_Y.values.ravel())
 
         f1_callbackb = EvalF1Callback(dtest, df_partA_Y, patience=patience)
