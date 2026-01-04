@@ -82,18 +82,11 @@ def cmaes_grid_search_benchmark(
         (
             long_open_prob_thresa,
             long_close_prob_thresa,
-            short_open_prob_thresa,
-            short_close_prob_thresa,
             long_open_prob_thresb,
             long_close_prob_thresb,
-            short_open_prob_thresb,
-            short_close_prob_thresb,
             long_pos_count,
-            short_pos_count,
-            long_pos_pow,
-            short_pos_pow,
-            pos_gain_close_thres,
-            trend_score_rate,
+            long_pos_power,
+            new_open_gain_thres,
         ) = params
         global last_params
         global best_perf
@@ -105,12 +98,7 @@ def cmaes_grid_search_benchmark(
         # Validate parameter constraints: opening threshold must be greater than closing threshold
         if long_open_prob_thresa <= long_close_prob_thresa:
             return 1e6
-        if short_open_prob_thresa <= short_close_prob_thresa:
-            return 1e6
-
         if long_open_prob_thresb <= long_close_prob_thresb:
-            return 1e6
-        if short_open_prob_thresb <= short_close_prob_thresb:
             return 1e6
 
         # Run multiple evaluations with optional dropout for robustness
@@ -126,18 +114,11 @@ def cmaes_grid_search_benchmark(
                 INIT_CAPITAL=init_capital,
                 LONG_OPEN_PROB_THRES_A=long_open_prob_thresa,
                 LONG_CLOSE_PROB_THRES_A=long_close_prob_thresa,
-                SHORT_OPEN_PROB_THRES_A=short_open_prob_thresa,
-                SHORT_CLOSE_PROB_THRES_A=short_close_prob_thresa,
                 LONG_OPEN_PROB_THRES_B=long_open_prob_thresb,
                 LONG_CLOSE_PROB_THRES_B=long_close_prob_thresb,
-                SHORT_OPEN_PROB_THRES_B=short_open_prob_thresb,
-                SHORT_CLOSE_PROB_THRES_B=short_close_prob_thresb,
                 LONG_POS_COUNT=long_pos_count,
-                SHORT_POS_COUNT=short_pos_count,
-                LONG_POS_POW=long_pos_pow,
-                SHORT_POS_POW=short_pos_pow,
-                POS_GAIN_CLOSE_THRES=pos_gain_close_thres,
-                TREND_SCORE_RATE=trend_score_rate,
+                LONG_POS_POWER=long_pos_power,
+                NEW_OPEN_GAIN_THRES=new_open_gain_thres,
                 MODEL_PATH=model_path,
                 data_path=data_path,
                 remove_stocks=remove_stocks,
@@ -153,22 +134,6 @@ def cmaes_grid_search_benchmark(
         if perf > best_perf:
             best_perf = perf
             best_positions = positions
-            if local_log is not None:
-                plot, _ = plot_portfolio_metrics(metrics_list)
-                png_path = os.path.join(local_log.output_dir_time, "current.png")
-                plot.save(png_path)
-
-                # Save current best parameters
-                save_cma_params(
-                    os.path.join(local_log.output_dir_time, "current_params.json"),
-                    params.tolist(),
-                )
-                # Save current best positions
-                with open(
-                    os.path.join(local_log.output_dir_time, "current_positions.json"),
-                    "w",
-                ) as f:
-                    json.dump(positions, f, indent=4)
 
         return -perf  # CMA-ES minimizes
 

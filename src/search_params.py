@@ -81,8 +81,6 @@ def override_open_threshold_bounds(space, thresholds, margin=0.05):
     label_to_space_name = {
         "A_long": "long_open_prob_thres_B",
         "B_long": "long_open_prob_thres_A",
-        "A_short": "short_open_prob_thres_B",
-        "B_short": "short_open_prob_thres_A",
     }
     overrides = {
         label_to_space_name[label]: float(value)
@@ -156,23 +154,15 @@ def run_single_random_state(
     )
     # Extract optimized trading parameters
     params = list(xbest)
-    params_extended = params + [0.1, config.TREND_SCORE_RATE]
     (
         long_open_prob_thresa,
         long_close_prob_thresa,
-        short_open_prob_thresa,
-        short_close_prob_thresa,
         long_open_prob_thresb,
         long_close_prob_thresb,
-        short_open_prob_thresb,
-        short_close_prob_thresb,
         long_pos_count,
-        short_pos_count,
-        long_pos_pow,
-        short_pos_pow,
-        pos_gain_close_thres,
-        trend_score_rate,
-    ) = params_extended[:14]
+        long_pos_power,
+        new_open_gain_thres,
+    ) = params
 
     # Initialize performance tracking lists
     performances = []
@@ -189,18 +179,11 @@ def run_single_random_state(
             INIT_CAPITAL=config.INITIAL_CAPITAL,
             LONG_OPEN_PROB_THRES_A=long_open_prob_thresa,
             LONG_CLOSE_PROB_THRES_A=long_close_prob_thresa,
-            SHORT_OPEN_PROB_THRES_A=short_open_prob_thresa,
-            SHORT_CLOSE_PROB_THRES_A=short_close_prob_thresa,
             LONG_OPEN_PROB_THRES_B=long_open_prob_thresb,
             LONG_CLOSE_PROB_THRES_B=long_close_prob_thresb,
-            SHORT_OPEN_PROB_THRES_B=short_open_prob_thresb,
-            SHORT_CLOSE_PROB_THRES_B=short_close_prob_thresb,
             LONG_POS_COUNT=long_pos_count,
-            SHORT_POS_COUNT=short_pos_count,
-            LONG_POS_POW=long_pos_pow,
-            SHORT_POS_POW=short_pos_pow,
-            POS_GAIN_CLOSE_THRES=pos_gain_close_thres,
-            TREND_SCORE_RATE=trend_score_rate,
+            LONG_POS_POWER=long_pos_power,
+            NEW_OPEN_GAIN_THRES=new_open_gain_thres,
             MODEL_PATH=config.TRAIN_DIR,
             data_path=None,
             remove_stocks=remove_stocks,
@@ -219,18 +202,11 @@ def run_single_random_state(
             INIT_CAPITAL=config.INITIAL_CAPITAL,
             LONG_OPEN_PROB_THRES_A=long_open_prob_thresa,
             LONG_CLOSE_PROB_THRES_A=long_close_prob_thresa,
-            SHORT_OPEN_PROB_THRES_A=short_open_prob_thresa,
-            SHORT_CLOSE_PROB_THRES_A=short_close_prob_thresa,
             LONG_OPEN_PROB_THRES_B=long_open_prob_thresb,
             LONG_CLOSE_PROB_THRES_B=long_close_prob_thresb,
-            SHORT_OPEN_PROB_THRES_B=short_open_prob_thresb,
-            SHORT_CLOSE_PROB_THRES_B=short_close_prob_thresb,
             LONG_POS_COUNT=long_pos_count,
-            SHORT_POS_COUNT=short_pos_count,
-            LONG_POS_POW=long_pos_pow,
-            SHORT_POS_POW=short_pos_pow,
-            POS_GAIN_CLOSE_THRES=pos_gain_close_thres,
-            TREND_SCORE_RATE=trend_score_rate,
+            LONG_POS_POWER=long_pos_power,
+            NEW_OPEN_GAIN_THRES=new_open_gain_thres,
             MODEL_PATH=config.TRAIN_DIR,
             data_path=None,
             remove_stocks=remove_stocks,

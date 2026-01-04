@@ -236,9 +236,7 @@ def plot_portfolio_metrics(metrics, nasdaq_metrics=None):
     positions_history_count_list = []
     annual_roi_list = []
     long_rate_list = []
-    short_rate_list = []
     AB_rate_list = []
-    long_short_rate_list = []
     mean_capital_used_ratio_list = []
     num_days_list = []
 
@@ -256,9 +254,7 @@ def plot_portfolio_metrics(metrics, nasdaq_metrics=None):
         values_portfolio = m["portfolio"]["values_portfolio"]
         annual_roi = m["portfolio"]["annual_roi"]
         long_rate = m["portfolio"]["long_rate"]
-        short_rate = m["portfolio"]["short_rate"]
         AB_rate = m["portfolio"]["AB_rate"]
-        long_short_rate = m["portfolio"]["long_short_rate"]
         capital_portfolio = np.array(m["portfolio"]["capital_portfolio"])
         values_portfolio = np.array(m["portfolio"]["values_portfolio"])
         capital_used_ratio = np.divide(
@@ -279,9 +275,7 @@ def plot_portfolio_metrics(metrics, nasdaq_metrics=None):
         positions_history_count_list.append(positions_history_count)
         annual_roi_list.append(annual_roi)
         long_rate_list.append(long_rate)
-        short_rate_list.append(short_rate)
         AB_rate_list.append(AB_rate)
-        long_short_rate_list.append(long_short_rate)
         mean_capital_used_ratio_list.append(mean_capital_used_ratio)
 
     portfolio_ret = np.mean(portfolio_ret_list)
@@ -298,9 +292,7 @@ def plot_portfolio_metrics(metrics, nasdaq_metrics=None):
     for k in annual_roi:
         annual_roi[k] = np.mean(annual_roi[k])
     long_rate = np.mean(long_rate_list)
-    short_rate = np.mean(short_rate_list)
     AB_rate = np.mean(AB_rate_list)
-    long_short_rate = np.mean(long_short_rate_list)
     mean_capital_used_ratio = np.mean(mean_capital_used_ratio_list)
     num_days = np.mean(num_days_list)
 
@@ -331,9 +323,7 @@ def plot_portfolio_metrics(metrics, nasdaq_metrics=None):
         f"  {mean_annual_roi_text}"
         f"  {annual_roi_text}"
         f"  AB Long Rate: {long_rate:.2f}\n"
-        f"  AB Short Rate: {short_rate:.2f}\n"
         f"  AB Rate: {AB_rate:.2f}\n"
-        f"  Long/(Long+Short) Rate: {long_short_rate:.2f}\n"
         f"NASDAQ:\n"
         f"  Return: {nasdaq_ret:.2f}%\n"
         f"  Max DD: {100*nasdaq_max_drawdown:.2f}%\n"

@@ -19,7 +19,7 @@ bench_end_str = None
 
 
 def get_interval_type(
-    query_date: str | datetime, interval_days: int = 90, end_limit: bool = True
+    query_date: str | datetime, interval_days: int = 45, end_limit: bool = True
 ) -> str | None:
     """Determine which training or testing interval a given date falls into.
 

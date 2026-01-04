@@ -143,12 +143,15 @@ def compute_perf(trade_data, threshold):
         regularity = mean_interval / (1.0 + std_interval)
 
     score = 0
-    if gain_per_trade > 1.0:
+    if gain_min_norm < 0.65:
+        gain_min_norm = gain_min_norm**3.0
+
+    if gain_per_trade > 1.005:
         score = (
             regularity
             * span_factor
             * (gain_per_trade ** len(opportunity_days))
-            * (gain_min_norm**2.0)
+            * gain_min_norm
         )
 
     dd = -(1.0 - gain_min_norm)
@@ -158,8 +161,8 @@ def compute_perf(trade_data, threshold):
 
 def search_threshold_for_perf(
     trade_data,
-    threshold_min=0.33,
-    threshold_max=0.95,
+    threshold_min=0.50,
+    threshold_max=0.97,
     threshold_step=config.F1_THRESHOLD_STEP,
 ):
     best_score = 0
@@ -199,41 +202,30 @@ def split_trade_data(trade_data):
     """
     sorted_keys = list(sorted(trade_data.keys()))
     trade_dataA_long = {}
-    trade_dataA_short = {}
     trade_dataB_long = {}
-    trade_dataB_short = {}
 
-    for index, current_date in enumerate(sorted_keys):
+    for _, current_date in enumerate(sorted_keys):
         type = get_interval_type(current_date)
         item = trade_data[current_date]
         item_long = {}
-        item_short = {}
 
         item = trade_data[current_date]
         for stock in item:
-            if item[stock]["index_short"] == 0:
-                item_short[stock] = item[stock]
             if item[stock]["index_long"] == 0:
                 item_long[stock] = item[stock]
 
         # Assign to appropriate interval and direction
         if "A" in type:
             trade_dataA_long[current_date] = item_long
-            trade_dataA_short[current_date] = item_short
         elif "B" in type:
             trade_dataB_long[current_date] = item_long
-            trade_dataB_short[current_date] = item_short
         if "C" in type:
             trade_dataA_long[current_date] = item_long
-            trade_dataA_short[current_date] = item_short
         elif "D" in type:
             trade_dataB_long[current_date] = item_long
-            trade_dataB_short[current_date] = item_short
     return (
         trade_dataA_long,
-        trade_dataA_short,
         trade_dataB_long,
-        trade_dataB_short,
     )
 
 
@@ -247,16 +239,12 @@ def search_perfs_threshold(model_path, data_path):
     )
     (
         trade_dataA_long,
-        trade_dataA_short,
         trade_dataB_long,
-        trade_dataB_short,
     ) = split_trade_data(trade_data)
 
     segments = [
         trade_dataA_long,
         trade_dataB_long,
-        trade_dataA_short,
-        trade_dataB_short,
     ]
 
     thresholds = []
@@ -288,7 +276,7 @@ def search_perfs_threshold(model_path, data_path):
     )
 
 
-THRESHOLD_SEGMENT_LABELS = ("A_long", "B_long", "A_short", "B_short")
+THRESHOLD_SEGMENT_LABELS = ("A_long", "B_long")
 
 
 def format_threshold_details(
@@ -726,7 +714,7 @@ if __name__ == "__main__":
         (scores, counts, gain_per_trades, dds, thresholds) = search_perfs_threshold(
             model_path, data_path
         )
-        score = np.mean(scores)
+        score = float(np.prod(scores))
 
         if score > best_score:
             best_score = score
@@ -764,8 +752,9 @@ if __name__ == "__main__":
                     )
                 )
         else:
-            print(f"Score: {score:.3f}")
+            print(" ")
             print("Threshold details:")
+            print(f"Score: {score:.4f}")
             print(
                 format_threshold_details(
                     THRESHOLD_SEGMENT_LABELS,

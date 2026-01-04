@@ -213,7 +213,6 @@ def build_trade_data(
 
 def close_positions(
     positions_long_to_close,
-    positions_short_to_close,
     bench_data,
     current_date,
     capital,
@@ -226,7 +225,6 @@ def close_positions(
 
     Args:
         positions_long_to_close (list): List of long positions to close.
-        positions_short_to_close (list): List of short positions to close.
         bench_data (dict): Benchmark data for the current date.
         current_date (datetime): Current date for closing positions.
     capital (float): Current capital.
@@ -258,24 +256,7 @@ def close_positions(
         positions_long_to_close = []
 
     # Close short positions
-    if len(positions_short_to_close):
-        interval = get_interval_type(current_date)
-        for item in positions_short_to_close:
-            ticker = item["ticker"]
-            open_price = item["open_price"]
-            size = item["size"]
-            close_price = bench_data[current_date][ticker]["open"]
-            item["close_price"] = close_price
-            item["close_interval"] = interval
-            if callback is not None:
-                callback(item, log=log)
-            close_price = item["close_price"]
-            gain = (open_price - close_price) / open_price
-            item["gain"] = 100 * gain
-            capital += size * (gain + 1)
-            positions_history.append(item)
-        positions_short_to_close = []
-    return capital, positions_history, positions_long_to_close, positions_short_to_close
+    return capital, positions_history, positions_long_to_close
 
 
 def compute_position_sizes(positions, bench_data, current_date):
@@ -313,56 +294,20 @@ def open_positions(
     current_date,
     capital,
     capital_and_position,
-    pos_type,
     pos_count,
     pos_pow,
-    prob_thres,
     callback=None,
     log=PrintLogNone(),
 ):
-    """
-    Opens new positions (long or short) and updates capital and positions list.
-
-    Args:
-        positions_to_open (list): List of positions to open.
-        positions (list): Current list of positions.
-        bench_data (dict): Benchmark data for the current date.
-        current_date (datetime): Current date for opening positions.
-        capital (float): Current capital.
-        capital_and_position (float): Total capital and position value.
-        pos_type (str): Type of position ('long' or 'short'). If None, use item["type"].
-        pos_count (float or dict): Position count factor, or dict by type.
-        pos_pow (float or dict): Position probability exponent, or dict by type.
-        prob_thres (float or dict): Probability threshold, or dict by type.
-        callback (function, optional): Callback function for additional processing. Defaults to None.
-        log (PrintLog, optional): Logger for printing logs. Defaults to PrintLogNone().
-
-    Returns:
-        tuple: Updated positions, capital, and cleared positions to open.
-    """
-
-    def resolve_param(param, item_type):
-        if isinstance(param, dict):
-            return param.get(item_type)
-        return param
-
     interval = get_interval_type(current_date)
     if len(positions_to_open):
         for item in positions_to_open:
             if (
                 100 * capital / capital_and_position > 5.0
             ):  # Minimum 5% capital remaining to open new position
-                item_type = pos_type or item.get("type")
-                if item_type is None:
-                    continue
-                pos_count_item = resolve_param(pos_count, item_type)
-                pos_pow_item = resolve_param(pos_pow, item_type)
-                prob_thres_item = resolve_param(prob_thres, item_type)
-                if (
-                    pos_count_item is None
-                    or pos_pow_item is None
-                    or prob_thres_item is None
-                ):
+                pos_count_item = pos_count
+                pos_pow_item = pos_pow
+                if pos_count_item is None or pos_pow_item is None:
                     continue
                 yprob = item["yprob"]
                 yprob_thres = item["yprob_thres"]
@@ -375,7 +320,7 @@ def open_positions(
                 if ticker not in bench_data[current_date]:
                     continue
                 open_position = {
-                    "type": item_type,
+                    "type": "long",
                     "ticker": ticker,
                     "size": size,
                     "capital_and_position": capital_and_position,
@@ -432,14 +377,7 @@ def build_positions_to_open(
 
 
 def select_positions_to_open(
-    item_dict,
-    prev_item,
-    positions,
-    positions_to_open,
-    stock_filter,
-    class_val,
-    open_prob_thres,
-    close_prob_thres,
+    item_dict, prev_item, positions, stock_filter, class_val, open_prob_thres
 ):
     """
     Selects tickers to open new positions (long or short).
@@ -448,7 +386,6 @@ def select_positions_to_open(
         item_dict (dict): Dictionary of current items.
         prev_item (dict): Dictionary of previous items.
         positions (list): Current list of positions.
-        positions_to_open (list): List of positions to open.
         stock_filter (list): List of stocks to filter.
         class_val (int): Class value for position type (2 for long, 0 for short).
         open_prob_thres (float): Probability threshold for opening positions.
@@ -457,6 +394,7 @@ def select_positions_to_open(
     Returns:
         tuple: Updated positions to open and new open probability.
     """
+    positions_to_open = []
     already_open = []
     for pos in positions:
         already_open.append(pos["ticker"])
@@ -498,7 +436,6 @@ def select_positions_to_close(
     positions,
     item,
     long_close_prob_thres,
-    short_close_prob_thres,
     positions_to_open,
     capital,
     capital_and_position,
@@ -518,7 +455,6 @@ def select_positions_to_close(
         tuple: Positions to close (long and short) and indexes of removed positions.
     """
     positions_long_to_close = []
-    positions_short_to_close = []
     remove_pos_indexes = []
     capital_percent = 100 * capital / capital_and_position
 
@@ -531,21 +467,12 @@ def select_positions_to_close(
                 pos["close_reason"] = "prob"
                 positions_long_to_close.append(pos)
                 remove_pos_indexes.append(pos_index)
-        elif pos["type"] == "short":
-            if (
-                item[pos["ticker"]]["ybear"] < short_close_prob_thres
-                or item[pos["ticker"]]["class"] != 0
-            ):
-                pos["close_reason"] = "prob"
-                positions_short_to_close.append(pos)
-                remove_pos_indexes.append(pos_index)
 
     if (
         config.NEW_OPEN
         and capital_percent < 5.0
         and (len(positions_to_open) > 0)
         and len(positions_long_to_close) == 0
-        and len(positions_short_to_close) == 0
     ):
         best_pos = None
         best_pos_index = None
@@ -555,8 +482,6 @@ def select_positions_to_close(
             close_price = item[pos["ticker"]]["open"]
             if pos["type"] == "long":
                 pos_gain = (close_price - open_price) / open_price
-            else:
-                pos_gain = (open_price - close_price) / open_price
             if pos_gain > pos_gain_close_thres and (
                 best_pos_gain is None or pos_gain > best_pos_gain
             ):
@@ -567,66 +492,31 @@ def select_positions_to_close(
             best_pos["close_reason"] = "new_open"
             if best_pos["type"] == "long":
                 positions_long_to_close.append(best_pos)
-            elif best_pos["type"] == "short":
-                positions_short_to_close.append(best_pos)
             remove_pos_indexes.append(best_pos_index)
 
-    return positions_long_to_close, positions_short_to_close, remove_pos_indexes
+    return positions_long_to_close, remove_pos_indexes
 
 
 def get_param(
     current_date,
     long_open_prob_thresa,
     long_close_prob_thresa,
-    short_open_prob_thresa,
-    short_close_prob_thresa,
     long_open_prob_thresb,
     long_close_prob_thresb,
-    short_open_prob_thresb,
-    short_close_prob_thresb,
     end_limit: bool = True,
 ):
-    """
-    Retrieves trading parameters based on the current date and interval type.
 
-    Args:
-        current_date (datetime): Current date for retrieving parameters.
-        long_open_prob_thresa (float): Threshold A for opening long positions.
-        long_close_prob_thresa (float): Threshold A for closing long positions.
-        short_open_prob_thresa (float): Threshold A for opening short positions.
-        short_close_prob_thresa (float): Threshold A for closing short positions.
-        long_open_prob_thresb (float): Threshold B for opening long positions.
-        long_close_prob_thresb (float): Threshold B for closing long positions.
-        short_open_prob_thresb (float): Threshold B for opening short positions.
-        short_close_prob_thresb (float): Threshold B for closing short positions.
-        end_limit (bool, optional): Whether to enforce end limits. Defaults to True.
-    Returns:
-        tuple: Trading parameters for the current interval type.
-    """
     interval_type = get_interval_type(current_date, end_limit=end_limit)
     if "A" in interval_type:
         long_open_prob_thres = long_open_prob_thresb
-        short_open_prob_thres = short_open_prob_thresb
         long_close_prob_thres = long_close_prob_thresb
-        short_close_prob_thres = short_close_prob_thresb
     elif "B" in interval_type:
         long_open_prob_thres = long_open_prob_thresa
-        short_open_prob_thres = short_open_prob_thresa
         long_close_prob_thres = long_close_prob_thresa
-        short_close_prob_thres = short_close_prob_thresa
     elif "C" in interval_type:
         long_open_prob_thres = long_open_prob_thresb
-        short_open_prob_thres = short_open_prob_thresb
         long_close_prob_thres = long_close_prob_thresb
-        short_close_prob_thres = short_close_prob_thresb
     elif "D" in interval_type:
         long_open_prob_thres = long_open_prob_thresa
-        short_open_prob_thres = short_open_prob_thresa
         long_close_prob_thres = long_close_prob_thresa
-        short_close_prob_thres = short_close_prob_thresa
-    return (
-        long_open_prob_thres,
-        short_open_prob_thres,
-        long_close_prob_thres,
-        short_close_prob_thres,
-    )
+    return (long_open_prob_thres, long_close_prob_thres)

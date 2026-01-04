@@ -45,70 +45,22 @@ from src.trade import (
 )
 
 
-def compute_item_trend(item):
-    long_count = 0
-    short_count = 0
-    long_score = 0.0
-    short_score = 0.0
-
-    for data in item.values():
-        class_val = data.get("class")
-        if class_val == 2:
-            long_count += 1
-            long_score += float(data.get("ybull", 0.0))
-        elif class_val == 0:
-            short_count += 1
-            short_score += float(data.get("ybear", 0.0))
-
-    score_total = long_score + short_score
-    return long_score / score_total
-
-
 def compute_bench(
     bench_data,
     remove_stocks,
     bench_start_date,
     bench_end_date,
     capital,
-    trend_score_rate,
     long_open_prob_thres_a,
     long_close_prob_thres_a,
-    short_open_prob_thres_a,
-    short_close_prob_thres_a,
     long_open_prob_thres_b,
     long_close_prob_thres_b,
-    short_open_prob_thres_b,
-    short_close_prob_thres_b,
     long_pos_count,
-    short_pos_count,
-    long_pos_pow,
-    short_pos_pow,
-    pos_gain_close_thres,
+    long_pos_power,
+    new_open_gain_thres,
     attempt,
 ):
-    """
-    Simulates the benchmark trading strategy and computes portfolio metrics.
 
-    Args:
-        bench_data (dict): Trading data for the benchmark.
-        remove_stocks (int): Number of stocks to remove from the benchmark.
-        bench_start_date (datetime): Start date for the benchmark.
-        bench_end_date (datetime): End date for the benchmark.
-        capital (float): Initial capital for the benchmark.
-        trend_score_thres (float): Threshold for aggregating long/short trend scores.
-        long_open_prob_thres_a (float): Threshold A for opening long positions.
-        long_close_prob_thres_a (float): Threshold A for closing long positions.
-        short_open_prob_thres_a (float): Threshold A for opening short positions.
-        short_close_prob_thres_a (float): Threshold A for closing short positions.
-        long_open_prob_thres_b (float): Threshold B for opening long positions.
-        long_close_prob_thres_b (float): Threshold B for closing long positions.
-        short_open_prob_thres_b (float): Threshold B for opening short positions.
-        short_close_prob_thres_b (float): Threshold B for closing short positions.
-        pos_gain_close_thres (float): Gain threshold to close positions early.
-    Returns:
-        tuple: Portfolio values, capital, positions, position history, total capital,
-            portfolio counts, and trend stats.
-    """
     # Simulate the benchmark trading strategy and compute portfolio metrics.
     capital_and_position = capital
 
@@ -133,19 +85,13 @@ def compute_bench(
 
         (
             long_open_prob_thres,
-            short_open_prob_thres,
             long_close_prob_thres,
-            short_close_prob_thres,
         ) = get_param(
             current_date,
             long_open_prob_thres_a,
             long_close_prob_thres_a,
-            short_open_prob_thres_a,
-            short_close_prob_thres_a,
             long_open_prob_thres_b,
             long_close_prob_thres_b,
-            short_open_prob_thres_b,
-            short_close_prob_thres_b,
         )
 
         # Close positions scheduled for closing
@@ -153,10 +99,8 @@ def compute_bench(
             capital,
             positions_history,
             positions_long_to_close,
-            positions_short_to_close,
         ) = close_positions(
             positions_long_to_close,
-            positions_short_to_close,
             bench_data,
             current_date,
             capital,
@@ -179,13 +123,10 @@ def compute_bench(
             current_date,
             capital,
             capital_and_position,
-            None,
-            {"long": long_pos_count, "short": short_pos_count},
-            {"long": long_pos_pow, "short": short_pos_pow},
-            {"long": long_open_prob_thres, "short": short_open_prob_thres},
+            long_pos_count,
+            long_pos_power,
         )
         positions_long_to_open = []
-        positions_short_to_open = []
 
         # Recompute the total value of open positions
         position_sizes = compute_position_sizes(positions, bench_data, current_date)
@@ -198,11 +139,6 @@ def compute_bench(
         long_item = item.copy()
         long_item = dict(
             sorted(long_item.items(), key=lambda x: x[1]["ybull"], reverse=True)
-        )
-
-        short_item = item.copy()
-        short_item = dict(
-            sorted(short_item.items(), key=lambda x: x[1]["ybear"], reverse=True)
         )
 
         # Handle previous date's data
@@ -231,50 +167,24 @@ def compute_bench(
                     stock_filter.append(pos["ticker"])
 
         # Compute long positions to open
-        positions_long_to_open = select_positions_to_open(
+        positions_to_open = select_positions_to_open(
             long_item,
             prev_item,
             positions,
-            positions_long_to_open,
             stock_filter,
             class_val=2,
             open_prob_thres=long_open_prob_thres,
-            close_prob_thres=long_close_prob_thres,
-        )
-
-        # Compute short positions to open
-        positions_short_to_open = select_positions_to_open(
-            short_item,
-            prev_item,
-            positions,
-            positions_short_to_open,
-            stock_filter,
-            class_val=0,
-            open_prob_thres=short_open_prob_thres,
-            close_prob_thres=short_close_prob_thres,
-        )
-
-        long_short_score = compute_item_trend(item)
-
-        positions_to_open = build_positions_to_open(
-            positions_long_to_open,
-            positions_short_to_open,
-            long_short_score,
-            trend_score_rate,
         )
 
         # Compute positions to close
-        positions_long_to_close, positions_short_to_close, remove_pos_indexes = (
-            select_positions_to_close(
-                positions,
-                item,
-                long_close_prob_thres,
-                short_close_prob_thres,
-                positions_to_open,
-                capital,
-                capital_and_position,
-                pos_gain_close_thres,
-            )
+        positions_long_to_close, remove_pos_indexes = select_positions_to_close(
+            positions,
+            item,
+            long_close_prob_thres,
+            positions_to_open,
+            capital,
+            capital_and_position,
+            new_open_gain_thres,
         )
 
         # Remove closed positions from the active list
@@ -288,10 +198,8 @@ def compute_bench(
         capital,
         positions_history,
         positions_long_to_close,
-        positions_short_to_close,
     ) = close_positions(
         positions_long_to_close,
-        positions_short_to_close,
         bench_data,
         current_date,
         capital,
@@ -547,20 +455,13 @@ def run_benchmark(
     BENCH_START_DATE=None,
     BENCH_END_DATE=None,
     INIT_CAPITAL=None,
-    TREND_SCORE_RATE=None,
     LONG_OPEN_PROB_THRES_A=0.60,
     LONG_CLOSE_PROB_THRES_A=0.37,
-    SHORT_OPEN_PROB_THRES_A=0.60,
-    SHORT_CLOSE_PROB_THRES_A=0.37,
     LONG_OPEN_PROB_THRES_B=0.60,
     LONG_CLOSE_PROB_THRES_B=0.37,
-    SHORT_OPEN_PROB_THRES_B=0.60,
-    SHORT_CLOSE_PROB_THRES_B=0.37,
     LONG_POS_COUNT=0.4,
-    SHORT_POS_COUNT=0.4,
-    LONG_POS_POW=0.4,
-    SHORT_POS_POW=0.4,
-    POS_GAIN_CLOSE_THRES=0.1,
+    LONG_POS_POWER=0.4,
+    NEW_OPEN_GAIN_THRES=0.1,
     MODEL_PATH=None,
     data_path=None,
     remove_stocks=5,
@@ -645,20 +546,13 @@ def run_benchmark(
         bench_start_date,
         bench_end_date,
         INIT_CAPITAL,
-        TREND_SCORE_RATE,
         LONG_OPEN_PROB_THRES_A,
         LONG_CLOSE_PROB_THRES_A,
-        SHORT_OPEN_PROB_THRES_A,
-        SHORT_CLOSE_PROB_THRES_A,
         LONG_OPEN_PROB_THRES_B,
         LONG_CLOSE_PROB_THRES_B,
-        SHORT_OPEN_PROB_THRES_B,
-        SHORT_CLOSE_PROB_THRES_B,
         LONG_POS_COUNT,
-        SHORT_POS_COUNT,
-        LONG_POS_POW,
-        SHORT_POS_POW,
-        POS_GAIN_CLOSE_THRES,
+        LONG_POS_POWER,
+        NEW_OPEN_GAIN_THRES,
         attempt,
     )
 
@@ -744,12 +638,7 @@ def run_benchmark(
     perf = 0
     if monthly_cmaes_period_roi_mean > 0:
         hyper_params_mul = (
-            LONG_CLOSE_PROB_THRES_A
-            * SHORT_CLOSE_PROB_THRES_A
-            * LONG_CLOSE_PROB_THRES_B
-            * SHORT_CLOSE_PROB_THRES_B
-            * LONG_POS_COUNT
-            * SHORT_POS_COUNT
+            LONG_CLOSE_PROB_THRES_A * LONG_CLOSE_PROB_THRES_B * LONG_POS_COUNT
         )
         perf = (
             hyper_params_mul
@@ -783,28 +672,8 @@ def run_benchmark(
         ]
     )
 
-    short_A_positions = len(
-        [
-            pos
-            for pos in positions_history
-            if pos["type"] == "short"
-            and ("A" in pos["open_interval"] or "C" in pos["open_interval"])
-        ]
-    )
-
-    short_B_positions = len(
-        [
-            pos
-            for pos in positions_history
-            if pos["type"] == "short"
-            and ("B" in pos["open_interval"] or "D" in pos["open_interval"])
-        ]
-    )
-
     long_rate = long_A_positions / (long_A_positions + long_B_positions + 1)
-    short_rate = short_A_positions / (short_A_positions + short_B_positions + 1)
-    AB_rate = (long_A_positions + short_A_positions) / (positions_count + 1)
-    long_short_rate = (long_A_positions + long_B_positions) / (positions_count + 1)
+    AB_rate = (long_A_positions) / (positions_count + 1)
 
     metrics = {
         "portfolio": {
@@ -827,9 +696,7 @@ def run_benchmark(
             "annual_roi_min": annual_roi_min,
             "annual_roi_max": annual_roi_max,
             "long_rate": long_rate,
-            "short_rate": short_rate,
             "AB_rate": AB_rate,
-            "long_short_rate": long_short_rate,
         },
         "positions_count": positions_count,
     }
@@ -871,24 +738,17 @@ if __name__ == "__main__":
             params = load_cma_params(
                 os.path.join(config.CMA_DIR, f"best_{top}_params.json")
             )
-            params_extended = params + [0.1, config.TREND_SCORE_RATE]
             (
                 # max_positions,
                 long_open_prob_thres_a,
                 long_close_prob_thres_a,
-                short_open_prob_thres_a,
-                short_close_prob_thres_a,
                 long_open_prob_thres_b,
                 long_close_prob_thres_b,
-                short_open_prob_thres_b,
-                short_close_prob_thres_b,
                 long_pos_count,
                 short_pos_count,
-                long_pos_pow,
-                short_pos_pow,
+                long_pos_power,
                 pos_gain_close_thres,
-                trend_score_rate,
-            ) = params_extended[:14]
+            ) = params
 
             returns = []
             max_drawdowns = []
@@ -907,18 +767,11 @@ if __name__ == "__main__":
                     INIT_CAPITAL=config.INITIAL_CAPITAL,
                     LONG_OPEN_PROB_THRES_A=long_open_prob_thres_a,
                     LONG_CLOSE_PROB_THRES_A=long_close_prob_thres_a,
-                    SHORT_OPEN_PROB_THRES_A=short_open_prob_thres_a,
-                    SHORT_CLOSE_PROB_THRES_A=short_close_prob_thres_a,
                     LONG_OPEN_PROB_THRES_B=long_open_prob_thres_b,
                     LONG_CLOSE_PROB_THRES_B=long_close_prob_thres_b,
-                    SHORT_OPEN_PROB_THRES_B=short_open_prob_thres_b,
-                    SHORT_CLOSE_PROB_THRES_B=short_close_prob_thres_b,
                     LONG_POS_COUNT=long_pos_count,
-                    SHORT_POS_COUNT=short_pos_count,
-                    LONG_POS_POW=long_pos_pow,
-                    SHORT_POS_POW=short_pos_pow,
+                    LONG_POS_POWER=long_pos_power,
                     POS_GAIN_CLOSE_THRES=pos_gain_close_thres,
-                    TREND_SCORE_RATE=trend_score_rate,
                     MODEL_PATH=config.TRAIN_DIR,
                     data_path=None,
                     remove_stocks=remove_stocks,

@@ -56,9 +56,9 @@ DOWNLOAD_START_DATE = "2017-01-01"
 TRAIN_START_DATE = "2019-08-01"
 TRAIN_END_DATE = "2024-10-05"
 
-# CMAES_END_DATE = TRAIN_END_DATE
+CMAES_END_DATE = TRAIN_END_DATE
 # CMAES_END_DATE = BENCHMARK_END_DATE
-CMAES_END_DATE = "2025-03-05"  # CMA-ES finetune end date
+# CMAES_END_DATE = "2025-03-05"  # CMA-ES finetune end date
 CMAES_MONTHS_HISTORY = 3 * 12
 # CMAES_START_DATE = None
 CMAES_START_DATE = BENCHMARK_START_DATE
@@ -342,46 +342,32 @@ TS_SIZE = 6
 
 # CMA-ES optimization parameters
 CMA_RECURSIVE = 1
-CMA_LOOPS = 150
+CMA_LOOPS = 100
 CMA_EARLY_STOP_ROUNDS = 30
 CMA_STOCKS_DROP_OUT_ROUND = 20
 CMA_STOCKS_DROP_OUT = 10
-CMA_PROCESSES = 32
+CMA_PROCESSES = 16
 CMA_PARALLEL_PROCESSES = 16
-TREND_SCORE_RATE = 0.6
 INIT_X0 = [
     0.8,
     0.33,
     0.8,
     0.33,
-    0.8,
-    0.33,
-    0.8,
-    0.33,
-    0.85,
     0.85,
     0.1,
     0.1,
     0.1,
-    TREND_SCORE_RATE,
 ]
 INIT_CMA_STD = 0.2
 # CMA-ES optimization parameter space
 INIT_SPACE = [  # Important increase params favor better safety
     Real(0.33, 0.95, name="long_open_prob_thres_A"),
     Real(0.1, 0.95, name="long_close_prob_thres_A"),
-    Real(0.33, 0.95, name="short_open_prob_thres_A"),
-    Real(0.1, 0.95, name="short_close_prob_thres_A"),
     Real(0.33, 0.95, name="long_open_prob_thres_B"),
     Real(0.1, 0.95, name="long_close_prob_thres_B"),
-    Real(0.33, 0.95, name="short_open_prob_thres_B"),
-    Real(0.1, 0.95, name="short_close_prob_thres_B"),
-    Real(0.6, 0.95, name="long_pos_count"),
-    Real(0.6, 0.95, name="short_pos_count"),
-    Real(0.03, 0.2, name="long_pos_pow"),
-    Real(0.03, 0.2, name="short_pos_pow"),
-    Real(0.05, 0.2, name="pos_gain_close_thres"),
-    Real(0.0, 0.99, name="trend_score_rate"),
+    Real(0.65, 0.95, name="long_pos_count"),
+    Real(0.03, 0.2, name="long_pos_power"),
+    Real(0.05, 0.3, name="new_open_gain_thres"),
 ]
 CMA_PARAM_NAMES = [dim.name for dim in INIT_SPACE]
 
@@ -399,12 +385,12 @@ PARAM_GRID = {
     # Important parameter for mean/(std^power)
     # search power value that provides
     # best feature importance rank to maximize F1
-    "mean_std_power": [1.71],
+    "mean_std_power": [1.6],
     # Top features search range
-    "top_features": list(range(55, 65, 1)),
+    "top_features": list(range(85, 100, 5)),
 }
 
-F1_THRESHOLD_STEP = 0.0001
+F1_THRESHOLD_STEP = 0.00005
 OPEN_INDEX_DELAY = 1
 NEW_OPEN = True
 TRADE_DATA_LOAD = None
