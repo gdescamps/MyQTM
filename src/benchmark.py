@@ -753,8 +753,8 @@ def run_benchmark(
         )
         perf = (
             hyper_params_mul
-            * (portfolio_ret_cmaes_period**5)
-            * (1.0 - longest_portfolio_drawdown_cmaes_period_norm)
+            * (portfolio_ret_cmaes_period**6)
+            * ((1.0 - longest_portfolio_drawdown_cmaes_period_norm) ** 2)
             * max(
                 0.0,
                 (1.0 - (monthly_cmaes_period_roi_std / monthly_cmaes_period_roi_max)),
