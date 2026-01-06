@@ -56,8 +56,8 @@ DOWNLOAD_START_DATE = "2017-01-01"
 TRAIN_START_DATE = "2019-08-01"
 TRAIN_END_DATE = "2024-10-05"
 
-CMAES_END_DATE = TRAIN_END_DATE
-# CMAES_END_DATE = BENCHMARK_END_DATE
+# CMAES_END_DATE = TRAIN_END_DATE
+CMAES_END_DATE = BENCHMARK_END_DATE
 # CMAES_END_DATE = "2025-03-05"  # CMA-ES finetune end date
 CMAES_MONTHS_HISTORY = 3 * 12
 # CMAES_START_DATE = None
@@ -342,11 +342,11 @@ TS_SIZE = 6
 
 # CMA-ES optimization parameters
 CMA_RECURSIVE = 1
-CMA_LOOPS = 120
+CMA_LOOPS = 150
 CMA_EARLY_STOP_ROUNDS = 30
 CMA_STOCKS_DROP_OUT_ROUND = 20
 CMA_STOCKS_DROP_OUT = 10
-CMA_PROCESSES = 16
+CMA_PROCESSES = 32
 CMA_PARALLEL_PROCESSES = 16
 INIT_X0 = [
     0.8,
@@ -385,7 +385,7 @@ PARAM_GRID = {
     # Important parameter for mean/(std^power)
     # search power value that provides
     # best feature importance rank to maximize F1
-    "mean_std_power": [1.6],
+    "mean_std_power": [1.77],
     # Top features search range
     "top_features": list(range(85, 100, 5)),
 }
