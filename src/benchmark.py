@@ -745,7 +745,6 @@ if __name__ == "__main__":
                 long_open_prob_thres_b,
                 long_close_prob_thres_b,
                 long_pos_count,
-                short_pos_count,
                 long_pos_power,
                 pos_gain_close_thres,
             ) = params
@@ -771,7 +770,7 @@ if __name__ == "__main__":
                     LONG_CLOSE_PROB_THRES_B=long_close_prob_thres_b,
                     LONG_POS_COUNT=long_pos_count,
                     LONG_POS_POWER=long_pos_power,
-                    POS_GAIN_CLOSE_THRES=pos_gain_close_thres,
+                    NEW_OPEN_GAIN_THRES=pos_gain_close_thres,
                     MODEL_PATH=config.TRAIN_DIR,
                     data_path=None,
                     remove_stocks=remove_stocks,
