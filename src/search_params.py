@@ -75,7 +75,7 @@ def load_thresholds(train_dir):
     return None
 
 
-def override_open_threshold_bounds(space, thresholds, margin=0.07):
+def override_open_threshold_bounds(space, thresholds, margin=0.04):
     if not thresholds:
         return space
     label_to_space_name = {

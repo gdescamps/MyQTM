@@ -19,6 +19,7 @@ from itertools import product
 from pathlib import Path
 
 import joblib
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import xgboost as xgb
@@ -101,14 +102,13 @@ def compute_perf(trade_data, threshold):
                 candidates.append((yprob, item[stock]["gain"]))
 
         if not candidates:
+            opportunity_gains.append(gain)
             continue
 
         candidates.sort(key=lambda entry: entry[0], reverse=True)
         selected = candidates[:3]
-        day_gain = 1.0
         for _, trade_gain in selected:
             gain *= 1.0 + trade_gain
-            day_gain *= 1.0 + trade_gain
             if gain > gain_max:
                 gain_max = gain
             if gain / gain_max < gain_min_norm:
@@ -117,7 +117,7 @@ def compute_perf(trade_data, threshold):
                 loss_count += 1
             count += 1
         opportunity_days.append(index)
-        opportunity_gains.append(day_gain)
+        opportunity_gains.append(gain)
 
     gain_per_trade = 1
     if count:
@@ -130,17 +130,16 @@ def compute_perf(trade_data, threshold):
         span_factor = span / total_span
 
     regularity = 0.0
-    if len(opportunity_days) > 2:
-        # Normalize intervals with opportunity_days and total_span
-        intervals = len(opportunity_days) * np.diff(opportunity_days) / total_span
-        weights = np.sqrt(
-            np.maximum(np.array(opportunity_gains[:-1]), 1e-6)
-            * np.maximum(np.array(opportunity_gains[1:]), 1e-6)
-        )
-        mean_interval = np.average(intervals, weights=weights)
-        variance = np.average((intervals - mean_interval) ** 2, weights=weights)
-        std_interval = np.sqrt(variance)
-        regularity = mean_interval / (1.0 + std_interval)
+    if len(opportunity_days) > 20:
+        gt = opportunity_gains[-1]
+        gpt = gt ** (1 / len(opportunity_gains))
+        norm_error = []
+        g = 1.0
+        for g_ in opportunity_gains:
+            g *= gpt
+            norm_error.append(min(1.0, abs(g - g_) / g))
+        regularity = 1.0 - np.mean(norm_error)
+        regularity = max(0.1, regularity) ** 3.0
 
     score = 0
     if gain_min_norm < 0.65:
@@ -156,7 +155,14 @@ def compute_perf(trade_data, threshold):
 
     dd = -(1.0 - gain_min_norm)
 
-    return gain_per_trade, dd, len(opportunity_days), score
+    return (
+        gain_per_trade,
+        dd,
+        len(opportunity_days),
+        score,
+        regularity,
+        opportunity_gains,
+    )
 
 
 def search_threshold_for_perf(
@@ -170,16 +176,27 @@ def search_threshold_for_perf(
     best_gain_per_trade = 0
     best_threshold = 1.0
     best_dd = 0
+    best_regularity = 0.0
+    best_opportunity_gains = []
 
     thresholds = np.arange(threshold_min, threshold_max, threshold_step)
     for threshold in tqdm(thresholds, leave=False):
-        gain_per_trade, dd, count, score = compute_perf(trade_data, threshold)
+        (
+            gain_per_trade,
+            dd,
+            count,
+            score,
+            regularity,
+            opportunity_gains,
+        ) = compute_perf(trade_data, threshold)
         if score > best_score:
             best_score = score
             best_count = count
             best_dd = dd
             best_threshold = threshold
             best_gain_per_trade = gain_per_trade
+            best_regularity = regularity
+            best_opportunity_gains = list(opportunity_gains)
 
     return (
         best_score,
@@ -187,6 +204,8 @@ def search_threshold_for_perf(
         best_gain_per_trade,
         best_dd,
         best_count,
+        best_regularity,
+        best_opportunity_gains,
     )
 
 
@@ -229,7 +248,26 @@ def split_trade_data(trade_data):
     )
 
 
-def search_perfs_threshold(model_path, data_path):
+def save_opportunity_gains_plot(output_dir, label, opportunity_gains, feature_count):
+    if not opportunity_gains:
+        return
+    output_dir = Path(output_dir)
+    output_dir.mkdir(parents=True, exist_ok=True)
+    filename = f"opportunity_gains_{label}_nfeat{int(feature_count)}.png"
+    path = output_dir / filename
+
+    plt.figure(figsize=(10, 4))
+    plt.plot(opportunity_gains, color="#1f77b4", linewidth=1.5)
+    plt.title(f"Opportunity gains ({label}) - nfeat={int(feature_count)}")
+    plt.xlabel("Opportunity index")
+    plt.ylabel("Gain")
+    plt.grid(True, alpha=0.3)
+    plt.tight_layout()
+    plt.savefig(path, dpi=150)
+    plt.close()
+
+
+def search_perfs_threshold(model_path, data_path, output_dir, feature_count, labels):
     trade_data = build_trade_data(
         model_path=model_path,
         data_path=data_path,
@@ -252,6 +290,8 @@ def search_perfs_threshold(model_path, data_path):
     gain_per_trades = []
     dds = []
     scores = []
+    regularities = []
+    opportunity_gains_segments = []
 
     for trade_data_segment in segments:
         (
@@ -260,12 +300,19 @@ def search_perfs_threshold(model_path, data_path):
             gain_per_trade,
             dd,
             count,
+            regularity,
+            opportunity_gains,
         ) = search_threshold_for_perf(trade_data_segment)
         counts.append(int(count))
         gain_per_trades.append(float(gain_per_trade))
         dds.append(float(dd))
         thresholds.append(float(threshold))
         scores.append(score)
+        regularities.append(float(regularity))
+        opportunity_gains_segments.append(opportunity_gains)
+
+    for label, opportunity_gains in zip(labels, opportunity_gains_segments):
+        save_opportunity_gains_plot(output_dir, label, opportunity_gains, feature_count)
 
     return (
         scores,
@@ -273,6 +320,7 @@ def search_perfs_threshold(model_path, data_path):
         gain_per_trades,
         dds,
         thresholds,
+        regularities,
     )
 
 
@@ -285,18 +333,20 @@ def format_threshold_details(
     counts,
     gain_per_trades,
     dds,
+    regularities,
 ):
     lines = []
-    for label, threshold, count, gain_per_trade, dd in zip(
+    for label, threshold, count, gain_per_trade, dd, regularity in zip(
         labels,
         thresholds,
         counts,
         gain_per_trades,
         dds,
+        regularities,
     ):
         lines.append(
             f"{label}: thres={threshold:.3f}, count={int(count)}, "
-            f"gain={gain_per_trade:.3f}, dd={dd:.3f}"
+            f"gain={gain_per_trade:.3f}, dd={dd:.3f}, reg={regularity:.3f}"
         )
     return "\n".join(lines)
 
@@ -711,8 +761,19 @@ if __name__ == "__main__":
             json.dump({"ntree_limit": int(f1_callbackb.best_iter + 1)}, f)
 
         model_path = Path(get_project_root()) / local_log.output_dir_time
-        (scores, counts, gain_per_trades, dds, thresholds) = search_perfs_threshold(
-            model_path, data_path
+        (
+            scores,
+            counts,
+            gain_per_trades,
+            dds,
+            thresholds,
+            regularities,
+        ) = search_perfs_threshold(
+            model_path,
+            data_path,
+            local_log.output_dir_time,
+            len(selected_features),
+            THRESHOLD_SEGMENT_LABELS,
         )
         score = float(np.prod(scores))
 
@@ -749,6 +810,7 @@ if __name__ == "__main__":
                         counts,
                         gain_per_trades,
                         dds,
+                        regularities,
                     )
                 )
         else:
@@ -762,6 +824,7 @@ if __name__ == "__main__":
                     counts,
                     gain_per_trades,
                     dds,
+                    regularities,
                 )
             )
             pass
